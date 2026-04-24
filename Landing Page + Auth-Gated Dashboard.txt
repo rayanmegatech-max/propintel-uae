@@ -1,0 +1,15 @@
+/                    → Public landing page (hero, features, pricing, Market Pulse widgets)
+/pricing             → Full pricing table with Starter/Pro/Agency tiers
+/login               → Auth (email + password or magic link)
+/signup              → Free trial registration
+/dashboard           → Gated: Main workspace with sidebar navigation
+/dashboard/morning-brief
+/dashboard/true-listing-age
+/dashboard/trust-score
+/dashboard/fsbo
+/dashboard/yield-engine
+/dashboard/smart-pricing
+/dashboard/rival-radar
+/dashboard/poaching
+/dashboard/commercial
+/dashboard/developer-sov

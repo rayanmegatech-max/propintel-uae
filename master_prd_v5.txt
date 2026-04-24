@@ -1,0 +1,438 @@
+# MASTER PRD v5.0
+
+## Agent Productivity Suite Edition
+
+---
+
+**Version:** 5.0 FINAL — Agent Productivity Suite Edition
+**Date:** April 2026
+**Classification:** Strategic — Internal Distribution Only
+**Supersedes:** PRD v1.0, v2.0 Addendum, PRD v3.0 Final, PRD v4.0 Institutional Terminal
+
+**Data Moat:** 19 Pydantic v2 schemas • ~30K ads/scrape • 300K live listings • 900K+ immutable SCD-2 history
+**Doctrine:** Supply-Side Truths only. Zero external dependencies. Zero government data.
+**Target Valuation:** $10M ARR within 12 months, with KSA expansion path at Month 14+
+
+---
+
+## Strategic Pivot Thesis
+
+PRD v4.0 built an institutional data terminal. That product was technically sound but strategically premature — it targeted 50 high-value clients (banks, funds, recruiters) who each require 6–9 month sales cycles, custom integrations, and enterprise procurement. We are a lean team. We need volume, not elegance.
+
+PRD v5.0 refocuses the platform on the **25,000+ individual UAE real estate agents and 2,000+ mid-sized agencies** who close deals daily and pay with their personal credit cards. Every feature in this document answers one question: *"Does this help the agent win their next mandate or close their next deal?"*
+
+The institutional modules (IVI, SSI, Defector API, Collateral Risk API, Developer SOV, CoStar-UAE Commercial) from PRD v4 are not discarded — they are **deferred to Phase 2**, after we hit the $10M ARR milestone and have the operational maturity to serve enterprise buyers.
+
+---
+
+## 1. Infrastructure Realities & Supply-Side Doctrine
+
+*This section is unchanged from PRD v3.0 and v4.0. It governs every feature in this document.*
+
+### 1.1 Scraper Architecture & Data Volume
+
+| Parameter | Specification |
+|---|---|
+| **Ads per scrape run** | ~30,000 per portal per run (pagination-bounded). 150K–200K raw records per full sweep across 3 portals and all categories. |
+| **Live snapshot** | ~300,000 currently active deduplicated listings across Bayut, Dubizzle, and Property Finder. |
+| **Historical moat** | 900,000+ immutable SCD-2 records. Grows monotonically with every price change, status flip, and agent reassignment. Never pruned. |
+| **Schema library** | 19 Pydantic v2 schemas: Bayut (7), Dubizzle (7), Property Finder (5). Each produces SHA-256 `hash_id` fingerprints. |
+| **Scrape cadence** | Every 4–6 hours for Tier-1 (Res Buy/Rent). Every 12 hours for Commercial/STR. Sufficient for intra-day price-change detection. |
+| **Data doctrine** | **SUPPLY-SIDE TRUTHS ONLY.** No government registries (DLD Oqood, eSmart). No demand-side claims. Only natively-embedded portal DLD flags (`dld_property_sk`, `has_dld_history`) are used. |
+
+### 1.2 The Supply-Side Compliance Test
+
+Every feature in this PRD passes the following test: *"Can this be computed exclusively from our 19 Pydantic v2 schemas and the SCD-2 historical archive, with zero external API calls?"* If yes, it ships. If no, it is rejected regardless of market demand.
+
+> **Doctrine Compliance Commitment:** The entire V5 product — all 7 modules, every score, every alert, every valuation — is computable from our existing data pipeline. Zero new scrapers. Zero external API dependencies. Zero third-party data costs. The product is architecturally self-sufficient.
+
+---
+
+## 2. Platform Architecture: 7 Agent Modules
+
+PRD v5 reduces the platform from 14 modules to a focused suite of 7 tools. Each tool is named for immediate agent resonance ("Smart Pricing Engine" vs. "ReEstimate™") and priced for mass-market accessibility ($49–$249/month).
+
+| # | Module (Agent-Facing Name) | V4 Origin | Primary Stickiness Trigger | Persona |
+|---|---|---|---|---|
+| 1 | **Smart Pricing Engine** | ReEstimate™ (M6) | Pre-mandate client meeting | All agents |
+| 2 | **Morning Market Brief** | Cross-Portal Core (M1) | 8:00 AM daily login | All agents |
+| 3 | **True Listing Age** | TDOM Engine (M2) | Every listing card view | All agents |
+| 4 | **FSBO Lead Magnet** | FSBO 1-Click (M4) | Morning outreach ritual | Solo + team agents |
+| 5 | **Investor Yield Engine** | Arbitrage Sniper (M5) | Multi-check daily (revenue) | Investment-focused agents |
+| 6 | **Agent Trust Score** | Ghost Score (M3) | Reputation check (daily) | All agents + agency managers |
+| 7 | **Rival Radar** | Broker Footprint (M7, simplified) | Competitor monitoring (daily) | Top performers + agencies |
+
+### 2.1 Deprecated/Deferred Modules
+
+The following PRD v4 modules are deferred to Phase 2 post $10M ARR:
+
+- Agent Poaching Engine (M8) — institutional recruitment; deferred with Defector API
+- CoStar-UAE Commercial Module (M9) — CRE persona; separate GTM motion
+- Developer SOV Reports (M10) — developer persona; standalone product later
+- Supply-Side Stress Monitor / IVI (M11) — institutional only
+- Panic Selling Radar / SSI (M12) — institutional only
+- Agent Exodus Defector API (M13) — institutional only
+- Mortgage Collateral Risk API (M14) — bank persona; separate GTM
+
+---
+
+## 3. The 7 Agent Modules — Full Specifications
+
+### 3.1 Module 1: Smart Pricing Engine
+
+**What it does:** Instantly generates a defensible, comp-backed valuation for any property in the UAE, exportable as a branded PDF with the agent's logo, photo, and contact details.
+
+**V1 Pitch:** When a seller asks *"How much is my property worth?"*, the agent hands them a professional report in 60 seconds — not a guess in 60 minutes. The branded PDF attached to a mandate pitch is the single fastest way to win a listing exclusivity against 5 competing agents.
+
+**Backend Data Requirement:**
+
+The algorithm is a weighted-median comparable valuation operating entirely on the live snapshot (300K active listings) and SCD-2 archive. No external valuation APIs are called.
+
+| Dimension | Computation | Weight |
+|---|---|---|
+| Building Comps | All active listings in the same building (matched via `building_name_en` / `tower_name`) with matching `rooms`/`bedrooms` and `baths`/`bathrooms`. Tightest comparable set. | 40% |
+| Community Comps | Active listings in the same community (matched via `neighborhood_names_en` / `community_name`) with matching `property_type_en` / `property_type`. Broader fallback. | 25% |
+| PSF Normalization | Price per square foot: `price` ÷ `area` (Bayut) / `price` ÷ `size` (Dubizzle) / `price_value` ÷ `size_value` (PF). PF also provides pre-computed `price_per_area_price`. Eliminates size bias. | 20% |
+| TDOM Freshness Decay | Listings with higher TDOM are down-weighted. TDOM computed via Module 3 logic (`createdAt` / `original_posted_date` / `listed_date`). | 10% |
+| Furnishing Adjustment | Furnished listings receive 10–15% premium vs. unfurnished comps. Uses `furnishing_status` (Bayut) / `prop_furnished_en` (Dubizzle) / `furnished` (PF). | 5% |
+
+**PDF Export Pipeline:** Server-side PDF generator produces a branded report containing the ReEstimate™ value, confidence band, comp count, top 5 comparables with PSF and TDOM, price positioning chart, and agent branding (logo, name, agency, contact). Watermark logic varies by tier (see Section 4).
+
+**Viral Loop:** Every report distributed to a seller/buyer carries the platform's branded footer with signup URL. At 1,000 Pro users generating 30 reports/week, this produces 30,000 branded impressions weekly at zero acquisition cost.
+
+---
+
+### 3.2 Module 2: Morning Market Brief
+
+**What it does:** A personalized 8:00 AM daily digest covering every community the agent tracks — new listings, price drops, delistings, and agent movements across Bayut, Dubizzle, and Property Finder, unified into one view.
+
+**V1 Pitch:** While competitors are manually scrolling through three portals, the agent has already identified the 5 best opportunities before their first coffee is finished. This is the single feature that replaces 90 minutes of daily manual portal browsing.
+
+**Backend Data Requirement:**
+
+The Brief is powered by two underlying engines: the Cross-Portal Deduplication Engine and the SCD-2 Delta Computation.
+
+**Cross-Portal Deduplication (Three-Pass Algorithm):**
+- **Pass 1 — Reference Matching:** Exact match on `reference_number` (Bayut) / `property_reference` (Dubizzle) / `reference` (PF). Highest confidence.
+- **Pass 2 — Geo-Spatial Clustering:** Within 50-meter radius using `lat`/`lng` (Bayut), `latitude`/`longitude` (Dubizzle), `location_lat`/`location_lon` (PF), combined with spec vector: bedrooms + bathrooms + area within 5% tolerance.
+- **Pass 3 — Agent Identity Correlation:** Same `agent_id` / `agent_profile_id` listing the same specs in the same building across multiple portals.
+
+**SCD-2 Delta Computation:**
+
+For each user's tracked communities, the system computes overnight deltas:
+- **New listings:** `hash_id` entries present in current snapshot but absent 24 hours prior.
+- **Delisted:** `hash_id` entries absent from current snapshot but present 24 hours prior.
+- **Price changes:** `hash_id` mutations where only the `price` / `price_value` field changed.
+- **Agent reassignments:** Mutations where `agency_id` or `agent_id` changed on an otherwise stable listing.
+- **Verification status changes:** Mutations of `is_verified` or `trucheck_date`.
+
+**Delivery:** In-app dashboard + optional 8:00 AM email digest + push notification for Pro/Agency tiers. Filtered by user's tracked communities and property type preferences.
+
+---
+
+### 3.3 Module 3: True Listing Age
+
+**What it does:** Shows the *real* age of every listing by bypassing agent "refresh" tricks — cross-referencing Bayut's `createdAt`, Dubizzle's URL-embedded original date, and PF's `listed_date`.
+
+**V1 Pitch:** When the agent pitches a buyer a property and says *"This seller has been trying to sell for 9 months — they'll take 12% below asking"*, they close deals competitors can't. Every negotiation becomes an asymmetric information advantage.
+
+**Backend Data Requirement:**
+
+The True Days-on-Market (TDOM) formula triangulates three independent timestamp sources across portals:
+
+| Portal | Primary Timestamp | Extraction Method |
+|---|---|---|
+| **Bayut** | `created_at` (alias `createdAt`) | Unix epoch timestamp, immutable from first scrape |
+| **Dubizzle** | `original_posted_date` | Regex extraction from `absolute_url_en`: `r'/(\d{4})/(\d{1,2})/(\d{1,2})/'` — the date is embedded in the URL path and persists across agent refreshes |
+| **Property Finder** | `listed_date` | Parsed from `__NEXT_DATA__` React payload |
+
+**Core Formula:** `TDOM = today() − min(createdAt_bayut, original_posted_date_dubizzle, listed_date_pf)` for cross-portal matched listings. For single-portal listings, use that portal's timestamp.
+
+**Refresh Inflation Score:** `RIS = (TDOM − portal_displayed_age) / TDOM`. Values approaching 1.0 indicate extreme manipulation (listing refreshed many times to appear new). Exposed on agent profile pages.
+
+**UI Requirement:** Every listing card displays two values — the portal's claimed age and our computed TDOM — with color coding: green (<7 days), amber (7–30 days), red (>30 days). This simple visual is the "aha moment" that converts free trial users.
+
+---
+
+### 3.4 Module 4: FSBO Lead Magnet
+
+**What it does:** Automatically detects properties listed directly by owners (bypassing agents), extracts their contact details, and launches a pre-filled, personalized WhatsApp message with one click.
+
+**V1 Pitch:** Every morning, 30–50 UAE owners list their properties without an agent. The first broker to reach them wins the mandate — and now that broker is our user. One converted FSBO mandate per year pays for the entire subscription.
+
+**Backend Data Requirement:**
+
+**FSBO Detection Logic:**
+- **Primary signal:** Dubizzle `listed_by_en = "Owner"` (explicit flag)
+- **Secondary signal:** Any listing across portals where `agency_id` / `agency_name` is null while `owner_agent` / `agent_profile` data is present
+
+**Contact Waterfall (Priority Order):**
+
+The 1-Click engine resolves the best contact channel by querying fields in priority order:
+
+| Priority | Channel | Bayut Field | Dubizzle Field | Property Finder Field |
+|---|---|---|---|---|
+| 1 | WhatsApp | `phone_whatsapp` | `has_whatsapp_number` + chat routing | `contact_whatsapp` (from `contact_options`) |
+| 2 | Mobile | `phone_mobile`, `phone_proxy_mobile` | Inferred via `agent_profile` | `contact_phone` |
+| 3 | Email | `hasEmail` via `contactMethodAvailability` | N/A | `contact_email`, `agent_email`, `broker_email` |
+
+**Template Hydration:** The WhatsApp message is auto-populated with context variables extracted from schemas:
+- `{seller_name}` ← `contact_name` / `agent_profile_name_en` / `agent_name`
+- `{property_type}` ← `property_type_en` / `prop_type_en` / `property_type`
+- `{community}` ← `city_name_en` + `neighborhood_names_en` / `community_name`
+- `{bedrooms}` ← `rooms` / `bedrooms` / `bedrooms_value`
+- `{price}` ← `price` / `price_value`
+- `{TDOM}` ← Module 3 computation
+
+**Dispatch Mechanism:** `wa.me/{phone_whatsapp}?text={urlencoded_template}` deep link. Total agent time from seeing lead to sending first message: under 30 seconds.
+
+**Tier-Gated Rate Limiting:** Starter = view-only (strongest upgrade trigger in product). Pro = 20 dispatches/day. Agency = unlimited + team claim-lock (prevents two agents from same agency contacting the same FSBO seller).
+
+---
+
+### 3.5 Module 5: Investor Yield Engine
+
+**What it does:** Scans all annual rental listings against daily/weekly/monthly short-term rates in the same building, instantly flagging properties where master-lease-and-sublet yields exceed 20% margin.
+
+**V1 Pitch:** Instead of pitching investors generic *"good locations"*, agents can pitch specific buildings where they can prove an AED 82K annual lease generates AED 107K via short-term rental. They become the agent who brings real numbers to HNWI clients, not just photos.
+
+**Backend Data Requirement:**
+
+The engine performs cross-schema joins across 7 frequency-specific tables:
+
+| Frequency | Bayut Schema | Dubizzle Schema | PF Schema |
+|---|---|---|---|
+| Yearly | `BayutYearlyRecord` | `DubizzleRentRecord` | `PFRentRecord` |
+| Monthly | `BayutMonthlyRecord` | `DubizzleMonthlyRecord` | `PFShortRentRecord` (period=monthly) |
+| Weekly | `BayutWeeklyRecord` | N/A | `PFShortRentRecord` (period=weekly) |
+| Daily | `BayutDailyRecord` | `DubizzleDailyRecord` | `PFShortRentRecord` (period=daily) |
+
+**Matching Logic:** Listings are joined within the same building using `building_name_en` / `tower_name` plus spec vector (bedrooms/bathrooms, property type, furnishing status).
+
+**Yield Computation:**
+- **Annual Lease Cost (ALC):** Median yearly price from matched annual listings in the building
+- **Projected STR Revenue (PSTR):** `median_daily_rate × 365 × 0.70` (default 70% occupancy, user-adjustable)
+- **Gross Arbitrage Margin (GAM):** `(PSTR − ALC) / ALC × 100`
+- **Furnishing Delta:** If annual lease is unfurnished but STR assumes furnished, system deducts AED 15K–30K furnishing cost from first-year margin
+- **DTCM Compliance Flag:** Cross-references PF's `rera` field and `is_fhm` flag to indicate DTCM permit requirement
+
+**Alert Triggers:**
+- New annual listing appears in building with existing STR comps showing GAM > 20%
+- STR rate increase in a building where previously-marginal annual leases now exceed the threshold
+- Annual price drop (SCD-2 mutation) newly crossing the opportunity threshold
+
+**Integration with Module 4:** Every arbitrage alert includes a 1-Click button to contact the annual lease listing agent via the same WhatsApp dispatch pipeline.
+
+---
+
+### 3.6 Module 6: Agent Trust Score
+
+**What it does:** Scores every agent in the UAE market on listing integrity — exposing ghost listings, fake refreshes, and bait-and-switch behavior using SCD-2 lifecycle analysis.
+
+**V1 Pitch:** When an agent pitches a buyer against three competing agents, they can now prove their listings are real while competitor listings are ghost ads with an 80% fraud score. Agents also check their *own* score daily to ensure portal compliance before getting suspended.
+
+**Backend Data Requirement:**
+
+The Trust Score (inverse of Ghost Score) is a 0–100 composite computed per `agent_id` over a rolling 90-day window. Six weighted signals:
+
+| Signal | Logic | Schema Fields | Weight |
+|---|---|---|---|
+| **Churn Velocity** | Ratio of listings deleted within 72 hours of creation vs. total. Ghost ads are posted to harvest calls, then pulled before portal audits. | `hash_id` lifecycle (creation + deletion within 72hrs) + `created_at`, `state` (Bayut), `added` (Dubizzle) | 0.25 |
+| **Reactivation Cycling** | Count of `reactivated_at` events per listing. Legitimate listings rarely reactivate; ghost agents cycle 5–10x. | `reactivated_at` (Bayut) + SCD-2 hash mutation count on same `objectID` | 0.20 |
+| **Price Anomaly** | Listing price >25% below median for same community + bedrooms + property type. Outlier pricing is the primary bait mechanism. | `price` / `price_value` + `rooms`/`bedrooms` + `city_name_en` + `neighborhood_names_en` + `property_type_en` | 0.20 |
+| **Photo Poverty** | Listings with <3 photos or no video/360 tour. Ghost agents invest minimal media effort. | `photo_count`, `video_count`, `panorama_count` (Bayut); `photos_count`, `has_video_url`, `has_tour_url` (Dubizzle); `images_count`, `has_view_360` (PF) | 0.15 |
+| **Verification Absence** | Agent has >5 active listings but <20% are verified. Legitimate agents actively seek TruCheck. | `is_verified`, `trucheck_date`, `agent_is_tru_broker` (Bayut); `is_verified` (all schemas) | 0.10 |
+| **Cross-Portal Inconsistency** | Same agent lists same property on 2+ portals with >15% price delta. | Dedup engine output + `agent_id` cross-match + price delta | 0.10 |
+
+**Score Tiers:** Clean (0–34), Watch (35–60), Flagged (61–100). Trust Score = 100 − Ghost Score.
+
+**Tier-Gated Lookups:** Starter = own badge + 5 agent lookups/month. Pro = 50 competitor lookups/month. Agency = unlimited + internal compliance dashboard showing the agency's own agents' scores (proactive compliance before portal audits).
+
+---
+
+### 3.7 Module 7: Rival Radar
+
+**What it does:** Track up to 10 competitor agents or 5 competitor agencies — the platform shows every listing they added today, every price drop, which communities they dominate, and which price tiers they actually close in.
+
+**V1 Pitch:** Agents stop guessing what their top 3 rivals are doing — they see the entire competitor playbook in real time. When the top agent in JBR suddenly stops listing, they know to move in before anyone else realizes they left the territory.
+
+**Backend Data Requirement:**
+
+This is a simplified, agent-focused version of the full Broker Footprint module from PRD v4 (Module 7). Heavy analytics (full poaching dossiers, Talent Radar alerts) are reserved for future Agency-tier expansion.
+
+**Agent Specialty Profiling:**
+
+For any tracked `agent_id`, the system aggregates the agent's active listings across dimensions:
+
+| Dimension | Computation | Schema Fields |
+|---|---|---|
+| **Category Mix** | % distribution across Residential Buy/Rent, Commercial, STR, Land. Determined by source schema table + `purpose`/`offering_type` confirmation. | `purpose`, `rent_frequency` (Bayut); `prop_purpose_en`, `category_slugs` (Dubizzle); `offering_type`, `category_id`, `price_period` (PF) |
+| **Territory Map** | Geographic heatmap of agent's active listings. Cluster density reveals hyper-local vs. scattered focus. | `lat`/`lng`, `latitude`/`longitude`, `location_lat`/`location_lon` + community fields |
+| **Price Tier Focus** | Distribution across price brackets (luxury >AED 5M / mid AED 1–5M / affordable <AED 1M). | `price` / `price_value` segmented by `property_type_en` |
+| **Activity Recency** | "Last seen" timestamp of most recent listing creation/update/reactivation. | `created_at`, `updated_at`, `reactivated_at` (Bayut); `added`, `prop_updated_at` (Dubizzle); `listed_date`, `last_refreshed_at` (PF) |
+| **Ad Spend Signal** | Paid boost tier of listings. Reveals whether agent invests in portal visibility. | `product`, `productLabel`, `productVariant` (Bayut); `listing_level`, `is_premium`, `is_featured`, `is_spotlight_listing` (PF) |
+
+**Daily Competitor Feed:** For each tracked rival, the system produces an overnight delta: new listings added, listings delisted, price drops executed, agency changes detected. Delivered in the Morning Market Brief dashboard.
+
+**Agency-Level Aggregation:** At Agency tier, users can track competing *agencies* (not just individual agents). The system aggregates all listings where `agency_id` / `agency_name_en` matches the competitor, producing rival brokerage intelligence.
+
+---
+
+## 4. Subscription Architecture
+
+### 4.1 Three-Tier Pricing Model
+
+| | **Starter** | **Pro** | **Agency** |
+|---|---|---|---|
+| **Monthly Price** | **$49** (AED 179) | **$99** (AED 365) | **$249** (AED 915) |
+| **Annual Price (20% off)** | $470/yr | $950/yr | $2,390/yr |
+| **Target User** | New agent, trial users | Solo top performer | Agency manager (5–20 agents) |
+| **Seats Included** | 1 | 1 | 5 (additional $39/seat) |
+
+### 4.2 Feature Allocation Matrix
+
+| Module | **Starter** | **Pro** | **Agency** |
+|---|---|---|---|
+| **1. Smart Pricing Engine** | 10 reports/mo • watermarked | 50 reports/mo • agent-branded | Unlimited • white-label agency brand |
+| **2. Morning Market Brief** | 1 emirate only (Dubai OR Abu Dhabi) | All UAE • 10 community watchlists | All UAE • unlimited watchlists + team briefs |
+| **3. True Listing Age** | On listing cards only | + Refresh Inflation leaderboard | Full + agency-wide stale inventory alerts |
+| **4. FSBO Lead Magnet** | View-only (no 1-click) | 20 WhatsApp dispatches/day | Unlimited + team claim-lock queue |
+| **5. Investor Yield Engine** | 3/week preview (48hr delayed) | 15 buildings tracked, real-time | Unlimited buildings + team alert routing |
+| **6. Agent Trust Score** | Own badge + 5 lookups/mo | 50 competitor lookups/mo | Full internal compliance dashboard |
+| **7. Rival Radar** | ✗ | Track 10 agents | Track unlimited agents + 10 agencies |
+
+### 4.3 Smart Limits Philosophy
+
+Every restriction on lower tiers is engineered around a **specific upgrade trigger moment** — the instant an agent realizes they're losing money by staying on the cheaper tier.
+
+**Starter → Pro Upgrade Triggers**
+
+- **10 pricing reports/month runs out around day 12** — agents use one report per client pitch. Watermarked reports tell sellers *"I'm using a trial tool"* (professionally embarrassing).
+- **Single-emirate restriction** — first time an agent gets a referral for an Abu Dhabi property while subscribed to Dubai-only, they upgrade on the spot.
+- **FSBO view-only mode** — the agent sees 40 FSBO leads in their dashboard but cannot contact them via 1-Click. This is the single most powerful upgrade trigger in the product; the agent knows exactly how much money is on the table.
+- **Investor Yield Engine 48-hour delay** — the agent sees arbitrage opportunities, but Pro users reached the annual-lease seller 2 days earlier and already closed.
+
+**Pro → Agency Upgrade Triggers**
+
+- **Watermark vs. white-label branding** — when the agency grows past 3 agents, the manager wants one unified brand on all client-facing reports.
+- **Team claim-lock on FSBO leads** — without it, two agents from the same agency contact the same FSBO seller, embarrassing the agency.
+- **Rival agency tracking (5 agencies)** — only available at Agency tier. The moment the agency owner wants to monitor competing brokerages, they must upgrade.
+- **Shared agent performance dashboards** — agency managers need to benchmark their own agents. Only available at the top tier.
+
+---
+
+## 5. Revenue Model: Path to $10M Valuation
+
+### 5.1 12-Month Projection
+
+| Metric | Month 3 | Month 6 | Month 9 | Month 12 |
+|---|---|---|---|---|
+| Free trial users | 2,500 | 8,000 | 14,000 | 20,000 |
+| Starter ($49) subscribers | 100 | 400 | 800 | 1,200 |
+| Pro ($99) subscribers | 60 | 250 | 550 | 900 |
+| Agency ($249) subscribers | 5 | 20 | 45 | 85 |
+| **Monthly MRR** | **$12,000** | **$49,580** | **$105,155** | **$169,065** |
+| **Annualized ARR** | $144K | $595K | $1.26M | **$2.03M** |
+| **Valuation at 5x ARR** | $720K | $3.0M | $6.3M | **$10.1M** |
+
+### 5.2 Valuation Multiple Rationale
+
+The 5× ARR multiple (not 10× as used for institutional SaaS) reflects realistic vertical SaaS valuations for agent-targeted productivity tools. This is tighter than data-terminal products but highly defensible given:
+
+- **Strong gross margin:** >85% (pure software, no portal licensing, no labor-intensive services)
+- **Net revenue retention >110%:** driven by Starter → Pro upgrades and seat expansion in Agency tier
+- **Low CAC:** viral ReEstimate™ report loop and organic SEO keep paid acquisition minimal
+- **Deep data moat:** 900K+ SCD-2 records that compound daily, creating a 12–18 month replication barrier
+
+### 5.3 Unit Economics at Steady State (Month 12)
+
+| Metric | Value |
+|---|---|
+| Blended ARPU | $76/mo |
+| Gross margin | 87% |
+| Estimated CAC (blended) | $85 |
+| Estimated LTV (24-mo retention) | $1,822 |
+| LTV:CAC ratio | 21:1 |
+| Payback period | ~1.1 months |
+
+---
+
+## 6. KSA Expansion Path
+
+The platform is architecturally market-agnostic. Expansion to Saudi Arabia requires only two changes:
+
+1. **Point scrapers at Saudi portals** (Aqar, Bayut.sa). Most use similar underlying technologies (Algolia, Next.js `__NEXT_DATA__`) to the UAE portals, meaning our schema architecture transfers with minimal modification.
+2. **Re-localize community and city filters** for Riyadh, Jeddah, Dammam, Khobar, Mecca, Medina neighborhoods.
+
+**No changes required to:**
+
+- Any of the 7 module algorithms
+- The SCD-2 hash engine
+- The subscription tier structure
+- The pricing model (SAR ≈ AED, direct conversion)
+- The UI/UX layer
+- The PDF report generator
+- The deduplication logic
+
+**KSA Market Sizing:**
+
+| Parameter | UAE | KSA |
+|---|---|---|
+| Licensed agents (approx.) | 25,000 | 35,000+ |
+| Active agencies | 2,000 | 3,500+ |
+| Primary portals | 3 (Bayut, Dubizzle, PF) | 2–3 (Aqar, Bayut.sa, WASALT) |
+| Regulatory body | RERA / DTCM | Real Estate General Authority (REGA) |
+
+**Launch Timing:** KSA market entry is targeted for Month 14–16, after UAE hits the $10M ARR milestone and operational playbooks are codified.
+
+**Additional ARR Potential from KSA:** At equivalent market penetration rates, KSA could contribute an additional $2.8–3.5M ARR by Month 24, taking consolidated ARR to ~$5M and implied valuation to ~$25M at the same 5× multiple — or higher if we achieve GCC-wide category leadership premium.
+
+---
+
+## 7. Build Sequence (12-Sprint Plan)
+
+| Sprint | Weeks | Deliverables | Ship Criteria |
+|---|---|---|---|
+| **S1–S2** | 1–4 | Cross-portal dedup pipeline • SCD-2 ingestion • Listing card UI • Free tier auth | 300K listings queryable. Internal demo. |
+| **S3–S4** | 5–8 | Smart Pricing Engine algorithm • PDF export • Morning Market Brief dashboard • True Listing Age badges | Beta invite to 50 agents. ReEstimate™ reports live. |
+| **S5–S6** | 9–12 | Agent Trust Score 6-signal algorithm • FSBO detection + 1-Click WhatsApp • Stripe payments • Starter + Pro tiers | Full MVP live. Public launch. First paying subscribers. |
+| **S7–S8** | 13–16 | Investor Yield Engine cross-frequency joins • Agency tier activation • Team features • Claim-lock queue | Agency tier live. First agency clients onboarded. |
+| **S9–S10** | 17–20 | Rival Radar agent profiling • Competitor feeds • Internal compliance dashboard • Performance optimization | All 7 modules shipped. Platform feature-complete. |
+| **S11–S12** | 21–24 | Scale infrastructure for 20K+ users • Referral program • SEO content engine • KSA scraper preparation | Ready for KSA expansion. $10M ARR trajectory confirmed. |
+
+---
+
+## 8. Success Metrics (90-Day Targets Post-Launch)
+
+| Metric | Target | Measurement |
+|---|---|---|
+| Free signups | 2,500+ | Registration count. Viral ReEstimate™ + organic SEO. |
+| Smart Pricing reports generated | 8,000+ total | Leading indicator of viral spread. |
+| Free → Starter conversion | 12%+ within 30 days | Triggered by report quota + emirate lock. |
+| Starter → Pro upgrade rate | 35%+ within 60 days | Triggered by FSBO view-only frustration + Yield Engine delay. |
+| Pro subscribers | 250+ | Stripe MRR. $24,750/mo minimum. |
+| Agency subscriptions | 20+ | Direct sales. $4,980/mo minimum. |
+| DAU/MAU ratio | >40% | Indicates daily habit formation. |
+| FSBO outreach actions | 800+/week | Proxy for platform's action-driving utility. |
+| Month-3 MRR | $50,000+ | Validates PMF and justifies scaling spend. |
+
+---
+
+## 9. Strategic Conclusion
+
+PRD v5.0 is the execution plan for a $10M ARR vertical SaaS serving the UAE real estate agent market within 12 months, with a clear expansion runway into KSA and the broader GCC.
+
+The product is deliberately narrow: **7 tools, 3 tiers, $49–$249/month.** It discards institutional complexity in exchange for mass-market conversion velocity. Every module answers a single question for 25,000+ UAE agents: *"What should I do in the next 10 minutes to close more deals this month?"*
+
+The institutional features (IVI, SSI, Defector API, Collateral Risk API, CoStar-UAE Commercial, Developer SOV) specified in PRD v4 are not lost. They are **deferred to Phase 2**, after we hit the $10M ARR milestone with the agent suite. At that point, the same SCD-2 data moat that powers this product powers the institutional product, at zero duplicate engineering cost. This is the CoStar playbook: dominate the practitioner market first, then climb the value chain to institutions.
+
+**The entire V5 product is computable from our existing 19 Pydantic v2 schemas and SCD-2 archive.** Zero new scrapers. Zero external APIs. Zero third-party data dependencies. Our cost structure is servers, scrapers, and engineers. Everything else is margin.
+
+The data moat compounds daily. Every scrape cycle adds thousands of new SCD-2 records. Every new `hash_id` mutation sharpens Smart Pricing accuracy, calibrates Trust Scores, and expands True Listing Age coverage. A competitor starting today would need 12–18 months of continuous scraping to match our current historical depth — by which time our archive will have doubled. This is not a feature advantage. **It is a data physics advantage.**
+
+> **Final Directive:** Ship fast. Convert aggressively. Hit $10M ARR in 12 months. Then expand to KSA. Then climb back to institutions with the infrastructure we already built. The moat deepens with every scrape cycle.
+
+---
+
+**END OF MASTER PRD v5.0 — Agent Productivity Suite Edition**
+*Supersedes all prior versions. Build authority granted. Distribution restricted to CTO, Engineering Lead, and Product Team.*
