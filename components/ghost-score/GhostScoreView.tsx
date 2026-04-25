@@ -3,13 +3,50 @@
 import { useState } from "react";
 import {
   Ghost, RefreshCw, Clock, Image, ShieldOff, GitCompare,
-  TrendingDown, CheckCircle2, Circle, Building2, MapPin,
+  TrendingDown, CheckCircle2, Building2, MapPin,
   Search, ChevronRight, AlertTriangle, User, Layers,
-  ArrowUpRight, SlidersHorizontal, XCircle, BadgeAlert
+  ArrowUpRight, SlidersHorizontal, XCircle, BadgeAlert,
+  type LucideIcon
 } from "lucide-react";
 
+// ─── TYPES ────────────────────────────────────────────────────────────────────
+
+interface Signal {
+  key: string;
+  fired: boolean;
+  sev: "high" | "medium" | "low" | null;
+  evidence: string | null;
+}
+
+interface Listing {
+  id: number;
+  agentName: string;
+  agencyName: string;
+  building: string;
+  community: string;
+  beds: number;
+  askingPrice: number;
+  score: number;
+  signals: Signal[];
+}
+
+interface TierMeta {
+  label: string;
+  bg: string;
+  text: string;
+  ring: string;
+  arc: string;
+  track: string;
+}
+
+interface SignalMeta {
+  name: string;
+  icon: LucideIcon;
+  weight: number;
+}
+
 // ─── SIGNAL DEFINITIONS ───────────────────────────────────────────────────────
-const SIGNAL_META = {
+const SIGNAL_META: Record<string, SignalMeta> = {
   churnVelocity:           { name: "Churn Velocity",              icon: RefreshCw,   weight: 20 },
   reactivationCycling:     { name: "Reactivation Cycling",        icon: Clock,       weight: 20 },
   priceAnomaly:            { name: "Price Anomaly",               icon: TrendingDown, weight: 20 },
@@ -19,7 +56,7 @@ const SIGNAL_META = {
 };
 
 // ─── LISTING DATA ─────────────────────────────────────────────────────────────
-const LISTINGS = [
+const LISTINGS: Listing[] = [
   {
     id: 1, agentName: "Hassan M.", agencyName: "Al Nour Real Estate",
     building: "Oceana Residence", community: "Palm Jumeirah", beds: 2,
@@ -127,22 +164,22 @@ const LISTINGS = [
 ];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-function scoreTier(s: number) {
+function scoreTier(s: number): TierMeta {
   if (s >= 80) return { label: "Flagged",  bg: "bg-rose-50",   text: "text-rose-700",   ring: "ring-rose-200",   arc: "#f43f5e", track: "#fecdd3" };
   if (s >= 50) return { label: "Watch",    bg: "bg-amber-50",  text: "text-amber-700",  ring: "ring-amber-200",  arc: "#f59e0b", track: "#fde68a" };
   return             { label: "Clean",    bg: "bg-emerald-50",text: "text-emerald-700",ring: "ring-emerald-200",arc: "#10b981", track: "#a7f3d0" };
 }
 
-function sevColor(sev) {
+function sevColor(sev: string): string {
   if (sev === "high")   return "bg-rose-50 text-rose-600 border-rose-100";
   if (sev === "medium") return "bg-amber-50 text-amber-600 border-amber-100";
   return                       "bg-slate-50 text-slate-500 border-slate-100";
 }
 
-function fmtPrice(n) { return `AED ${(n/1_000_000).toFixed(2)}M`; }
+function fmtPrice(n: number): string { return `AED ${(n/1_000_000).toFixed(2)}M`; }
 
 // ─── SCORE RING SVG ───────────────────────────────────────────────────────────
-function ScoreRing({ score }) {
+function ScoreRing({ score }: { score: number }) {
   const t  = scoreTier(score);
   const R  = 44, cx = 52, cy = 52, sw = 8;
   const C  = 2 * Math.PI * R;
@@ -160,7 +197,14 @@ function ScoreRing({ score }) {
 }
 
 // ─── SUMMARY METRIC CARD ──────────────────────────────────────────────────────
-function MetricCard({ label, value, sub, iconClass, bgClass, icon: Icon }) {
+function MetricCard({ label, value, sub, iconClass, bgClass, icon: Icon }: {
+  label: string;
+  value: string | number;
+  sub: string;
+  iconClass: string;
+  bgClass: string;
+  icon: LucideIcon;
+}) {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 flex items-start gap-5">
       <div className={`p-3 rounded-xl ${bgClass} shrink-0`}>
@@ -194,15 +238,15 @@ function EmptyEvidence() {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function GhostScoreView() {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [search, setSearch]     = useState("");
   const [tierFilter, setTier]   = useState("All");
 
-  const totalSuspicious  = LISTINGS.filter(l => l.score >= 50).length;
-  const pollutionPct     = ((LISTINGS.filter(l => l.score >= 50).length / LISTINGS.length) * 100).toFixed(0);
+  const totalSuspicious  = LISTINGS.filter((l: Listing) => l.score >= 50).length;
+  const pollutionPct     = ((LISTINGS.filter((l: Listing) => l.score >= 50).length / LISTINGS.length) * 100).toFixed(0);
   const topAgency        = "Al Nour Real Estate";
 
-  const filtered = LISTINGS.filter(l => {
+  const filtered: Listing[] = LISTINGS.filter((l: Listing) => {
     const q = search.toLowerCase();
     const matchText = !q || l.agentName.toLowerCase().includes(q) || l.building.toLowerCase().includes(q) || l.community.toLowerCase().includes(q);
     const matchTier = tierFilter === "All"
@@ -211,8 +255,8 @@ export default function GhostScoreView() {
     return matchText && matchTier;
   });
 
-  const active = selected ? LISTINGS.find(l => l.id === selected) : null;
-  const firedCount = active ? active.signals.filter(s => s.fired).length : 0;
+  const active: Listing | undefined = selected !== null ? LISTINGS.find((l: Listing) => l.id === selected) : undefined;
+  const firedCount = active ? active.signals.filter((s: Signal) => s.fired).length : 0;
 
   return (
     <div className="p-6 space-y-6 min-h-full">
@@ -286,7 +330,7 @@ export default function GhostScoreView() {
 
           {/* Scrollable list */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
-            {filtered.map(listing => {
+            {filtered.map((listing: Listing) => {
               const t = scoreTier(listing.score);
               const isActive = selected === listing.id;
               return (
@@ -315,8 +359,8 @@ export default function GhostScoreView() {
                     </div>
                     <div className="flex items-center gap-3 mt-1.5">
                       <span className="text-[10px] text-slate-400">{listing.beds} bed · {fmtPrice(listing.askingPrice)}</span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${listing.signals.filter(s=>s.fired).length >= 5 ? "bg-rose-50 text-rose-500" : "bg-amber-50 text-amber-600"}`}>
-                        {listing.signals.filter(s => s.fired).length}/6 signals
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${listing.signals.filter((s: Signal) => s.fired).length >= 5 ? "bg-rose-50 text-rose-500" : "bg-amber-50 text-amber-600"}`}>
+                        {listing.signals.filter((s: Signal) => s.fired).length}/6 signals
                       </span>
                     </div>
                   </div>
@@ -358,7 +402,7 @@ export default function GhostScoreView() {
               {/* Signal checklist */}
               <div className="flex-1 overflow-y-auto px-7 py-5 space-y-3">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Signal Breakdown</p>
-                {active.signals.map(sig => {
+                {active.signals.map((sig: Signal) => {
                   const meta = SIGNAL_META[sig.key];
                   const Icon = meta.icon;
                   return (
