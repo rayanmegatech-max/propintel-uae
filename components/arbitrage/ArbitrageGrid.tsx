@@ -37,6 +37,7 @@ function calcMetrics(row: Opportunity, occupancy: number, mgmtFee: number) {
   return { ...row, adjStrRev: Math.round(adj), grossMarginAED: Math.round(grossMarginAED), grossMarginPct };
 }
 
+// Typed helper — forces Vercel fresh build
 function fmtAED(n: number): string {
   if (Math.abs(n) >= 1_000_000) return `AED ${(n / 1_000_000).toFixed(2)}M`;
   if (Math.abs(n) >= 1_000)     return `AED ${(n / 1_000).toFixed(0)}K`;
