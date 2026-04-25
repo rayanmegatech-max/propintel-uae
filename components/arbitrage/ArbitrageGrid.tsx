@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import {
   Crosshair, SlidersHorizontal, TrendingUp, Building2,
   BedDouble, ChevronUp, ChevronDown, ChevronsUpDown,
-  BadgeCheck, AlertTriangle, Minus, Search, Filter,
+  BadgeCheck, AlertTriangle, Minus, Search,
   ArrowUpRight, Info, Star, Zap, BarChart2, CircleDot,
-  ChevronRight, RefreshCw
+  RefreshCw, type LucideIcon
 } from "lucide-react";
 
 // ── RAW DATA ──────────────────────────────────────────────────────────────────
@@ -25,37 +25,44 @@ const RAW_OPPORTUNITIES = [
   { id: 12, building: "Sky Gardens",          community: "DIFC",                  beds: 1, annualLease: 108000, strRevRaw: 162000, comps: 9,  confidence: 65 },
 ];
 
+type Opportunity = (typeof RAW_OPPORTUNITIES)[number];
+type OpportunityWithMetrics = ReturnType<typeof calcMetrics>;
+type SortKey = "grossMarginPct" | "grossMarginAED" | "adjStrRev" | "annualLease" | "confidence" | "beds";
+
 // ── HELPERS ──────────────────────────────────────────────────────────────────
-function calcMetrics(
-  row: (typeof RAW_OPPORTUNITIES)[number],
-  occupancy: number,
-  mgmtFee: number
-) {
+function calcMetrics(row: Opportunity, occupancy: number, mgmtFee: number) {
   const adj = row.strRevRaw * (occupancy / 100) * (1 - mgmtFee / 100);
   const grossMarginAED = adj - row.annualLease;
   const grossMarginPct = (grossMarginAED / row.annualLease) * 100;
   return { ...row, adjStrRev: Math.round(adj), grossMarginAED: Math.round(grossMarginAED), grossMarginPct };
 }
 
-function fmtAED(n) {
+function fmtAED(n: number): string {
   if (Math.abs(n) >= 1_000_000) return `AED ${(n / 1_000_000).toFixed(2)}M`;
   if (Math.abs(n) >= 1_000)     return `AED ${(n / 1_000).toFixed(0)}K`;
   return `AED ${n}`;
 }
 
-function confidenceMeta(score) {
+interface ConfidenceMeta {
+  label: string;
+  color: string;
+  bg: string;
+  icon: LucideIcon;
+}
+
+function confidenceMeta(score: number): ConfidenceMeta {
   if (score >= 88) return { label: "High",   color: "text-emerald-600", bg: "bg-emerald-50",  icon: BadgeCheck   };
   if (score >= 74) return { label: "Medium", color: "text-amber-600",   bg: "bg-amber-50",    icon: AlertTriangle};
   return               { label: "Low",    color: "text-rose-500",    bg: "bg-rose-50",     icon: Minus        };
 }
 
-function marginColor(pct) {
+function marginColor(pct: number): string {
   if (pct >= 60) return "text-emerald-600";
   if (pct >= 30) return "text-amber-600";
   return "text-rose-500";
 }
 
-function MarginBar({ pct }) {
+function MarginBar({ pct }: { pct: number }) {
   const clamped = Math.min(Math.max(pct, 0), 150);
   const w = Math.round((clamped / 150) * 100);
   const bg = pct >= 60 ? "bg-emerald-400" : pct >= 30 ? "bg-amber-400" : "bg-rose-400";
@@ -66,15 +73,20 @@ function MarginBar({ pct }) {
   );
 }
 
-const SORT_KEYS = ["grossMarginPct","grossMarginAED","adjStrRev","annualLease","confidence","beds"];
-
-function SortIcon({ col, sortKey, dir }) {
+function SortIcon({ col, sortKey, dir }: { col: SortKey; sortKey: SortKey; dir: "asc" | "desc" }) {
   if (sortKey !== col) return <ChevronsUpDown size={12} className="text-slate-300" />;
   return dir === "asc" ? <ChevronUp size={12} className="text-emerald-600" /> : <ChevronDown size={12} className="text-emerald-600" />;
 }
 
-// ── SUMMARY CARDS ─────────────────────────────────────────────────────────────
-function SummaryCard({ icon: Icon, label, value, sub, accent }) {
+interface SummaryCardProps {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  sub: string;
+  accent: "emerald" | "blue" | "violet" | "amber";
+}
+
+function SummaryCard({ icon: Icon, label, value, sub, accent }: SummaryCardProps) {
   const map = {
     emerald: { bg: "bg-emerald-50", ic: "text-emerald-600" },
     blue:    { bg: "bg-blue-50",    ic: "text-blue-600"    },
@@ -96,8 +108,18 @@ function SummaryCard({ icon: Icon, label, value, sub, accent }) {
   );
 }
 
-// ── SLIDER ───────────────────────────────────────────────────────────────────
-function SettingSlider({ label, value, min, max, step, unit, onChange, accentClass }) {
+interface SettingSliderProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  onChange: (value: number) => void;
+  accentClass: string;
+}
+
+function SettingSlider({ label, value, min, max, step, unit, onChange, accentClass }: SettingSliderProps) {
   return (
     <div className="flex items-center gap-3">
       <span className="text-xs font-medium text-slate-500 w-36 shrink-0">{label}</span>
@@ -115,20 +137,20 @@ function SettingSlider({ label, value, min, max, step, unit, onChange, accentCla
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function ArbitrageGrid() {
-  const [occupancy, setOccupancy] = useState(85);
-  const [mgmtFee, setMgmtFee]     = useState(15);
+  const [occupancy, setOccupancy] = useState<number>(85);
+  const [mgmtFee, setMgmtFee]     = useState<number>(15);
   const [search, setSearch]       = useState("");
-  const [bedFilter, setBedFilter] = useState(0); // 0 = all
-  const [sortKey, setSortKey]     = useState("grossMarginPct");
-  const [sortDir, setSortDir]     = useState("desc");
-  const [sniped, setSniped]       = useState(new Set());
+  const [bedFilter, setBedFilter] = useState<number>(0);
+  const [sortKey, setSortKey]     = useState<SortKey>("grossMarginPct");
+  const [sortDir, setSortDir]     = useState<"asc" | "desc">("desc");
+  const [sniped, setSniped]       = useState<Set<number>>(new Set());
 
-  function handleSort(col) {
+  function handleSort(col: SortKey) {
     if (sortKey === col) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortKey(col); setSortDir("desc"); }
   }
 
-  const data = useMemo(() => {
+  const data: OpportunityWithMetrics[] = useMemo(() => {
     let rows = RAW_OPPORTUNITIES
       .map(r => calcMetrics(r, occupancy, mgmtFee))
       .filter(r => {
@@ -149,17 +171,19 @@ export default function ArbitrageGrid() {
   const highConf    = data.filter(d => d.confidence >= 88).length;
   const avgMargin   = data.length ? data.reduce((s, d) => s + d.grossMarginPct, 0) / data.length : 0;
 
-  const TH = ({ col, label, right }) => (
-    <th
-      className={`pb-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer select-none group ${right ? "text-right" : "text-left"}`}
-      onClick={() => handleSort(col)}
-    >
-      <span className={`inline-flex items-center gap-1 hover:text-slate-600 transition-colors ${right ? "flex-row-reverse" : ""}`}>
-        {label}
-        <SortIcon col={col} sortKey={sortKey} dir={sortDir} />
-      </span>
-    </th>
-  );
+  function TH({ col, label, right }: { col: SortKey; label: string; right?: boolean }) {
+    return (
+      <th
+        className={`pb-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer select-none group ${right ? "text-right" : "text-left"}`}
+        onClick={() => handleSort(col)}
+      >
+        <span className={`inline-flex items-center gap-1 hover:text-slate-600 transition-colors ${right ? "flex-row-reverse" : ""}`}>
+          {label}
+          <SortIcon col={col} sortKey={sortKey} dir={sortDir} />
+        </span>
+      </th>
+    );
+  }
 
   return (
     <div className="p-6 space-y-5 min-h-full">
@@ -273,7 +297,7 @@ export default function ArbitrageGrid() {
                 </td>
               </tr>
             )}
-            {data.map((row, i) => {
+            {data.map((row: OpportunityWithMetrics, i: number) => {
               const conf = confidenceMeta(row.confidence);
               const ConfIcon = conf.icon;
               const isTop = i === 0 && sortKey === "grossMarginPct" && sortDir === "desc";
