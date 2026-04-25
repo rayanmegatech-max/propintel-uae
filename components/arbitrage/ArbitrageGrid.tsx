@@ -26,7 +26,11 @@ const RAW_OPPORTUNITIES = [
 ];
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
-function calcMetrics(row, occupancy, mgmtFee) {
+function calcMetrics(
+  row: (typeof RAW_OPPORTUNITIES)[number],
+  occupancy: number,
+  mgmtFee: number
+) {
   const adj = row.strRevRaw * (occupancy / 100) * (1 - mgmtFee / 100);
   const grossMarginAED = adj - row.annualLease;
   const grossMarginPct = (grossMarginAED / row.annualLease) * 100;
