@@ -127,7 +127,7 @@ const LISTINGS = [
 ];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-function scoreTier(s) {
+function scoreTier(s: number) {
   if (s >= 80) return { label: "Flagged",  bg: "bg-rose-50",   text: "text-rose-700",   ring: "ring-rose-200",   arc: "#f43f5e", track: "#fecdd3" };
   if (s >= 50) return { label: "Watch",    bg: "bg-amber-50",  text: "text-amber-700",  ring: "ring-amber-200",  arc: "#f59e0b", track: "#fde68a" };
   return             { label: "Clean",    bg: "bg-emerald-50",text: "text-emerald-700",ring: "ring-emerald-200",arc: "#10b981", track: "#a7f3d0" };
