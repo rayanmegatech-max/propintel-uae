@@ -166,7 +166,7 @@ function ScatterDot(props) {
   return <circle cx={cx} cy={cy} r={5} fill={color} fillOpacity={0.7} stroke="#fff" strokeWidth={1.5} />;
 }
 
-function CustomScatterTooltip({ active, payload }) {
+function CustomScatterTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   return (
