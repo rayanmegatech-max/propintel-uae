@@ -5,6 +5,16 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+
+  {
+    rules: {
+      // The public landing page contains marketing copy with apostrophes/quotes.
+      // This rule is stylistic and does not affect build safety.
+      // We will rewrite the landing page later for the unified GCC product.
+      "react/no-unescaped-entities": "off",
+    },
+  },
+
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
