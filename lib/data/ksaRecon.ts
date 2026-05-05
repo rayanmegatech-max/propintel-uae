@@ -52,6 +52,7 @@ export type KsaReconOpportunity = Record<string, unknown> & {
   property_url?: string | null;
 
   price?: number | null;
+  price_amount?: number | null;
   price_per_sqft?: number | null;
   old_price?: number | null;
   new_price?: number | null;

@@ -28,6 +28,10 @@ function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function asBooleanSignal(value: unknown): boolean {
+  return value === 1 || value === true || value === "1" || value === "true";
+}
+
 function formatNumber(value: number | null | undefined) {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return "—";
@@ -94,18 +98,132 @@ function getBadgeList(opportunity: KsaReconOpportunity): string[] {
   return [];
 }
 
-function getLocation(item: KsaReconOpportunity) {
-  const city = asString(item.city) || "Unknown city";
-  const district =
+function getCity(item: KsaReconOpportunity) {
+  return asString(item.city) || "Unknown city";
+}
+
+function getDistrict(item: KsaReconOpportunity) {
+  return (
     asString(item.district) ||
     asString(item.community) ||
-    asString(item.building_name);
+    asString(item.building_name)
+  );
+}
+
+function getLocation(item: KsaReconOpportunity) {
+  const city = getCity(item);
+  const district = getDistrict(item);
 
   return district ? `${city} · ${district}` : city;
 }
 
+function getPortal(item: KsaReconOpportunity) {
+  return asString(item.portal) || asString(item.source_portal) || "Unknown portal";
+}
+
+function getSourceCategory(item: KsaReconOpportunity) {
+  return asString(item.source_category) || asString(item.source_db_label);
+}
+
 function getListingUrl(item: KsaReconOpportunity) {
   return asString(item.property_url) || asString(item.source_url);
+}
+
+function getPriority(item: KsaReconOpportunity) {
+  return asString(item.priority_label) || asString(item.priority_bucket);
+}
+
+function getDisplayPrice(item: KsaReconOpportunity) {
+  return (
+    asNumber(item.price) ||
+    asNumber(item.current_price) ||
+    asNumber(item.price_amount) ||
+    asNumber(item.new_price) ||
+    asNumber(item.old_price)
+  );
+}
+
+function getPriceLabel(item: KsaReconOpportunity) {
+  if (
+    asNumber(item.price) ||
+    asNumber(item.current_price) ||
+    asNumber(item.price_amount)
+  ) {
+    return "Advertised price";
+  }
+
+  if (asNumber(item.new_price)) {
+    return "Latest known price";
+  }
+
+  if (asNumber(item.old_price)) {
+    return "Previous known price";
+  }
+
+  return "Advertised price";
+}
+
+function getGeneratedTitle(item: KsaReconOpportunity) {
+  const explicitTitle =
+    asString(item.opportunity_title) ||
+    asString(item.title) ||
+    asString(item.listing_title) ||
+    asString(item.property_title) ||
+    asString(item.name) ||
+    asString(item.description);
+
+  if (explicitTitle) {
+    return explicitTitle;
+  }
+
+  const lane = asString(item.opportunity_lane);
+  const propertyType = asString(item.property_type);
+  const sourceCategory = getSourceCategory(item);
+  const city = getCity(item);
+  const district = getDistrict(item);
+
+  const signalParts: string[] = [];
+
+  if (asBooleanSignal(item.has_owner_direct_signal)) {
+    signalParts.push("Owner/direct signal");
+  }
+
+  if (asBooleanSignal(item.has_price_drop_signal)) {
+    signalParts.push("price movement");
+  }
+
+  if (asBooleanSignal(item.has_refresh_signal)) {
+    signalParts.push("refresh signal");
+  }
+
+  const signalText =
+    signalParts.length > 0 ? signalParts.join(" + ") : labelize(lane);
+
+  const assetText =
+    propertyType ||
+    (sourceCategory ? labelize(sourceCategory) : "public listing opportunity");
+
+  const locationText = district ? `${district}, ${city}` : city;
+
+  return `${signalText} · ${assetText} in ${locationText}`;
+}
+
+function getSubtitle(item: KsaReconOpportunity) {
+  const portal = labelize(getPortal(item));
+  const sourceCategory = labelize(getSourceCategory(item));
+  const sourceId = asString(item.source_listing_id);
+
+  const parts = [portal, sourceCategory].filter(
+    (part) => part && part !== "Unknown"
+  );
+
+  if (sourceId) {
+    parts.push(`ID ${sourceId}`);
+  }
+
+  return parts.length > 0
+    ? parts.join(" · ")
+    : "KSA public-listing opportunity";
 }
 
 function MetricCard({
@@ -159,6 +277,7 @@ function OpportunityCard({ item }: { item: KsaReconOpportunity }) {
   const badges = getBadgeList(item);
   const dropPct = formatPercent(asNumber(item.drop_pct));
   const listingUrl = getListingUrl(item);
+  const displayPrice = getDisplayPrice(item);
 
   return (
     <article className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl transition hover:border-emerald-400/25 hover:bg-white/[0.06]">
@@ -170,12 +289,24 @@ function OpportunityCard({ item }: { item: KsaReconOpportunity }) {
             </span>
 
             <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
-              {labelize(asString(item.priority_label))}
+              {labelize(getPriority(item))}
             </span>
 
             <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
               Score {item.recon_score ?? "—"}
             </span>
+
+            {asBooleanSignal(item.has_owner_direct_signal) && (
+              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-300">
+                Owner/direct
+              </span>
+            )}
+
+            {asBooleanSignal(item.has_refresh_signal) && (
+              <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                Refresh signal
+              </span>
+            )}
 
             {dropPct && (
               <span className="rounded-full border border-red-400/20 bg-red-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-red-300">
@@ -185,13 +316,11 @@ function OpportunityCard({ item }: { item: KsaReconOpportunity }) {
           </div>
 
           <h2 className="line-clamp-2 text-base font-semibold text-white">
-            {asString(item.opportunity_title) ||
-              asString(item.title) ||
-              "Untitled KSA opportunity"}
+            {getGeneratedTitle(item)}
           </h2>
 
           <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">
-            {asString(item.title) || "Listing title unavailable"}
+            {getSubtitle(item)}
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -201,11 +330,11 @@ function OpportunityCard({ item }: { item: KsaReconOpportunity }) {
             </span>
 
             <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-2.5 py-1 text-xs text-slate-300">
-              {labelize(asString(item.source_category))}
+              {labelize(getSourceCategory(item))}
             </span>
 
             <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-2.5 py-1 text-xs text-slate-300">
-              {labelize(asString(item.portal))}
+              {labelize(getPortal(item))}
             </span>
 
             <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-2.5 py-1 text-xs text-slate-300">
@@ -229,10 +358,10 @@ function OpportunityCard({ item }: { item: KsaReconOpportunity }) {
 
         <div className="w-full rounded-2xl border border-white/[0.08] bg-slate-950/60 p-4 xl:w-72">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Advertised price
+            {getPriceLabel(item)}
           </p>
           <p className="mt-1 text-xl font-bold text-white">
-            {formatCurrency(asNumber(item.price))}
+            {formatCurrency(displayPrice)}
           </p>
 
           {(item.old_price || item.new_price || item.drop_amount) && (
@@ -262,7 +391,7 @@ function OpportunityCard({ item }: { item: KsaReconOpportunity }) {
               <p className="text-slate-500">Size</p>
               <p className="mt-1 font-semibold text-slate-200">
                 {item.size_sqft
-                  ? `${formatNumber(asNumber(item.size_sqft))} sqm/sqft`
+                  ? `${formatNumber(asNumber(item.size_sqft))} size`
                   : "—"}
               </p>
             </div>
@@ -294,7 +423,11 @@ function OpportunityCard({ item }: { item: KsaReconOpportunity }) {
                 <Phone className="h-3.5 w-3.5" />
                 {item.has_phone_available ? "Phone" : "URL lead"}
               </span>
-              <span>{asString(item.agency_name) || "Agency unavailable"}</span>
+              <span>
+                {asString(item.agency_name) ||
+                  asString(item.agent_name) ||
+                  "Agency unavailable"}
+              </span>
             </div>
           </div>
         </div>
@@ -413,7 +546,7 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-slate-950/60 px-3 py-1 text-xs text-slate-300">
               <Filter className="h-3.5 w-3.5" />
-              Filters are visual-only in Phase 5D.6
+              Filters are visual-only in Phase 5E.2
             </div>
 
             <h2 className="text-lg font-semibold text-white">
@@ -426,16 +559,21 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {["City", "District", "Portal", "Category", "Priority", "Contactability"].map(
-              (filter) => (
-                <span
-                  key={filter}
-                  className="rounded-xl border border-white/[0.08] bg-slate-950/60 px-3 py-2 text-xs font-medium text-slate-400"
-                >
-                  {filter}
-                </span>
-              )
-            )}
+            {[
+              "City",
+              "District",
+              "Portal",
+              "Category",
+              "Priority",
+              "Contactability",
+            ].map((filter) => (
+              <span
+                key={filter}
+                className="rounded-xl border border-white/[0.08] bg-slate-950/60 px-3 py-2 text-xs font-medium text-slate-400"
+              >
+                {filter}
+              </span>
+            ))}
           </div>
         </div>
 
