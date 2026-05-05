@@ -1,0 +1,195 @@
+import { promises as fs } from "fs";
+import path from "path";
+
+export type UaeReconOpportunity = {
+  dashboard_rank: number | null;
+  recon_id: number | null;
+  listing_key: string | null;
+  canonical_id: string | null;
+  portal: string | null;
+  schema_name: string | null;
+  portal_id: string | null;
+
+  primary_opportunity_type: string | null;
+  opportunity_group: string | null;
+  opportunity_title: string | null;
+
+  recon_score: number | null;
+  recon_rank: number | null;
+  confidence_tier: string | null;
+  confidence_reason: string | null;
+  priority_label: string | null;
+
+  is_owner_direct: number | null;
+  is_price_drop: number | null;
+  is_stale: number | null;
+  is_old_inventory: number | null;
+  is_very_old_inventory: number | null;
+  is_refresh_inflated: number | null;
+  is_severe_refresh_inflation: number | null;
+
+  badges_json: string | null;
+  badges?: unknown;
+
+  recommended_action: string | null;
+  portal_action_label: string | null;
+  action_priority: string | null;
+  cta_text: string | null;
+
+  source_category: string | null;
+  purpose: string | null;
+  price_frequency: string | null;
+
+  title: string | null;
+  property_type: string | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  size_sqft: number | null;
+
+  city: string | null;
+  community: string | null;
+  building_name: string | null;
+  property_url: string | null;
+
+  price: number | null;
+  price_per_sqft: number | null;
+  old_price: number | null;
+  new_price: number | null;
+  drop_amount: number | null;
+  drop_pct: number | null;
+
+  age_label: string | null;
+  refresh_inflation_label: string | null;
+  effective_true_age_days: number | null;
+
+  owner_direct_bucket: string | null;
+  owner_direct_label: string | null;
+  owner_direct_confidence_tier: string | null;
+
+  agent_name: string | null;
+  agency_name: string | null;
+
+  contact_phone: string | null;
+  contact_whatsapp: string | null;
+  contact_email: string | null;
+
+  has_phone_available: number | null;
+  has_whatsapp_available: number | null;
+  has_email_available: number | null;
+
+  listing_created_at: string | null;
+  listing_updated_at: string | null;
+  listing_scraped_at: string | null;
+  built_at: string | null;
+};
+
+export type UaeReconHotLeadsPayload = {
+  country: "uae";
+  currency: "AED";
+  source_table: string;
+  exported_at: string;
+  total_rows_available: number;
+  exported_rows: number;
+  default_sort: string;
+  items: UaeReconOpportunity[];
+};
+
+export type UaeReconSummaryPayload = {
+  country: "uae";
+  currency: "AED";
+  source_table: string;
+  exported_at: string;
+  total_rows_available: number;
+  items: Record<string, unknown>[];
+};
+
+export type UaeReconManifestPayload = {
+  export_name: string;
+  country: "uae";
+  currency: "AED";
+  database_path: string;
+  exported_at: string;
+  source_tables: Record<string, string>;
+  outputs: Record<string, string>;
+  row_counts: {
+    hot_leads_total_rows: number;
+    hot_leads_exported_rows: number;
+    summary_total_rows: number;
+  };
+  limit: number;
+  frontend_rules: Record<string, unknown>;
+  do_not_expose_directly: string[];
+};
+
+export type UaeReconDataResult = {
+  status: "ready" | "missing" | "error";
+  message: string;
+  hotLeads: UaeReconHotLeadsPayload | null;
+  summary: UaeReconSummaryPayload | null;
+  manifest: UaeReconManifestPayload | null;
+};
+
+const EXPORT_BASE_DIR = path.join(process.cwd(), "exports", "frontend", "uae");
+
+const HOT_LEADS_PATH = path.join(EXPORT_BASE_DIR, "recon_hot_leads.json");
+const SUMMARY_PATH = path.join(EXPORT_BASE_DIR, "recon_summary.json");
+const MANIFEST_PATH = path.join(EXPORT_BASE_DIR, "recon_manifest.json");
+
+async function readJsonFile<T>(filePath: string): Promise<T> {
+  const raw = await fs.readFile(filePath, "utf-8");
+  return JSON.parse(raw) as T;
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getUaeReconData(): Promise<UaeReconDataResult> {
+  const requiredFiles = [HOT_LEADS_PATH, SUMMARY_PATH, MANIFEST_PATH];
+
+  const existence = await Promise.all(requiredFiles.map(fileExists));
+  const allFilesExist = existence.every(Boolean);
+
+  if (!allFilesExist) {
+    return {
+      status: "missing",
+      message:
+        "Local UAE Recon export JSON files were not found. Run tools/export_uae_recon_frontend_data.py locally to generate them.",
+      hotLeads: null,
+      summary: null,
+      manifest: null,
+    };
+  }
+
+  try {
+    const [hotLeads, summary, manifest] = await Promise.all([
+      readJsonFile<UaeReconHotLeadsPayload>(HOT_LEADS_PATH),
+      readJsonFile<UaeReconSummaryPayload>(SUMMARY_PATH),
+      readJsonFile<UaeReconManifestPayload>(MANIFEST_PATH),
+    ]);
+
+    return {
+      status: "ready",
+      message: "UAE Recon local export loaded successfully.",
+      hotLeads,
+      summary,
+      manifest,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unknown error while loading UAE Recon export files.",
+      hotLeads: null,
+      summary: null,
+      manifest: null,
+    };
+  }
+}

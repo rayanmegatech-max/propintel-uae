@@ -1,3 +1,8 @@
 node_modules
 .next
 .env
+
+# Generated local data exports 
+exports/frontend/**/*.json 
+reports/phase5d_schema_inspection/*.json 
+reports/phase5d_schema_inspection/*.csv 
