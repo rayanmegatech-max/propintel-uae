@@ -3,12 +3,12 @@ import {
   ArrowUpRight,
   BadgeCheck,
   Database,
-  ShieldCheck,
-  Sparkles,
   TrendingDown,
 } from "lucide-react";
 import KsaReconTabsClient from "./KsaReconTabsClient";
 import ReconMetricCard from "./ReconMetricCard";
+import ReconPageHero from "./ReconPageHero";
+import ReconStatusStrip from "./ReconStatusStrip";
 import { formatNumber } from "@/lib/recon/formatters";
 import type { ReconMetric } from "@/lib/recon/types";
 import type { KsaReconDataResult } from "@/lib/data/ksaRecon";
@@ -61,6 +61,10 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
   const totalRefreshInflation =
     data.manifest.exports.refresh_inflation?.total_rows_available ?? 0;
 
+  const loadedTabs = Object.values(data.manifest.exports).filter(
+    (item) => item.exists
+  ).length;
+
   const metrics: ReconMetric[] = [
     {
       label: "Hot leads",
@@ -90,56 +94,24 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl">
-        <div className="relative p-6 sm:p-8">
-          <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
+      <ReconPageHero
+        countryLabel="Kingdom of Saudi Arabia"
+        countryCode="KSA"
+        currency="SAR"
+        exportedAt={data.manifest.exported_at}
+        title="KSA Recon Hub command center"
+        description="A country-aware intelligence cockpit for surfacing KSA public-listing opportunities across multi-signal leads, owner/direct candidates, price movement, refresh inflation, contactable leads, URL-only leads, residential, and commercial inventory."
+        primaryTableText="ksa_recon_dashboard_* product-safe tables"
+        marketScopeText="KSA portal intelligence across major public listing categories and lead-contactability paths."
+      />
 
-          <div className="relative grid gap-6 lg:grid-cols-[1fr_360px]">
-            <div>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-300">
-                <Sparkles className="h-3.5 w-3.5" />
-                KSA · Recon Hub · Clickable tabs
-              </div>
-
-              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-4xl">
-                KSA Recon Hub
-              </h1>
-
-              <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-400 sm:text-base">
-                KSA public-listing opportunity command center powered by exported
-                KSA Recon dashboard tabs. You can now switch between multi-signal,
-                owner/direct, price drops, URL-lead paths, residential, and
-                commercial views without changing routes.
-              </p>
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-3 py-1 text-xs text-slate-300">
-                  Currency: SAR
-                </span>
-                <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-3 py-1 text-xs text-slate-300">
-                  Exported: {data.manifest.exported_at}
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
-              <div className="flex items-start gap-3">
-                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
-                <div>
-                  <h2 className="text-sm font-semibold text-emerald-100">
-                    KSA product-safe tab data
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-emerald-100/75">
-                    The KSA export includes product-safe ksa_recon_dashboard_* tabs.
-                    Raw price-history events, suspicious event tables, and internal
-                    evidence tables remain hidden.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <ReconStatusStrip
+        countryLabel="KSA"
+        exportLimit={data.manifest.limit}
+        summaryRows={data.manifest.summary.total_rows_available}
+        tabCount={loadedTabs}
+        activeDataMode="Local JSON"
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
@@ -180,8 +152,8 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
           </div>
           <h2 className="text-base font-semibold text-white">Next step</h2>
           <p className="mt-2 text-sm leading-6 text-slate-400">
-            UAE and KSA now share the same clickable Recon tab experience. Next,
-            we can add client-side filters and premium table/list controls.
+            Next frontend step: continue improving premium dashboard visuals and
+            then replicate the Recon pattern into the other launch modules.
           </p>
         </div>
       </section>
