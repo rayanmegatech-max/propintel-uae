@@ -1,8 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ReconFiltersBar from "./ReconFiltersBar";
 import ReconOpportunityCard from "./ReconOpportunityCard";
 import ReconTabSelector, { type ReconTabOption } from "./ReconTabSelector";
+import {
+  DEFAULT_RECON_FILTERS,
+  applyReconFilters,
+  buildReconFilterOptions,
+  type ReconFilterState,
+} from "@/lib/recon/filter";
 import { normalizeReconList } from "@/lib/recon/normalize";
 import type { UaeReconDataResult, UaeReconListPayload } from "@/lib/data/uaeRecon";
 
@@ -92,6 +99,9 @@ function getCount(payload: UaeReconListPayload | null): number | undefined {
 
 export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
   const [activeTab, setActiveTab] = useState<UaeReconTabKey>("hotLeads");
+  const [filters, setFilters] = useState<ReconFilterState>({
+    ...DEFAULT_RECON_FILTERS,
+  });
 
   const tabs: ReconTabOption[] = TAB_CONFIG.map((tab) => ({
     key: tab.key,
@@ -114,7 +124,22 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
     );
   }, [activePayload]);
 
-  const visibleItems = normalizedItems.slice(0, 25);
+  const filterOptions = useMemo(
+    () => buildReconFilterOptions(normalizedItems),
+    [normalizedItems]
+  );
+
+  const filteredItems = useMemo(
+    () => applyReconFilters(normalizedItems, filters),
+    [normalizedItems, filters]
+  );
+
+  const visibleItems = filteredItems.slice(0, 25);
+
+  const handleTabChange = (tabKey: string) => {
+    setActiveTab(tabKey as UaeReconTabKey);
+    setFilters({ ...DEFAULT_RECON_FILTERS });
+  };
 
   return (
     <section className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
@@ -124,15 +149,15 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
             UAE Recon opportunity tabs
           </h2>
           <p className="mt-1 text-sm text-slate-400">
-            Switch between product-safe UAE Recon dashboard exports. Showing the
-            first 25 rows from the selected 500-row local sample.
+            Switch between product-safe UAE Recon dashboard exports. Search and
+            filter within the selected local sample.
           </p>
         </div>
 
         <ReconTabSelector
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(tabKey) => setActiveTab(tabKey as UaeReconTabKey)}
+          onTabChange={handleTabChange}
         />
 
         {activePayload ? (
@@ -148,6 +173,14 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
             </span>
           </div>
         ) : null}
+
+        <ReconFiltersBar
+          filters={filters}
+          onFiltersChange={setFilters}
+          options={filterOptions}
+          totalCount={normalizedItems.length}
+          filteredCount={filteredItems.length}
+        />
       </div>
 
       {visibleItems.length > 0 ? (
@@ -161,7 +194,7 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
         </div>
       ) : (
         <div className="rounded-2xl border border-white/[0.08] bg-slate-950/60 p-6 text-sm text-slate-400">
-          No rows available for this tab.
+          No rows match the current filters.
         </div>
       )}
     </section>
