@@ -13,74 +13,59 @@ UAE_DB_PATH = Path(r"C:\Users\User\Documents\malesh\intelligence.db")
 
 EXPORT_DIR = PROJECT_ROOT / "exports" / "frontend" / "uae"
 
-HOT_LEADS_TABLE = "recon_dashboard_hot_leads"
-SUMMARY_TABLE = "recon_dashboard_summary"
+DEFAULT_LIMIT = 500
 
-HOT_LEADS_OUTPUT = EXPORT_DIR / "recon_hot_leads.json"
+RECON_EXPORTS = {
+    "hot_leads": {
+        "table": "recon_dashboard_hot_leads",
+        "output": "recon_hot_leads.json",
+    },
+    "price_drops": {
+        "table": "recon_dashboard_price_drops",
+        "output": "recon_price_drops.json",
+    },
+    "owner_direct": {
+        "table": "recon_dashboard_owner_direct",
+        "output": "recon_owner_direct.json",
+    },
+    "stale_price_drops": {
+        "table": "recon_dashboard_stale_price_drops",
+        "output": "recon_stale_price_drops.json",
+    },
+    "refresh_inflated": {
+        "table": "recon_dashboard_refresh_inflated",
+        "output": "recon_refresh_inflated.json",
+    },
+    "listing_truth": {
+        "table": "recon_dashboard_listing_truth",
+        "output": "recon_listing_truth.json",
+    },
+    "residential_rent": {
+        "table": "recon_dashboard_residential_rent",
+        "output": "recon_residential_rent.json",
+    },
+    "residential_buy": {
+        "table": "recon_dashboard_residential_buy",
+        "output": "recon_residential_buy.json",
+    },
+    "commercial": {
+        "table": "recon_dashboard_commercial",
+        "output": "recon_commercial.json",
+    },
+    "short_rental": {
+        "table": "recon_dashboard_short_rental",
+        "output": "recon_short_rental.json",
+    },
+}
+
+SUMMARY_TABLE = "recon_dashboard_summary"
 SUMMARY_OUTPUT = EXPORT_DIR / "recon_summary.json"
 MANIFEST_OUTPUT = EXPORT_DIR / "recon_manifest.json"
 
-DEFAULT_LIMIT = 500
 
-
-HOT_LEAD_COLUMNS = [
-    "dashboard_rank",
-    "recon_id",
-    "listing_key",
-    "canonical_id",
-    "portal",
-    "schema_name",
-    "portal_id",
-    "primary_opportunity_type",
-    "opportunity_group",
-    "opportunity_title",
-    "recon_score",
-    "recon_rank",
-    "confidence_tier",
-    "confidence_reason",
-    "priority_label",
-    "badges_json",
-    "recommended_action",
-    "portal_action_label",
-    "action_priority",
-    "cta_text",
-    "source_category",
-    "purpose",
-    "price_frequency",
-    "title",
-    "property_type",
-    "bedrooms",
-    "bathrooms",
-    "size_sqft",
-    "city",
-    "community",
-    "building_name",
-    "property_url",
-    "price",
-    "price_per_sqft",
-    "old_price",
-    "new_price",
-    "drop_amount",
-    "drop_pct",
-    "age_label",
-    "refresh_inflation_label",
-    "effective_true_age_days",
-    "owner_direct_bucket",
-    "owner_direct_label",
-    "owner_direct_confidence_tier",
-    "agent_name",
-    "agency_name",
-    "contact_phone",
-    "contact_whatsapp",
-    "contact_email",
-    "has_phone_available",
-    "has_whatsapp_available",
-    "has_email_available",
-    "listing_created_at",
-    "listing_updated_at",
-    "listing_scraped_at",
-    "built_at",
-]
+def quote_identifier(identifier: str) -> str:
+    safe = identifier.replace('"', '""')
+    return f'"{safe}"'
 
 
 def connect_db(db_path: Path) -> sqlite3.Connection:
@@ -90,11 +75,6 @@ def connect_db(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     return conn
-
-
-def quote_identifier(identifier: str) -> str:
-    safe = identifier.replace('"', '""')
-    return f'"{safe}"'
 
 
 def table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
@@ -111,17 +91,49 @@ def table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     return row is not None
 
 
-def get_table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
-    rows = conn.execute(f"PRAGMA table_info({quote_identifier(table_name)})").fetchall()
-    return {row["name"] for row in rows}
-
-
 def get_row_count(conn: sqlite3.Connection, table_name: str) -> int:
     row = conn.execute(
         f"SELECT COUNT(*) AS row_count FROM {quote_identifier(table_name)}"
     ).fetchone()
 
     return int(row["row_count"])
+
+
+def get_table_columns(conn: sqlite3.Connection, table_name: str) -> list[str]:
+    rows = conn.execute(f"PRAGMA table_info({quote_identifier(table_name)})").fetchall()
+    return [row["name"] for row in rows]
+
+
+def choose_sort_columns(columns: list[str]) -> str:
+    column_set = set(columns)
+
+    if "dashboard_rank" in column_set and "recon_score" in column_set:
+        return """
+            CASE WHEN dashboard_rank IS NULL THEN 1 ELSE 0 END ASC,
+            dashboard_rank ASC,
+            recon_score DESC
+        """
+
+    if "recon_rank" in column_set and "recon_score" in column_set:
+        return """
+            CASE WHEN recon_rank IS NULL THEN 1 ELSE 0 END ASC,
+            recon_rank ASC,
+            recon_score DESC
+        """
+
+    if "priority_score" in column_set:
+        return "priority_score DESC"
+
+    if "recon_score" in column_set:
+        return "recon_score DESC"
+
+    if "built_at" in column_set:
+        return "built_at DESC"
+
+    if "listing_scraped_at" in column_set:
+        return "listing_scraped_at DESC"
+
+    return "rowid ASC"
 
 
 def safe_json_loads(value: Any) -> Any:
@@ -136,52 +148,46 @@ def safe_json_loads(value: Any) -> Any:
         return []
 
     try:
-        parsed = json.loads(stripped)
+        return json.loads(stripped)
     except json.JSONDecodeError:
         return []
-
-    return parsed
 
 
 def normalize_row(row: sqlite3.Row) -> dict[str, Any]:
     data = {key: row[key] for key in row.keys()}
 
-    # Parse badges_json into a frontend-safe list/object while preserving the raw source.
-    raw_badges = data.get("badges_json")
-    data["badges"] = safe_json_loads(raw_badges)
-
-    # Keep raw badges_json for debugging/export transparency.
-    data["badges_json"] = raw_badges
+    if "badges_json" in data:
+        data["badges"] = safe_json_loads(data.get("badges_json"))
 
     return data
 
 
-def fetch_hot_leads(conn: sqlite3.Connection, limit: int) -> list[dict[str, Any]]:
-    existing_columns = get_table_columns(conn, HOT_LEADS_TABLE)
-    missing_columns = [column for column in HOT_LEAD_COLUMNS if column not in existing_columns]
+def fetch_rows(
+    conn: sqlite3.Connection,
+    table_name: str,
+    limit: int,
+) -> tuple[list[dict[str, Any]], int, list[str], str]:
+    columns = get_table_columns(conn, table_name)
+    row_count = get_row_count(conn, table_name)
+    sort_clause = choose_sort_columns(columns)
 
-    if missing_columns:
-        raise RuntimeError(
-            f"{HOT_LEADS_TABLE} is missing required export columns: {missing_columns}"
-        )
-
-    selected_columns = ", ".join(quote_identifier(column) for column in HOT_LEAD_COLUMNS)
-
-    sql = f"""
-        SELECT {selected_columns}
-        FROM {quote_identifier(HOT_LEADS_TABLE)}
-        ORDER BY
-            CASE WHEN dashboard_rank IS NULL THEN 1 ELSE 0 END ASC,
-            dashboard_rank ASC,
-            recon_score DESC
+    rows = conn.execute(
+        f"""
+        SELECT *
+        FROM {quote_identifier(table_name)}
+        ORDER BY {sort_clause}
         LIMIT ?
-    """
+        """,
+        (limit,),
+    ).fetchall()
 
-    rows = conn.execute(sql, (limit,)).fetchall()
-    return [normalize_row(row) for row in rows]
+    return [normalize_row(row) for row in rows], row_count, columns, sort_clause
 
 
-def fetch_summary(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+def fetch_summary(conn: sqlite3.Connection) -> tuple[list[dict[str, Any]], int]:
+    if not table_exists(conn, SUMMARY_TABLE):
+        return [], 0
+
     rows = conn.execute(
         f"""
         SELECT *
@@ -189,7 +195,10 @@ def fetch_summary(conn: sqlite3.Connection) -> list[dict[str, Any]]:
         """
     ).fetchall()
 
-    return [{key: row[key] for key in row.keys()} for row in rows]
+    return [{key: row[key] for key in row.keys()} for row in rows], get_row_count(
+        conn,
+        SUMMARY_TABLE,
+    )
 
 
 def write_json(path: Path, payload: Any) -> None:
@@ -199,40 +208,25 @@ def write_json(path: Path, payload: Any) -> None:
     )
 
 
-def build_manifest(
-    *,
-    exported_at: str,
-    hot_leads_total_rows: int,
-    hot_leads_exported_rows: int,
-    summary_total_rows: int,
-    limit: int,
-) -> dict[str, Any]:
-    return {
+def export_uae_recon(limit: int = DEFAULT_LIMIT) -> None:
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+    exported_at = datetime.now().isoformat(timespec="seconds")
+
+    manifest: dict[str, Any] = {
         "export_name": "uae_recon_frontend_data",
         "country": "uae",
         "currency": "AED",
         "database_path": str(UAE_DB_PATH),
         "exported_at": exported_at,
-        "source_tables": {
-            "hot_leads": HOT_LEADS_TABLE,
-            "summary": SUMMARY_TABLE,
-        },
-        "outputs": {
-            "hot_leads": str(HOT_LEADS_OUTPUT),
-            "summary": str(SUMMARY_OUTPUT),
-            "manifest": str(MANIFEST_OUTPUT),
-        },
-        "row_counts": {
-            "hot_leads_total_rows": hot_leads_total_rows,
-            "hot_leads_exported_rows": hot_leads_exported_rows,
-            "summary_total_rows": summary_total_rows,
-        },
         "limit": limit,
+        "exports": {},
+        "outputs": {},
         "frontend_rules": {
-            "default_sort": "dashboard_rank ASC, recon_score DESC",
             "currency": "AED",
             "raw_internal_tables_exposed": False,
             "badges_json_parsed_to_badges": True,
+            "note": "UAE Recon dashboard tabs are exported from product-safe recon_dashboard_* tables.",
         },
         "do_not_expose_directly": [
             "listing_price_events",
@@ -242,33 +236,55 @@ def build_manifest(
         ],
     }
 
-
-def export_uae_recon(limit: int = DEFAULT_LIMIT) -> None:
-    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-
-    exported_at = datetime.now().isoformat(timespec="seconds")
-
     with connect_db(UAE_DB_PATH) as conn:
-        for table_name in [HOT_LEADS_TABLE, SUMMARY_TABLE]:
+        for export_key, export_config in RECON_EXPORTS.items():
+            table_name = export_config["table"]
+            output_path = EXPORT_DIR / export_config["output"]
+
             if not table_exists(conn, table_name):
-                raise RuntimeError(f"Required table missing: {table_name}")
+                manifest["exports"][export_key] = {
+                    "table": table_name,
+                    "exists": False,
+                    "total_rows_available": 0,
+                    "exported_rows": 0,
+                    "output": str(output_path),
+                    "columns": [],
+                    "sort": None,
+                }
+                continue
 
-        hot_leads_total_rows = get_row_count(conn, HOT_LEADS_TABLE)
-        summary_total_rows = get_row_count(conn, SUMMARY_TABLE)
+            rows, total_rows, columns, sort_clause = fetch_rows(
+                conn,
+                table_name=table_name,
+                limit=limit,
+            )
 
-        hot_leads = fetch_hot_leads(conn, limit=limit)
-        summary = fetch_summary(conn)
+            payload = {
+                "country": "uae",
+                "currency": "AED",
+                "source_table": table_name,
+                "exported_at": exported_at,
+                "total_rows_available": total_rows,
+                "exported_rows": len(rows),
+                "default_sort": sort_clause.strip(),
+                "columns": columns,
+                "items": rows,
+            }
 
-    hot_leads_payload = {
-        "country": "uae",
-        "currency": "AED",
-        "source_table": HOT_LEADS_TABLE,
-        "exported_at": exported_at,
-        "total_rows_available": hot_leads_total_rows,
-        "exported_rows": len(hot_leads),
-        "default_sort": "dashboard_rank ASC, recon_score DESC",
-        "items": hot_leads,
-    }
+            write_json(output_path, payload)
+
+            manifest["exports"][export_key] = {
+                "table": table_name,
+                "exists": True,
+                "total_rows_available": total_rows,
+                "exported_rows": len(rows),
+                "output": str(output_path),
+                "columns": columns,
+                "sort": sort_clause.strip(),
+            }
+            manifest["outputs"][export_key] = str(output_path)
+
+        summary_rows, summary_total_rows = fetch_summary(conn)
 
     summary_payload = {
         "country": "uae",
@@ -276,33 +292,41 @@ def export_uae_recon(limit: int = DEFAULT_LIMIT) -> None:
         "source_table": SUMMARY_TABLE,
         "exported_at": exported_at,
         "total_rows_available": summary_total_rows,
-        "items": summary,
+        "items": summary_rows,
     }
 
-    manifest_payload = build_manifest(
-        exported_at=exported_at,
-        hot_leads_total_rows=hot_leads_total_rows,
-        hot_leads_exported_rows=len(hot_leads),
-        summary_total_rows=summary_total_rows,
-        limit=limit,
-    )
-
-    write_json(HOT_LEADS_OUTPUT, hot_leads_payload)
     write_json(SUMMARY_OUTPUT, summary_payload)
-    write_json(MANIFEST_OUTPUT, manifest_payload)
+
+    manifest["summary"] = {
+        "table": SUMMARY_TABLE,
+        "exists": summary_total_rows > 0,
+        "total_rows_available": summary_total_rows,
+        "exported_rows": len(summary_rows),
+        "output": str(SUMMARY_OUTPUT),
+    }
+    manifest["outputs"]["summary"] = str(SUMMARY_OUTPUT)
+    manifest["outputs"]["manifest"] = str(MANIFEST_OUTPUT)
+
+    write_json(MANIFEST_OUTPUT, manifest)
 
     print("UAE Recon frontend export complete.")
     print(f"Database: {UAE_DB_PATH}")
-    print(f"Hot leads table: {HOT_LEADS_TABLE}")
-    print(f"Summary table: {SUMMARY_TABLE}")
     print("")
-    print(f"Hot leads total rows: {hot_leads_total_rows:,}")
-    print(f"Hot leads exported rows: {len(hot_leads):,}")
+
+    for export_key, export_result in manifest["exports"].items():
+        status = "OK" if export_result["exists"] else "MISSING"
+        print(
+            f"{export_key}: {status} | "
+            f"table={export_result['table']} | "
+            f"total={export_result['total_rows_available']:,} | "
+            f"exported={export_result['exported_rows']:,}"
+        )
+
+    print("")
     print(f"Summary rows: {summary_total_rows:,}")
     print("")
-    print(f"Hot leads JSON: {HOT_LEADS_OUTPUT}")
-    print(f"Summary JSON:   {SUMMARY_OUTPUT}")
-    print(f"Manifest JSON:  {MANIFEST_OUTPUT}")
+    print(f"Export directory: {EXPORT_DIR}")
+    print(f"Manifest JSON:    {MANIFEST_OUTPUT}")
 
 
 if __name__ == "__main__":
