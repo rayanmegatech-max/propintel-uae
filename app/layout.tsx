@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "PropIntel GCC — Real Estate Intelligence for UAE & KSA",
@@ -33,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${inter.variable}`}>
-      <body className="font-sans bg-slate-950 text-slate-100 antialiased">
+    <html lang="en" className="dark">
+      <body className="bg-slate-950 font-sans text-slate-100 antialiased">
         {children}
       </body>
     </html>
