@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceholderPage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
+import OwnerDirectRadarPage from "../../_components/OwnerDirectRadarPage";
 import UaeReconDataPage from "../../_components/UaeReconDataPage";
 import {
   COUNTRY_LIST,
@@ -48,6 +49,18 @@ export default async function CountrySectionPage({
     const data = await getKsaReconData();
 
     return <KsaReconDataPage data={data} />;
+  }
+
+  if (country === "uae" && section === "owner-direct") {
+    const data = await getUaeReconData();
+
+    return <OwnerDirectRadarPage country={countryConfig} data={data} />;
+  }
+
+  if (country === "ksa" && section === "owner-direct") {
+    const data = await getKsaReconData();
+
+    return <OwnerDirectRadarPage country={countryConfig} data={data} />;
   }
 
   return (
