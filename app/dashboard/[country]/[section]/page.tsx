@@ -3,6 +3,7 @@ import ActivityFeedPage from "../../_components/ActivityFeedPage";
 import AgencyProfilesPage from "../../_components/AgencyProfilesPage";
 import BuildingIntelligencePage from "../../_components/BuildingIntelligencePage";
 import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceholderPage";
+import DataQualityPage from "../../_components/DataQualityPage";
 import InventoryPressurePage from "../../_components/InventoryPressurePage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
 import ListingTruthRadarPage from "../../_components/ListingTruthRadarPage";
@@ -22,6 +23,7 @@ import {
   getProductSection,
   type ProductSectionSlug,
 } from "@/lib/countries/productNavigation";
+import { getExportHealthData } from "@/lib/data/exportHealth";
 import { getKsaReconData } from "@/lib/data/ksaRecon";
 import { getModule5Data } from "@/lib/data/module5";
 import { getUaeReconData } from "@/lib/data/uaeRecon";
@@ -137,6 +139,12 @@ export default async function CountrySectionPage({
     const data = await getModule5Data(country);
 
     return <BuildingIntelligencePage country={countryConfig} data={data} />;
+  }
+
+  if (section === "data-quality") {
+    const data = await getExportHealthData(country);
+
+    return <DataQualityPage country={countryConfig} data={data} />;
   }
 
   return (
