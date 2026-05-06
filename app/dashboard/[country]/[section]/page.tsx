@@ -3,6 +3,7 @@ import ActivityFeedPage from "../../_components/ActivityFeedPage";
 import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceholderPage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
 import ListingTruthRadarPage from "../../_components/ListingTruthRadarPage";
+import MarketIntelligencePage from "../../_components/MarketIntelligencePage";
 import OwnerDirectRadarPage from "../../_components/OwnerDirectRadarPage";
 import PriceDropRadarPage from "../../_components/PriceDropRadarPage";
 import UaeReconDataPage from "../../_components/UaeReconDataPage";
@@ -95,6 +96,12 @@ export default async function CountrySectionPage({
     const data = await getModule5Data(country);
 
     return <ActivityFeedPage country={countryConfig} data={data} />;
+  }
+
+  if (section === "market-intelligence") {
+    const data = await getModule5Data(country);
+
+    return <MarketIntelligencePage country={countryConfig} data={data} />;
   }
 
   return (
