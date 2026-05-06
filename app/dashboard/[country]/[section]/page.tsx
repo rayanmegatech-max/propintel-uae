@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import ActivityFeedPage from "../../_components/ActivityFeedPage";
+import AgencyProfilesPage from "../../_components/AgencyProfilesPage";
 import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceholderPage";
 import InventoryPressurePage from "../../_components/InventoryPressurePage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
@@ -116,6 +117,12 @@ export default async function CountrySectionPage({
     const data = await getModule5Data(country);
 
     return <MarketDominancePage country={countryConfig} data={data} />;
+  }
+
+  if (section === "agency-profiles") {
+    const data = await getModule5Data(country);
+
+    return <AgencyProfilesPage country={countryConfig} data={data} />;
   }
 
   return (
