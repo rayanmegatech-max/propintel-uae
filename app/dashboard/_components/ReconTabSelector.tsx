@@ -1,5 +1,7 @@
 "use client";
 
+import { BarChart3 } from "lucide-react";
+
 export type ReconTabOption = {
   key: string;
   label: string;
@@ -39,7 +41,18 @@ export default function ReconTabSelector({
   }
 
   return (
-    <div className="rounded-3xl border border-white/[0.08] bg-slate-950/45 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+    <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/50 p-2 shadow-[0_18px_70px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+      <div className="mb-2 flex items-center justify-between gap-3 px-2 py-1">
+        <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+          <BarChart3 className="h-3.5 w-3.5 text-emerald-300/80" />
+          Opportunity lanes
+        </div>
+
+        <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 text-[10px] font-bold text-slate-500">
+          {tabs.length} views
+        </span>
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-1">
         {tabs.map((tab) => {
           const isActive = tab.key === activeTab;
@@ -51,22 +64,26 @@ export default function ReconTabSelector({
               type="button"
               onClick={() => onTabChange(tab.key)}
               className={[
-                "group min-w-[164px] rounded-2xl border px-4 py-3.5 text-left transition",
+                "group relative min-w-[174px] overflow-hidden rounded-2xl border px-4 py-3.5 text-left transition-all duration-200",
                 isActive
-                  ? "border-emerald-400/40 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.22),rgba(16,185,129,0.08))] text-white shadow-[0_0_34px_rgba(16,185,129,0.13)]"
+                  ? "border-emerald-400/45 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.24),rgba(16,185,129,0.075))] text-white shadow-[0_0_36px_rgba(16,185,129,0.14)]"
                   : "border-white/[0.08] bg-white/[0.035] text-slate-400 hover:border-white/[0.16] hover:bg-white/[0.06] hover:text-slate-200",
               ].join(" ")}
               aria-pressed={isActive}
             >
+              {isActive ? (
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-emerald-300/70" />
+              ) : null}
+
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-black">{tab.label}</span>
+                <span className="truncate text-sm font-black">{tab.label}</span>
 
                 {countLabel ? (
                   <span
                     className={[
                       "rounded-full px-2 py-0.5 text-[10px] font-black",
                       isActive
-                        ? "bg-emerald-300/15 text-emerald-100"
+                        ? "border border-emerald-300/20 bg-emerald-300/12 text-emerald-100"
                         : "bg-slate-900 text-slate-500 group-hover:text-slate-300",
                     ].join(" ")}
                   >
@@ -89,7 +106,9 @@ export default function ReconTabSelector({
               <div
                 className={[
                   "mt-3 h-1 rounded-full transition",
-                  isActive ? "bg-emerald-300/70" : "bg-transparent",
+                  isActive
+                    ? "bg-gradient-to-r from-emerald-300 via-cyan-300 to-transparent"
+                    : "bg-white/[0.04]",
                 ].join(" ")}
               />
             </button>

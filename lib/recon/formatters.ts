@@ -34,6 +34,8 @@ export function labelize(value: string | null | undefined): string {
   return value
     .replaceAll("_", " ")
     .replaceAll("-", " ")
+    .replace(/\s+/g, " ")
+    .trim()
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 

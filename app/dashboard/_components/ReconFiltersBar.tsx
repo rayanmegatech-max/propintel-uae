@@ -32,10 +32,11 @@ function SelectField({
       <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
         {label}
       </span>
+
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-2xl border border-white/[0.08] bg-slate-950/75 px-3 text-sm font-medium text-slate-200 outline-none transition hover:border-white/[0.16] focus:border-emerald-400/50"
+        className="h-11 w-full rounded-2xl border border-white/[0.08] bg-slate-950/85 px-3 text-sm font-semibold text-slate-200 outline-none transition hover:border-white/[0.16] focus:border-emerald-400/50"
       >
         <option value="all">All</option>
         {options.slice(0, 80).map((option) => (
@@ -62,9 +63,9 @@ function ToggleButton({
       type="button"
       onClick={onClick}
       className={[
-        "rounded-2xl border px-3.5 py-2.5 text-xs font-black transition",
+        "rounded-2xl border px-3.5 py-2.5 text-xs font-black transition-all duration-200",
         active
-          ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-200 shadow-[0_0_24px_rgba(16,185,129,0.10)]"
+          ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-100 shadow-[0_0_26px_rgba(16,185,129,0.12)]"
           : "border-white/[0.08] bg-white/[0.035] text-slate-400 hover:border-white/[0.16] hover:bg-white/[0.06] hover:text-slate-200",
       ].join(" ")}
     >
@@ -90,7 +91,9 @@ export default function ReconFiltersBar({
   };
 
   return (
-    <div className="rounded-3xl border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.08),transparent_32%),rgba(2,6,23,0.66)] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+    <div className="relative overflow-hidden rounded-[1.5rem] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.10),transparent_32%),rgba(2,6,23,0.72)] p-4 shadow-[0_18px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent" />
+
       <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.045] text-emerald-300">
@@ -98,17 +101,19 @@ export default function ReconFiltersBar({
           </div>
 
           <div>
-            <h3 className="text-sm font-bold text-white">Opportunity controls</h3>
-            <p className="text-xs text-slate-500">
+            <h3 className="text-sm font-black text-white">
+              Opportunity controls
+            </h3>
+            <p className="text-xs leading-5 text-slate-500">
               Showing{" "}
-              <span className="font-semibold text-slate-300">
+              <span className="font-black text-slate-200">
                 {filteredCount.toLocaleString("en-US")}
               </span>{" "}
               of{" "}
-              <span className="font-semibold text-slate-300">
+              <span className="font-black text-slate-200">
                 {totalCount.toLocaleString("en-US")}
               </span>{" "}
-              exported rows in this tab.
+              exported rows in this lane.
             </p>
           </div>
         </div>
@@ -117,7 +122,7 @@ export default function ReconFiltersBar({
           <button
             type="button"
             onClick={() => onFiltersChange({ ...DEFAULT_RECON_FILTERS })}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.045] px-3.5 py-2.5 text-xs font-black text-slate-300 transition hover:bg-white/[0.08]"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.045] px-3.5 py-2.5 text-xs font-black text-slate-300 transition hover:bg-white/[0.08] hover:text-white"
           >
             <X className="h-3.5 w-3.5" />
             Clear filters
@@ -134,13 +139,14 @@ export default function ReconFiltersBar({
           <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
             Search
           </span>
-          <div className="flex h-11 items-center gap-2 rounded-2xl border border-white/[0.08] bg-slate-950/75 px-3 transition focus-within:border-emerald-400/50">
+
+          <div className="flex h-11 items-center gap-2 rounded-2xl border border-white/[0.08] bg-slate-950/85 px-3 transition focus-within:border-emerald-400/50">
             <Search className="h-4 w-4 text-slate-500" />
             <input
               value={filters.search}
               onChange={(event) => update({ search: event.target.value })}
               placeholder="Title, city, portal, agency..."
-              className="h-full w-full bg-transparent text-sm font-medium text-slate-200 outline-none placeholder:text-slate-600"
+              className="h-full w-full bg-transparent text-sm font-semibold text-slate-200 outline-none placeholder:text-slate-600"
             />
           </div>
         </label>
@@ -170,12 +176,13 @@ export default function ReconFiltersBar({
           <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
             Min score
           </span>
+
           <input
             value={filters.minScore}
             onChange={(event) => update({ minScore: event.target.value })}
             inputMode="numeric"
             placeholder="0"
-            className="h-11 w-full rounded-2xl border border-white/[0.08] bg-slate-950/75 px-3 text-sm font-medium text-slate-200 outline-none transition placeholder:text-slate-600 hover:border-white/[0.16] focus:border-emerald-400/50"
+            className="h-11 w-full rounded-2xl border border-white/[0.08] bg-slate-950/85 px-3 text-sm font-semibold text-slate-200 outline-none transition placeholder:text-slate-600 hover:border-white/[0.16] focus:border-emerald-400/50"
           />
         </label>
       </div>
@@ -186,6 +193,7 @@ export default function ReconFiltersBar({
           label="Only contactable"
           onClick={() => update({ onlyContactable: !filters.onlyContactable })}
         />
+
         <ToggleButton
           active={filters.onlyPriceMovement}
           label="Only price movement"
@@ -193,6 +201,7 @@ export default function ReconFiltersBar({
             update({ onlyPriceMovement: !filters.onlyPriceMovement })
           }
         />
+
         <ToggleButton
           active={filters.onlyOwnerDirect}
           label="Only owner/direct"
