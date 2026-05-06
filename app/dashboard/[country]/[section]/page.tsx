@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import ActivityFeedPage from "../../_components/ActivityFeedPage";
 import AgencyProfilesPage from "../../_components/AgencyProfilesPage";
+import BuildingIntelligencePage from "../../_components/BuildingIntelligencePage";
 import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceholderPage";
 import InventoryPressurePage from "../../_components/InventoryPressurePage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
@@ -130,6 +131,12 @@ export default async function CountrySectionPage({
     const data = await getModule5Data(country);
 
     return <LocationIntelligencePage country={countryConfig} data={data} />;
+  }
+
+  if (country === "uae" && section === "buildings") {
+    const data = await getModule5Data(country);
+
+    return <BuildingIntelligencePage country={countryConfig} data={data} />;
   }
 
   return (
