@@ -4,6 +4,7 @@ import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceho
 import InventoryPressurePage from "../../_components/InventoryPressurePage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
 import ListingTruthRadarPage from "../../_components/ListingTruthRadarPage";
+import MarketDominancePage from "../../_components/MarketDominancePage";
 import MarketIntelligencePage from "../../_components/MarketIntelligencePage";
 import OwnerDirectRadarPage from "../../_components/OwnerDirectRadarPage";
 import PriceDropRadarPage from "../../_components/PriceDropRadarPage";
@@ -109,6 +110,12 @@ export default async function CountrySectionPage({
     const data = await getModule5Data(country);
 
     return <InventoryPressurePage country={countryConfig} data={data} />;
+  }
+
+  if (section === "market-dominance") {
+    const data = await getModule5Data(country);
+
+    return <MarketDominancePage country={countryConfig} data={data} />;
   }
 
   return (
