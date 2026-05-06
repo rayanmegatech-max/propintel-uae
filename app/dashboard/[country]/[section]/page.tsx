@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceholderPage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
+import ListingTruthRadarPage from "../../_components/ListingTruthRadarPage";
 import OwnerDirectRadarPage from "../../_components/OwnerDirectRadarPage";
 import PriceDropRadarPage from "../../_components/PriceDropRadarPage";
 import UaeReconDataPage from "../../_components/UaeReconDataPage";
@@ -74,6 +75,18 @@ export default async function CountrySectionPage({
     const data = await getKsaReconData();
 
     return <PriceDropRadarPage country={countryConfig} data={data} />;
+  }
+
+  if (country === "uae" && section === "listing-age") {
+    const data = await getUaeReconData();
+
+    return <ListingTruthRadarPage country={countryConfig} data={data} />;
+  }
+
+  if (country === "ksa" && section === "listing-age") {
+    const data = await getKsaReconData();
+
+    return <ListingTruthRadarPage country={countryConfig} data={data} />;
   }
 
   return (
