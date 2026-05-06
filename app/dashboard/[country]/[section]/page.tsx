@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import ActivityFeedPage from "../../_components/ActivityFeedPage";
 import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceholderPage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
 import ListingTruthRadarPage from "../../_components/ListingTruthRadarPage";
@@ -16,6 +17,7 @@ import {
   type ProductSectionSlug,
 } from "@/lib/countries/productNavigation";
 import { getKsaReconData } from "@/lib/data/ksaRecon";
+import { getModule5Data } from "@/lib/data/module5";
 import { getUaeReconData } from "@/lib/data/uaeRecon";
 
 export function generateStaticParams() {
@@ -87,6 +89,12 @@ export default async function CountrySectionPage({
     const data = await getKsaReconData();
 
     return <ListingTruthRadarPage country={countryConfig} data={data} />;
+  }
+
+  if (section === "activity-feed") {
+    const data = await getModule5Data(country);
+
+    return <ActivityFeedPage country={countryConfig} data={data} />;
   }
 
   return (
