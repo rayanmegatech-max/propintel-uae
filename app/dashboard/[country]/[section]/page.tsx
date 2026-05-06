@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import ActivityFeedPage from "../../_components/ActivityFeedPage";
 import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceholderPage";
+import InventoryPressurePage from "../../_components/InventoryPressurePage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
 import ListingTruthRadarPage from "../../_components/ListingTruthRadarPage";
 import MarketIntelligencePage from "../../_components/MarketIntelligencePage";
@@ -102,6 +103,12 @@ export default async function CountrySectionPage({
     const data = await getModule5Data(country);
 
     return <MarketIntelligencePage country={countryConfig} data={data} />;
+  }
+
+  if (section === "inventory-pressure") {
+    const data = await getModule5Data(country);
+
+    return <InventoryPressurePage country={countryConfig} data={data} />;
   }
 
   return (
