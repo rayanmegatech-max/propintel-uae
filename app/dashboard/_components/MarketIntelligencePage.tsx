@@ -1,66 +1,54 @@
+// app/dashboard/_components/MarketIntelligencePage.tsx
 import Link from "next/link";
+import type { ElementType } from "react";
 import {
-  Activity,
   ArrowRight,
   BarChart3,
-  Building2,
   Database,
   Gauge,
-  Landmark,
   Map,
-  MapPin,
   ShieldCheck,
-  Sparkles,
-  TrendingUp,
   Users,
+  Zap,
 } from "lucide-react";
-import ReconMetricCard from "./ReconMetricCard";
-import { formatCurrency, formatNumber, formatPercent } from "@/lib/recon/formatters";
+import { formatNumber } from "@/lib/recon/formatters";
 import type { CountryConfig } from "@/lib/countries/countryConfig";
-import type {
-  Module5DataResult,
-  Module5ListPayload,
-  Module5Record,
-} from "@/lib/data/module5";
-import type { ReconMetric } from "@/lib/recon/types";
+import type { Module5DataResult, Module5ListPayload } from "@/lib/data/module5";
 
+// ─── Design tokens (aligned with product direction) ───────────────────────────
+const T = {
+  pageBg:  "#09090b",
+  cardBg:  "#0c0c0e",
+  wellBg:  "#18181b",
+  border:  "rgba(255,255,255,0.07)",
+  borderFt:"rgba(255,255,255,0.04)",
+  t1: "#f4f4f5",   // primary text
+  t2: "#a1a1aa",   // secondary
+  t3: "#52525b",   // muted
+  t4: "#3f3f46",   // dim
+  em:    "#10b981",
+  emHi:  "#34d399",
+  emBg:  "rgba(16,185,129,0.08)",
+  emBdr: "rgba(16,185,129,0.2)",
+  am:    "#fbbf24",
+  amBg:  "rgba(245,158,11,0.08)",
+  amBdr: "rgba(245,158,11,0.18)",
+} as const;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 type MarketIntelligencePageProps = {
   country: CountryConfig;
   data: Module5DataResult;
 };
 
-type MarketCard = {
-  id: string;
-  rank: number | null;
-  title: string;
-  subtitle: string;
-  location: string;
-  sourceCategory: string | null;
-  activeListings: number | null;
-  agencies: number | null;
-  agents: number | null;
-  buildings: number | null;
-  avgPrice: number | null;
-  topAgency: string | null;
-  topAgencyShare: number | null;
-  concentration: string | null;
-  dominanceScore: number | null;
-  pressureScore: number | null;
-  pressureLabel: string | null;
-  priceDropRate: number | null;
-  refreshRate: number | null;
-  ownerDirectRate: number | null;
-  confidence: string | null;
-  explanation: string | null;
-  action: string | null;
-};
+type MetricTone = "emerald" | "amber" | "neutral";
 
+// ─── Data helpers (unchanged from original) ───────────────────────────────────
 function asString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }
-
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim() !== "") {
@@ -69,136 +57,100 @@ function asNumber(value: unknown): number | null {
   }
   return null;
 }
-
-function formatLabel(value: string | null): string | null {
-  if (!value) return null;
-
-  return value
-    .replace(/_/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function joinParts(parts: Array<string | null | undefined>): string {
-  return parts.filter(Boolean).join(" · ");
-}
-
 function getSummaryMetric(data: Module5DataResult, metricKey: string): number | null {
   const row = data.summary?.items.find(
     (item) => asString(item.metric_key) === metricKey
   );
-
   return asNumber(row?.metric_value) ?? asNumber(row?.rows);
 }
-
 function getPayloadRows(payload: Module5ListPayload | null): number {
   return payload?.total_rows_available ?? 0;
 }
 
-function getMarketLocation(country: CountryConfig, record: Module5Record): string {
-  if (country.slug === "ksa") {
-    return (
-      joinParts([
-        asString(record.city_display_name) ?? asString(record.city),
-        asString(record.district_display_name) ?? asString(record.district),
-      ]) || "KSA market"
-    );
-  }
-
+// ─── Mini visual components (pure CSS, no external assets) ────────────────────
+/** A subtle bar rail for “volume” feel */
+function MiniBarRail({ count, tone }: { count?: number; tone: MetricTone }) {
+  const segments = 12;
+  const filled = Math.min(segments, Math.ceil((count ?? 0) / 1000)); // abstract mapping
+  const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : T.t3;
+  const bg   = "rgba(255,255,255,0.08)";
   return (
-    joinParts([
-      asString(record.city),
-      asString(record.community),
-      asString(record.building_name),
-    ]) || "UAE market"
+    <div className="flex items-end gap-[2px] h-5 mt-1">
+      {Array.from({ length: segments }).map((_, i) => (
+        <div
+          key={i}
+          className="flex-1 rounded-[1px] transition-all"
+          style={{
+            height: `${8 + (i + 1) * 1.2}px`,
+            background: i < filled ? color : bg,
+            opacity: i < filled ? 0.9 : 0.3,
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
-function normalizeMarketCard(
-  country: CountryConfig,
-  record: Module5Record,
-  index: number,
-  fallbackType: string
-): MarketCard {
-  const location = getMarketLocation(country, record);
-
-  const activeListings =
-    asNumber(record.active_listings) ?? asNumber(record.total_listings);
-
-  const agencies =
-    asNumber(record.agencies) ??
-    asNumber(record.unique_agencies) ??
-    asNumber(record.total_agencies);
-
-  const agents =
-    asNumber(record.agents) ??
-    asNumber(record.unique_agents) ??
-    asNumber(record.total_agents);
-
-  const buildings =
-    asNumber(record.buildings) ??
-    asNumber(record.building_count) ??
-    asNumber(record.unique_districts);
-
-  const title =
-    asString(record.intelligence_label) ||
-    asString(record.dashboard_card_type) ||
-    asString(record.dashboard_use_case) ||
-    `${location} intelligence`;
-
-  const subtitle =
-    formatLabel(asString(record.dashboard_level)) ||
-    formatLabel(asString(record.market_level)) ||
-    fallbackType;
-
-  return {
-    id:
-      asString(record.market_key) ||
-      asString(record.canonical_market_key) ||
-      `${country.slug}-market-card-${fallbackType}-${index}`,
-    rank: asNumber(record.dashboard_rank),
-    title,
-    subtitle,
-    location,
-    sourceCategory: formatLabel(asString(record.source_category)),
-    activeListings,
-    agencies,
-    agents,
-    buildings,
-    avgPrice: asNumber(record.avg_price),
-    topAgency: asString(record.top_agency_name),
-    topAgencyShare:
-      asNumber(record.top_agency_share_pct) ??
-      asNumber(record.top3_agency_share_pct) ??
-      asNumber(record.top_5_agency_share_pct),
-    concentration:
-      formatLabel(asString(record.concentration_label)) ||
-      formatLabel(asString(record.concentration_bucket)),
-    dominanceScore: asNumber(record.dominance_score),
-    pressureScore:
-      asNumber(record.inventory_pressure_score) ?? asNumber(record.pressure_score),
-    pressureLabel:
-      formatLabel(asString(record.pressure_label)) ||
-      formatLabel(asString(record.pressure_bucket)),
-    priceDropRate: asNumber(record.price_drop_rate_pct),
-    refreshRate:
-      asNumber(record.refresh_inflated_rate_pct) ??
-      asNumber(record.refresh_rate_pct),
-    ownerDirectRate: asNumber(record.owner_direct_rate_pct),
-    confidence: formatLabel(asString(record.confidence_tier)),
-    explanation:
-      asString(record.explanation) ||
-      asString(record.interpretation_note) ||
-      asString(record.product_note),
-    action:
-      asString(record.recommended_action) ||
-      asString(record.recommended_use) ||
-      asString(record.pressure_action),
-  };
+/** A row of dots representing activity density */
+function MiniDotRow({ count, tone }: { count?: number; tone: MetricTone }) {
+  const dots = 10;
+  const active = Math.min(dots, Math.ceil((count ?? 0) / 500));
+  const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : T.t3;
+  return (
+    <div className="flex items-center gap-[3px] mt-1">
+      {Array.from({ length: dots }).map((_, i) => (
+        <div
+          key={i}
+          className="h-[4px] w-[4px] rounded-full"
+          style={{
+            background: i < active ? color : "rgba(255,255,255,0.08)",
+            transition: "background 0.3s",
+          }}
+        />
+      ))}
+    </div>
+  );
 }
 
+/** A minimal sparkline-like signal wave */
+function MiniSignalWave({ tone }: { tone: MetricTone }) {
+  const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : T.t3;
+  return (
+    <svg width="44" height="16" viewBox="0 0 44 16" fill="none" aria-hidden="true" className="opacity-60 mt-1">
+      <path
+        d="M0 12 L4 10 L8 12 L12 6 L16 8 L20 4 L24 6 L28 2 L32 4 L36 1 L40 3 L44 0"
+        stroke={color}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+/** Tiny abstract grid for Market Pulse background (pure CSS) */
+function AbstractGrid({ className }: { className?: string }) {
+  return (
+    <div
+      className={`absolute inset-0 pointer-events-none overflow-hidden ${className ?? ""}`}
+      aria-hidden="true"
+    >
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)
+          `,
+          backgroundSize: "18px 18px",
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── Empty state (redesigned) ─────────────────────────────────────────────────
 function EmptyMarketState({
   country,
   message,
@@ -206,220 +158,372 @@ function EmptyMarketState({
   country: CountryConfig;
   message: string;
 }) {
+  const exportCmd =
+    country.slug === "uae"
+      ? "python tools\\export_uae_module5_frontend_data.py"
+      : "python tools\\export_ksa_module5_frontend_data.py";
+
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-6 backdrop-blur-xl">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300">
-          <Database className="h-6 w-6" />
-        </div>
+    <div className="flex flex-col items-center justify-center px-4 py-24 text-center">
+      <div
+        className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border"
+        style={{ background: T.amBg, borderColor: T.amBdr }}
+      >
+        <Database className="h-6 w-6" style={{ color: T.am }} />
+      </div>
 
-        <h1 className="text-2xl font-bold text-white">
-          {country.label} Market Intelligence export not loaded
-        </h1>
+      <h1 className="text-xl font-bold" style={{ color: T.t1 }}>
+        {country.label} Market Intelligence not available
+      </h1>
 
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-amber-100/80">
-          {message}
+      <p
+        className="mt-2 max-w-md text-[13px] leading-relaxed"
+        style={{ color: T.t3 }}
+      >
+        {message}
+      </p>
+
+      <div
+        className="mt-6 rounded-xl border px-5 py-4 text-left w-full max-w-md"
+        style={{ background: T.cardBg, borderColor: T.border }}
+      >
+        <p className="text-xs font-medium" style={{ color: T.t2 }}>
+          Generate local exports:
         </p>
-
-        <div className="mt-5 rounded-xl border border-white/[0.08] bg-slate-950/50 p-4">
-          <p className="text-sm font-semibold text-white">Run locally:</p>
-          <code className="mt-2 block rounded-lg bg-black/30 p-3 text-xs text-slate-300">
-            {country.slug === "uae"
-              ? "python tools\\export_uae_module5_frontend_data.py"
-              : "python tools\\export_ksa_module5_frontend_data.py"}
-          </code>
-        </div>
-      </section>
+        <code
+          className="mt-2 block rounded-lg p-3 text-xs"
+          style={{
+            background: "#000",
+            color: T.emHi,
+            fontFamily: "'DM Mono', monospace",
+          }}
+        >
+          {exportCmd}
+        </code>
+      </div>
     </div>
   );
 }
 
-function MarketSignalCard({
-  country,
-  card,
+// ─── KPI Metric Card (rich mini visual) ───────────────────────────────────────
+function MetricCard({
+  label,
+  value,
+  description,
+  tone = "neutral",
+  visual,  // visual accent: "bars"|"dots"|"signal"
 }: {
-  country: CountryConfig;
-  card: MarketCard;
+  label: string;
+  value: string;
+  description: string;
+  tone?: MetricTone;
+  visual?: "bars" | "dots" | "signal";
 }) {
+  const bg  = tone === "emerald" ? T.emBg : tone === "amber" ? T.amBg : "rgba(255,255,255,0.03)";
+  const bdr = tone === "emerald" ? T.emBdr : tone === "amber" ? T.amBdr : T.border;
+
+  // Generate a numeric value for visual scaling
+  const numVal = parseInt(value.replace(/,/g, ""), 10) || 0;
+
   return (
-    <article className="rounded-[1.45rem] border border-white/[0.08] bg-slate-950/45 p-4 shadow-[0_16px_50px_rgba(0,0,0,0.18)] transition hover:border-cyan-300/25 hover:bg-white/[0.055]">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-200">
-          <MapPin className="h-3.5 w-3.5" />
-          {card.subtitle}
-        </span>
+    <div
+      className="relative rounded-2xl border p-5 transition-shadow hover:shadow-lg hover:shadow-black/20"
+      style={{
+        background:  bg,
+        borderColor: bdr,
+        boxShadow:   "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)",
+      }}
+    >
+      {/* Upper label */}
+      <p
+        className="text-[9px] font-semibold uppercase tracking-[0.14em]"
+        style={{ color: T.t4 }}
+      >
+        {label}
+      </p>
 
-        {card.sourceCategory ? (
-          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-            {card.sourceCategory}
-          </span>
-        ) : null}
+      {/* Big number */}
+      <p
+        className="mt-2 font-bold tabular-nums leading-none"
+        style={{
+          color: T.t1,
+          fontSize: "clamp(22px, 2.4vw, 34px)",
+          letterSpacing: "-0.03em",
+        }}
+      >
+        {value}
+      </p>
 
-        {card.confidence ? (
-          <span className="rounded-full border border-emerald-400/15 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-200">
-            {card.confidence}
-          </span>
-        ) : null}
+      {/* Mini visual accent */}
+      <div className="mt-1 mb-2">
+        {visual === "bars" && <MiniBarRail count={numVal} tone={tone} />}
+        {visual === "dots" && <MiniDotRow count={numVal} tone={tone} />}
+        {visual === "signal" && <MiniSignalWave tone={tone} />}
       </div>
 
-      <h3 className="text-base font-black tracking-tight text-white">
-        {card.location}
-      </h3>
-
-      <p className="mt-1 text-sm leading-6 text-slate-400">{card.title}</p>
-
-      {card.explanation ? (
-        <p className="mt-3 rounded-2xl border border-white/[0.08] bg-white/[0.035] px-3 py-2 text-xs leading-5 text-slate-300">
-          {card.explanation}
-        </p>
-      ) : null}
-
-      {card.action ? (
-        <p className="mt-3 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.07] px-3 py-2 text-xs leading-5 text-cyan-100/85">
-          {card.action}
-        </p>
-      ) : null}
-
-      <div className="mt-4 grid gap-2 text-xs text-slate-400 sm:grid-cols-2">
-        {card.activeListings !== null ? (
-          <div className="rounded-xl border border-white/[0.08] bg-black/20 p-2">
-            <span className="block text-slate-500">Active listings</span>
-            <span className="font-black text-white">
-              {formatNumber(card.activeListings)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.agencies !== null ? (
-          <div className="rounded-xl border border-white/[0.08] bg-black/20 p-2">
-            <span className="block text-slate-500">Agencies</span>
-            <span className="font-black text-white">
-              {formatNumber(card.agencies)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.avgPrice !== null ? (
-          <div className="rounded-xl border border-white/[0.08] bg-black/20 p-2">
-            <span className="block text-slate-500">Avg price</span>
-            <span className="font-black text-white">
-              {formatCurrency(card.avgPrice, country.currency)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.pressureScore !== null ? (
-          <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.06] p-2">
-            <span className="block text-amber-100/70">Pressure score</span>
-            <span className="font-black text-amber-100">
-              {formatNumber(card.pressureScore)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.dominanceScore !== null ? (
-          <div className="rounded-xl border border-violet-400/15 bg-violet-400/[0.06] p-2">
-            <span className="block text-violet-100/70">Dominance score</span>
-            <span className="font-black text-violet-100">
-              {formatNumber(card.dominanceScore)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.topAgencyShare !== null ? (
-          <div className="rounded-xl border border-white/[0.08] bg-black/20 p-2">
-            <span className="block text-slate-500">Top agency share</span>
-            <span className="font-black text-white">
-              {formatPercent(card.topAgencyShare)}
-            </span>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
-        {card.topAgency ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1">
-            <Building2 className="h-3.5 w-3.5 text-violet-300" />
-            {card.topAgency}
-          </span>
-        ) : null}
-
-        {card.pressureLabel ? (
-          <span className="rounded-full border border-amber-400/15 bg-amber-400/[0.06] px-3 py-1 text-amber-100">
-            {card.pressureLabel}
-          </span>
-        ) : null}
-
-        {card.concentration ? (
-          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1">
-            {card.concentration}
-          </span>
-        ) : null}
-      </div>
-    </article>
+      {/* Description */}
+      <p className="text-[12px] leading-relaxed" style={{ color: T.t3 }}>
+        {description}
+      </p>
+    </div>
   );
 }
 
-function MarketLane({
-  country,
+// ─── Market Pulse featured card ───────────────────────────────────────────────
+function MarketPulse({
+  totalActiveMarkets,
+  highPressureCount,
+  activityEvents,
+}: {
+  totalActiveMarkets: number;
+  highPressureCount: number;
+  activityEvents: number;
+}) {
+  // Create insight statements from real counts
+  const insights = [
+    `${formatNumber(totalActiveMarkets)} locations with visible public listing signals`,
+    `${formatNumber(highPressureCount)} markets showing inventory pressure indicators`,
+    `${formatNumber(activityEvents)} recent activity events captured in this export`,
+  ];
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl border"
+      style={{
+        background: `radial-gradient(circle at 80% 20%, rgba(16,185,129,0.06) 0%, transparent 40%), ${T.cardBg}`,
+        borderColor: T.border,
+        boxShadow: "0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)",
+      }}
+    >
+      <AbstractGrid className="opacity-40" />
+
+      <div className="relative p-6 sm:p-7">
+        {/* Header */}
+        <div className="flex items-start gap-4">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
+            style={{ background: T.emBg, borderColor: T.emBdr }}
+          >
+            <Zap className="h-5 w-5" style={{ color: T.emHi }} />
+          </div>
+          <div>
+            <h2 className="text-[20px] font-bold tracking-tight" style={{ color: T.t1 }}>
+              Market Pulse
+            </h2>
+            <p className="mt-1 text-[13px]" style={{ color: T.t3 }}>
+              Where public listing activity, pressure, and agency visibility are moving
+            </p>
+          </div>
+        </div>
+
+        {/* Insight row + mini visual */}
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          <div className="space-y-3">
+            {insights.map((insight, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span
+                  className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
+                  style={{ background: i === 0 ? T.em : i === 1 ? T.am : T.t3 }}
+                />
+                <p className="text-[13px] leading-relaxed" style={{ color: T.t2 }}>
+                  {insight}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Abstract mini visual: bar grid using real counts (abstract mapping) */}
+          <div className="hidden sm:block relative h-full min-h-[100px]">
+            <div
+              className="absolute inset-0 flex items-end gap-[3px] opacity-70"
+              aria-hidden="true"
+            >
+              {Array.from({ length: 16 }).map((_, i) => {
+                // Map indices to abstract heights based on counts
+                const h =
+                  (i % 3 === 0
+                    ? 0.5 + (activityEvents % 10) / 30
+                    : i % 3 === 1
+                      ? 0.3 + (highPressureCount % 10) / 40
+                      : 0.35 + (totalActiveMarkets % 10) / 35) * 100;
+                return (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-t-[2px]"
+                    style={{
+                      height: `${Math.min(100, h)}%`,
+                      background:
+                        i % 3 === 0
+                          ? `linear-gradient(to top, ${T.em}40, ${T.em}10)`
+                          : i % 3 === 1
+                            ? `linear-gradient(to top, ${T.am}40, ${T.am}10)`
+                            : `linear-gradient(to top, ${T.t3}30, transparent)`,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Intelligence Lane Card (enhanced product module feel) ─────────────────────
+function IntelligenceLane({
+  icon: Icon,
   title,
   description,
-  payload,
-  fallbackType,
-  limit = 6,
+  statLabel,
+  statValue,
+  ctaHref,
+  ctaText,
+  tone = "neutral",
 }: {
-  country: CountryConfig;
+  icon: ElementType;
   title: string;
   description: string;
-  payload: Module5ListPayload | null;
-  fallbackType: string;
-  limit?: number;
+  statLabel: string;
+  statValue: string;
+  ctaHref: string;
+  ctaText: string;
+  tone?: MetricTone;
 }) {
-  if (!payload || payload.items.length === 0) return null;
-
-  const cards = payload.items
-    .slice(0, limit)
-    .map((record, index) =>
-      normalizeMarketCard(country, record, index, fallbackType)
-    );
+  const iconBg  = tone === "emerald" ? T.emBg : tone === "amber" ? T.amBg : "rgba(255,255,255,0.05)";
+  const iconBdr = tone === "emerald" ? T.emBdr : tone === "amber" ? T.amBdr : T.border;
+  const iconClr = tone === "emerald" ? T.emHi : tone === "amber" ? T.am : T.t2;
+  const bdr     = tone === "emerald" ? T.emBdr : tone === "amber" ? T.amBdr : T.border;
 
   return (
-    <section className="rounded-[1.7rem] border border-white/[0.08] bg-white/[0.04] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
-            <Sparkles className="h-3.5 w-3.5" />
-            {payload.source_table}
+    <div
+      className="flex flex-col rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/20"
+      style={{
+        background:  T.cardBg,
+        borderColor: bdr,
+        boxShadow:   "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.04)",
+      }}
+    >
+      <div className="flex-1 p-6">
+        {/* Icon + title */}
+        <div className="flex items-start gap-4 mb-5">
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
+            style={{ background: iconBg, borderColor: iconBdr }}
+          >
+            <Icon className="h-5 w-5" style={{ color: iconClr }} />
           </div>
-
-          <h2 className="text-xl font-black tracking-tight text-white">
-            {title}
-          </h2>
-
-          <p className="mt-1 text-sm leading-6 text-slate-400">
-            {description}
-          </p>
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold" style={{ color: T.t1 }}>
+              {title}
+            </h3>
+            <p className="mt-1 text-[13px] leading-relaxed" style={{ color: T.t3 }}>
+              {description}
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-          <span className="rounded-full border border-white/[0.08] bg-slate-950/50 px-3 py-1">
-            {formatNumber(payload.total_rows_available)} total
+        {/* Stat chip */}
+        <div
+          className="flex items-center justify-between rounded-xl border px-4 py-3 mb-5"
+          style={{ background: T.wellBg, borderColor: T.border }}
+        >
+          <span className="text-[11px] font-medium" style={{ color: T.t4 }}>
+            {statLabel}
           </span>
-          <span className="rounded-full border border-white/[0.08] bg-slate-950/50 px-3 py-1">
-            {formatNumber(payload.exported_rows)} exported
+          <span
+            className="text-lg font-bold tabular-nums"
+            style={{ color: T.t1, letterSpacing: "-0.025em" }}
+          >
+            {statValue}
           </span>
+        </div>
+
+        {/* Mini preview strip (abstract bars) */}
+        <div className="flex items-end gap-[2px] h-6 opacity-40" aria-hidden="true">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-t-[2px]"
+              style={{
+                height: `${14 + (i % 4) * 6}px`,
+                background: tone === "emerald" ? T.em : tone === "amber" ? T.am : T.t3,
+              }}
+            />
+          ))}
         </div>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-2">
-        {cards.map((card) => (
-          <MarketSignalCard key={card.id} country={country} card={card} />
-        ))}
+      {/* CTA footer */}
+      <div
+        className="border-t px-6 py-3.5"
+        style={{ borderColor: T.borderFt }}
+      >
+        <Link
+          href={ctaHref}
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-opacity hover:opacity-75"
+          style={{ color: tone === "neutral" ? T.t2 : tone === "amber" ? T.am : T.emHi }}
+        >
+          {ctaText}
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       </div>
-    </section>
+    </div>
   );
 }
 
+// ─── Data confidence footer (elegant secondary) ────────────────────────────────
+function DataConfidenceFooter({
+  exportedAt,
+  sourceCount,
+}: {
+  exportedAt?: string | null;
+  sourceCount?: number;
+}) {
+  if (!exportedAt && !sourceCount) return null;
+
+  const formattedTime = exportedAt
+    ? new Date(exportedAt).toLocaleString(undefined, {
+        month:  "short",
+        day:    "numeric",
+        hour:   "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-5 py-3 text-[11px]"
+      style={{
+        background: "rgba(255,255,255,0.015)",
+        borderColor: T.borderFt,
+        color: T.t4,
+      }}
+    >
+      {formattedTime && (
+        <div className="flex items-center gap-1.5">
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full"
+            style={{ background: T.em }}
+          />
+          Synced {formattedTime}
+        </div>
+      )}
+      {sourceCount !== undefined && (
+        <div className="flex items-center gap-1.5">
+          <Database className="h-3 w-3" style={{ color: T.t4 }} />
+          {sourceCount} data exports loaded
+        </div>
+      )}
+      <div className="ml-auto flex items-center gap-1.5">
+        <ShieldCheck className="h-3 w-3" style={{ color: T.t4 }} />
+        Dashboard‑safe market view
+      </div>
+    </div>
+  );
+}
+
+// ─── Main page component ──────────────────────────────────────────────────────
 export default function MarketIntelligencePage({
   country,
   data,
@@ -430,299 +534,183 @@ export default function MarketIntelligencePage({
 
   const isUae = country.slug === "uae";
 
-  const primaryLocationPayload = isUae
-    ? data.communityIntelligence
-    : data.cityIntelligenceMajor ?? data.cityIntelligence;
-
-  const pressurePayload = isUae
-    ? data.inventoryPressure
-    : data.inventoryPressureLarge;
-
-  const dominancePayload = isUae
-    ? data.marketDominance
-    : data.marketDominanceLarge;
-
-  const agencyPayload = isUae ? data.agencyProfiles : data.agencyProfilesMajor;
-
+  // Payload selection (UAE vs KSA)
   const activityPayload = data.activityFeed;
+  const pressurePayload = isUae ? data.inventoryPressure : data.inventoryPressureLarge;
+  const agencyPayload   = isUae ? data.agencyProfiles : data.agencyProfilesMajor;
 
+  // Row counts
   const activeMarkets = isUae
     ? getPayloadRows(data.communityIntelligence)
     : getPayloadRows(data.districtIntelligence);
-
   const activityRows = getPayloadRows(activityPayload);
-
   const pressureRows = getPayloadRows(pressurePayload);
-  const dominanceRows = getPayloadRows(dominancePayload);
-  const agencyRows = getPayloadRows(agencyPayload);
+  const agencyRows   = getPayloadRows(agencyPayload);
 
-  const totalSummaryRows = data.summary?.items.length ?? 0;
-
+  // Summary metrics (fallback to row counts)
   const highPressureMetric = isUae
     ? getSummaryMetric(data, "high_pressure_communities")
     : getSummaryMetric(data, "ksa_module5_dashboard_inventory_pressure_large_markets");
-
   const activityMetric = isUae
     ? getSummaryMetric(data, "market_activity_feed")
     : getSummaryMetric(data, "ksa_module5_dashboard_activity_priority");
-
   const agencyMetric = isUae
     ? getSummaryMetric(data, "agency_inventory_profiles")
     : getSummaryMetric(data, "ksa_module5_dashboard_agency_profiles_major");
 
-  const metrics: ReconMetric[] = [
-    {
-      label: isUae ? "Community markets" : "City/district markets",
-      value: formatNumber(activeMarkets),
-      description: isUae
-        ? "Dashboard-ready UAE community intelligence rows."
-        : "KSA city/district intelligence rows available from Module 5 exports.",
-      tone: "cyan",
-    },
-    {
-      label: "Activity rows",
-      value: formatNumber(activityMetric ?? activityRows),
-      description: "Frontend-safe activity feed rows from Module 5 dashboard exports.",
-      tone: "teal",
-    },
-    {
-      label: "Pressure rows",
-      value: formatNumber(highPressureMetric ?? pressureRows),
-      description: "Inventory pressure rows or high-pressure summary metric.",
-      tone: "amber",
-    },
-    {
-      label: "Agency profiles",
-      value: formatNumber(agencyMetric ?? agencyRows),
-      description: "Public agency footprint rows available to market intelligence.",
-      tone: "slate",
-    },
-  ];
+  // Display values
+  const metricMarkets  = formatNumber(activeMarkets);
+  const metricActivity = formatNumber(activityMetric ?? activityRows);
+  const metricPressure = formatNumber(highPressureMetric ?? pressureRows);
+  const metricAgency   = formatNumber(agencyMetric ?? agencyRows);
+
+  const highPressureCount  = highPressureMetric ?? pressureRows;
+  const activityEventCount = activityMetric ?? activityRows;
+
+  // Manifest metadata
+  const exportTime  = data.manifest.exported_at;
+  const sourceCount = Object.keys(data.manifest.exports).length;
+
+  // Country‑aware labels
+  const locationLabel = isUae ? "Community Markets" : "City / District Markets";
+  const locationDesc  = isUae
+    ? "Communities with visible public listing signals ready for review."
+    : "Cities and districts with visible public listing signals ready for review.";
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_36%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_34%),rgba(255,255,255,0.04)] shadow-[0_24px_90px_rgba(0,0,0,0.26)] backdrop-blur-xl">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/35 to-transparent" />
-        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 left-16 h-80 w-80 rounded-full bg-emerald-400/10 blur-3xl" />
-
-        <div className="relative grid gap-8 p-6 sm:p-8 xl:grid-cols-[1fr_390px]">
-          <div>
-            <div className="mb-6 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-cyan-200">
-                <BarChart3 className="h-3.5 w-3.5" />
-                {country.label} Market Intelligence
-              </span>
-
-              <span className="rounded-full border border-white/[0.08] bg-slate-950/55 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                Module 5 real data
-              </span>
-
-              <span className="rounded-full border border-white/[0.08] bg-slate-950/55 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                {country.currency}
-              </span>
-            </div>
-
-            <h1 className="max-w-5xl text-3xl font-black tracking-tight text-white sm:text-5xl">
-              Market Intelligence Command Center
-            </h1>
-
-            <p className="mt-5 max-w-4xl text-sm leading-7 text-slate-400 sm:text-base">
-              A country-aware Module 5 market intelligence page built from
-              dashboard-ready exports. It summarizes public listing activity,
-              inventory pressure, visible listing-share concentration, agency
-              footprint, and location-level opportunity signals without exposing
-              raw internal evidence tables.
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link
-                href={`${country.routeBase}/activity-feed`}
-                className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-black text-white shadow-[0_14px_34px_rgba(34,211,238,0.16)] transition hover:bg-cyan-400"
-              >
-                Open Activity Feed
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-
-              <Link
-                href={`${country.routeBase}/recon`}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-white/[0.08]"
-              >
-                Compare with Recon Hub
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+      {/* ── Compact hero ───────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div
+            className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+            style={{ color: T.emHi, background: T.emBg, borderColor: T.emBdr }}
+          >
+            <BarChart3 className="h-3 w-3" />
+            {country.label} Market Intelligence
           </div>
 
-          <aside className="rounded-[1.7rem] border border-cyan-400/20 bg-cyan-400/[0.075] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-
-              <div>
-                <h2 className="text-base font-bold text-cyan-50">
-                  Dashboard-safe market view
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-cyan-100/75">
-                  This page uses Module 5 dashboard exports only. It avoids raw
-                  price history, raw engine tables, unsafe seller-intent claims,
-                  and unsafe competitive wording.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              {[
-                `Summary rows: ${totalSummaryRows.toLocaleString("en-US")}`,
-                `Dominance rows: ${dominanceRows.toLocaleString("en-US")}`,
-                `Pressure rows: ${pressureRows.toLocaleString("en-US")}`,
-                `Agency rows: ${agencyRows.toLocaleString("en-US")}`,
-                `Activity rows: ${activityRows.toLocaleString("en-US")}`,
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl border border-white/[0.08] bg-slate-950/35 px-3 py-2 text-xs leading-5 text-cyan-50/90"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <ReconMetricCard key={metric.label} metric={metric} />
-        ))}
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
-            <Map className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-white">
-            {isUae ? "Community intelligence" : "City/district intelligence"}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            {isUae
-              ? "UAE market intelligence prioritizes communities and buildings where backend coverage is strong."
-              : "KSA market intelligence prioritizes cities and districts because building/project coverage is intentionally limited in v1."}
+          <h1
+            className="text-3xl font-bold tracking-tight sm:text-4xl"
+            style={{ color: T.t1, letterSpacing: "-0.03em" }}
+          >
+            Market Intelligence
+          </h1>
+          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed" style={{ color: T.t2 }}>
+            See where public listing activity, pressure, and agency visibility are moving.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
-            <Gauge className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-white">
-            Inventory pressure
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Pressure indicators combine public-listing volume, refresh signals,
-            owner/direct density, price movement context, and opportunity rates
-            using cautious market-signal language.
-          </p>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <span
+            className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
+            style={{ color: T.t2, background: T.wellBg, borderColor: T.border }}
+          >
+            {country.label}
+          </span>
+          <span
+            className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              color: T.t3,
+              background: T.wellBg,
+              borderColor: T.border,
+            }}
+          >
+            {country.currency}
+          </span>
+          <span
+            className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium"
+            style={{ color: T.emHi, background: T.emBg, borderColor: T.emBdr }}
+          >
+            <span
+              className="inline-block h-[5px] w-[5px] rounded-full"
+              style={{ background: T.em }}
+            />
+            Live
+          </span>
         </div>
+      </div>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300">
-            <Users className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-white">
-            Agency footprint
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Agency metrics describe visible public listing footprint, portfolio
-            concentration, and market presence. They do not score agency quality
-            or make misconduct claims.
-          </p>
-        </div>
-      </section>
+      {/* ── KPI row ─────────────────────────────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label={locationLabel}
+          value={metricMarkets}
+          description={locationDesc}
+          tone="emerald"
+          visual="bars"
+        />
+        <MetricCard
+          label="Activity Feed"
+          value={metricActivity}
+          description="Recent market activity events and public listing changes."
+          tone="emerald"
+          visual="dots"
+        />
+        <MetricCard
+          label="Inventory Pressure"
+          value={metricPressure}
+          description="Markets where listing behavior suggests rising pressure."
+          tone="amber"
+          visual="signal"
+        />
+        <MetricCard
+          label="Agency Footprint"
+          value={metricAgency}
+          description="Agencies with visible public listing presence in this market."
+          tone="neutral"
+          visual="bars"
+        />
+      </div>
 
-      <MarketLane
-        country={country}
-        title={isUae ? "UAE community intelligence" : "KSA major city intelligence"}
-        description={
-          isUae
-            ? "Location-level intelligence combining public listing share, pressure, agency presence, activity, and opportunity density."
-            : "Canonical city-level intelligence for major KSA markets using active listings, concentration, pressure, and opportunity rates."
-        }
-        payload={primaryLocationPayload}
-        fallbackType={isUae ? "Community Intelligence" : "City Intelligence"}
-        limit={isUae ? 6 : 10}
+      {/* ── Market Pulse featured block ──────────────────────────────────── */}
+      <MarketPulse
+        totalActiveMarkets={activeMarkets}
+        highPressureCount={highPressureCount}
+        activityEvents={activityEventCount}
       />
 
-      <MarketLane
-        country={country}
-        title="Inventory pressure radar"
-        description="Markets where public listing behavior suggests pressure, refresh activity, price movement context, or opportunity density."
-        payload={pressurePayload}
-        fallbackType="Inventory Pressure"
-        limit={6}
-      />
+      {/* ── Intelligence lane cards ──────────────────────────────────────── */}
+      <div className="grid gap-5 md:grid-cols-3">
+        <IntelligenceLane
+          icon={Map}
+          title={isUae ? "Community Intelligence" : "City / District Intelligence"}
+          description={
+            isUae
+              ? "Public listing concentration and activity signals by community."
+              : "Public listing concentration and opportunity density by city and district."
+          }
+          statLabel={isUae ? "Active communities" : "Active markets"}
+          statValue={metricMarkets}
+          ctaHref={`${country.routeBase}/communities`}
+          ctaText={isUae ? "View communities" : "View cities"}
+          tone="emerald"
+        />
+        <IntelligenceLane
+          icon={Gauge}
+          title="Inventory Pressure"
+          description="Markets with visible listing pressure, price drop activity, and opportunity density signals."
+          statLabel="Pressure signals"
+          statValue={metricPressure}
+          ctaHref={`${country.routeBase}/inventory-pressure`}
+          ctaText="View pressure signals"
+          tone="amber"
+        />
+        <IntelligenceLane
+          icon={Users}
+          title="Agency Footprint"
+          description="Public agency listing presence, portfolio distribution, and visible listing‑share patterns."
+          statLabel="Agency profiles"
+          statValue={metricAgency}
+          ctaHref={`${country.routeBase}/agency-profiles`}
+          ctaText="View agency profiles"
+          tone="neutral"
+        />
+      </div>
 
-      <MarketLane
-        country={country}
-        title="Visible listing-share / dominance"
-        description="Public listing-share concentration and agency presence patterns by supported market level."
-        payload={dominancePayload}
-        fallbackType="Market Dominance"
-        limit={6}
-      />
-
-      <MarketLane
-        country={country}
-        title="Agency footprint sample"
-        description="Public agency portfolio and visible market presence signals from dashboard-safe Module 5 exports."
-        payload={agencyPayload}
-        fallbackType="Agency Footprint"
-        limit={6}
-      />
-
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
-            <Landmark className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-white">
-            Public market intelligence
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            This page describes visible public listing activity, not private
-            transaction volume or official registry intelligence.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
-            <TrendingUp className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-white">
-            Directional signals
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Pressure, dominance, and agency footprint should guide filtering and
-            prioritization, not replace user verification of current listings.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300">
-            <Activity className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-white">
-            Reusable Module 5 foundation
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            This page establishes the shared Module 5 market pattern. Dedicated
-            Inventory Pressure, Dominance, and Agency Profile pages can reuse the
-            same exports and card logic next.
-          </p>
-        </div>
-      </section>
+      {/* ── Data confidence footer ───────────────────────────────────────── */}
+      <DataConfidenceFooter exportedAt={exportTime} sourceCount={sourceCount} />
     </div>
   );
 }
