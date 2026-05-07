@@ -15,16 +15,14 @@ import { normalizeReconList } from "@/lib/recon/normalize";
 import type { KsaReconDataResult, KsaReconListPayload } from "@/lib/data/ksaRecon";
 
 const C = {
-  cardBg:  "#111113",
-  wellBg:  "#18181b",
-  border:  "rgba(255,255,255,0.07)",
+  cardBg:   "#111113",
+  border:   "rgba(255,255,255,0.07)",
+  borderFt: "rgba(255,255,255,0.04)",
   t1: "#f4f4f5",
-  t2: "#a1a1aa",
   t3: "#52525b",
   t4: "#3f3f46",
-  emHi:  "#34d399",
-  emBg:  "rgba(16,185,129,0.07)",
-  emBdr: "rgba(16,185,129,0.15)",
+  emHi: "#34d399",
+  emBg: "rgba(16,185,129,0.07)",
 } as const;
 
 type KsaReconTabKey =
@@ -39,33 +37,32 @@ type KsaReconTabKey =
   | "residentialBuy"
   | "commercial";
 
-type KsaReconTabsClientProps = {
-  data: KsaReconDataResult;
-};
+type KsaReconTabsClientProps = { data: KsaReconDataResult };
 
 const TAB_CONFIG: Array<{ key: KsaReconTabKey; label: string; description: string }> = [
-  { key: "hotLeads",         label: "Hot Leads",         description: "Ranked opportunity list"       },
-  { key: "multiSignal",      label: "Multi-Signal",       description: "Combined opportunity signals"  },
-  { key: "ownerDirect",      label: "Owner / Direct",     description: "Direct-owner candidates"       },
-  { key: "priceDrops",       label: "Price Drops",        description: "Verified price movement"       },
-  { key: "refreshInflation", label: "Refresh Signals",    description: "Relisting / refresh signals"   },
-  { key: "contactable",      label: "Contactable",        description: "Contact-ready leads"           },
-  { key: "urlOnly",          label: "URL Leads",          description: "Source URL lead paths"         },
-  { key: "residentialRent",  label: "Residential Rent",   description: "Rent opportunity view"         },
-  { key: "residentialBuy",   label: "Residential Buy",    description: "Buy opportunity view"          },
-  { key: "commercial",       label: "Commercial",         description: "Commercial opportunity view"   },
+  { key: "hotLeads",         label: "Hot Leads",        description: "Ranked opportunity list"      },
+  { key: "multiSignal",      label: "Multi-Signal",      description: "Combined opportunity signals" },
+  { key: "ownerDirect",      label: "Owner / Direct",    description: "Direct-owner candidates"      },
+  { key: "priceDrops",       label: "Price Drops",       description: "Verified price movement"      },
+  { key: "refreshInflation", label: "Refresh Signals",   description: "Relisting / refresh signals"  },
+  { key: "contactable",      label: "Contactable",       description: "Contact-ready leads"          },
+  { key: "urlOnly",          label: "URL Leads",         description: "Source URL lead paths"        },
+  { key: "residentialRent",  label: "Residential Rent",  description: "Rent opportunity view"        },
+  { key: "residentialBuy",   label: "Residential Buy",   description: "Buy opportunity view"         },
+  { key: "commercial",       label: "Commercial",        description: "Commercial opportunity view"  },
 ];
 
-function getPayload(
-  data: KsaReconDataResult,
-  key: KsaReconTabKey
-): KsaReconListPayload | null {
+function getPayload(data: KsaReconDataResult, key: KsaReconTabKey): KsaReconListPayload | null {
   return data.lists[key] ?? null;
+}
+
+function activeTabLabel(key: KsaReconTabKey): string {
+  return TAB_CONFIG.find((t) => t.key === key)?.label ?? "Recon";
 }
 
 export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
   const [activeTab, setActiveTab] = useState<KsaReconTabKey>("hotLeads");
-  const [filters, setFilters] = useState<ReconFilterState>({ ...DEFAULT_RECON_FILTERS });
+  const [filters, setFilters]     = useState<ReconFilterState>({ ...DEFAULT_RECON_FILTERS });
 
   const tabs: ReconTabOption[] = TAB_CONFIG.map((tab) => ({
     key:         tab.key,
@@ -74,6 +71,7 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
     count:       getPayload(data, tab.key)?.total_rows_available,
   }));
 
+  // KSA-specific fallback chain: hotLeads → multiSignal → contactable
   const activePayload =
     getPayload(data, activeTab) ??
     data.lists.hotLeads ??
@@ -106,11 +104,15 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
 
   return (
     <div className="space-y-5">
-      {/* ── 1. Featured lead (if any) ────────────────────────────── */}
+      {/* ── 1. Featured lead ─────────────────────────────────────── */}
       {featuredItem && (
         <section>
-          {/* Section header */}
-          <div className="mb-3 flex items-baseline gap-3">
+          <div className="mb-3 flex items-center gap-3">
+            {/* Emerald accent line */}
+            <div
+              className="h-4 w-[3px] rounded-full shrink-0"
+              style={{ background: C.emHi }}
+            />
             <h2
               className="text-[15px] font-semibold"
               style={{ color: C.t1, letterSpacing: "-0.015em" }}
@@ -118,26 +120,31 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
               Best opportunity right now
             </h2>
             <span className="text-[12px]" style={{ color: C.t4 }}>
-              Ranked from the selected Recon lane.
+              · {activeTabLabel(activeTab)} lane
             </span>
           </div>
           <ReconOpportunityCard opportunity={featuredItem} variant="featured" />
         </section>
       )}
 
-      {/* ── 2. Command bar: tabs + filters ───────────────────────── */}
+      {/* ── 2. Command bar ───────────────────────────────────────── */}
       <section
-        className="rounded-xl border p-4 space-y-3"
+        className="rounded-xl border"
         style={{ background: C.cardBg, borderColor: C.border }}
       >
-        <ReconTabSelector
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-        />
+        {/* Tab selector */}
+        <div className="p-3 pb-0">
+          <ReconTabSelector
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+          />
+        </div>
+
+        {/* Filter rail */}
         <div
-          className="border-t pt-3"
-          style={{ borderColor: "rgba(255,255,255,0.05)" }}
+          className="border-t px-4 py-3"
+          style={{ borderColor: C.borderFt }}
         >
           <ReconFiltersBar
             filters={filters}
@@ -149,9 +156,9 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
         </div>
       </section>
 
-      {/* ── 3. Remaining list cards ───────────────────────────────── */}
+      {/* ── 3. Remaining list ────────────────────────────────────── */}
       {remainingItems.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {remainingItems.map((opportunity) => (
             <ReconOpportunityCard
               key={opportunity.id}
@@ -161,16 +168,15 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
           ))}
         </div>
       ) : !featuredItem ? (
-        /* Empty state — no items at all */
         <div
-          className="rounded-2xl border p-8 text-center"
+          className="rounded-2xl border p-10 text-center"
           style={{ background: C.cardBg, borderColor: C.border }}
         >
           <p className="text-[14px] font-medium" style={{ color: C.t3 }}>
             No opportunities match the current filters.
           </p>
-          <p className="mt-1 text-[12px]" style={{ color: C.t4 }}>
-            Try adjusting the filters or selecting a different lane above.
+          <p className="mt-1.5 text-[12px]" style={{ color: C.t4 }}>
+            Try adjusting your filters or selecting a different lane.
           </p>
         </div>
       ) : null}

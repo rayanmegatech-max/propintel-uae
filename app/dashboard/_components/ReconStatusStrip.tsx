@@ -18,7 +18,7 @@ export default function ReconStatusStrip({
     { label: "Market", value: countryLabel, icon: Layers3 },
     { label: "Lanes", value: `${tabCount}`, icon: CheckCircle2 },
     { label: "Active rows", value: summaryRows.toLocaleString("en-US"), icon: Clock3 },
-    { label: "Source", value: activeDataMode, icon: ShieldCheck },
+    { label: "Source", value: activeDataMode === "Local JSON" ? "Local exports" : activeDataMode, icon: ShieldCheck },
   ];
 
   return (
