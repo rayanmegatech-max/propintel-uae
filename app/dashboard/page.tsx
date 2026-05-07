@@ -1,92 +1,107 @@
+// app/dashboard/page.tsx
 "use client";
 
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
+  Activity,
   ArrowRight,
-  BadgeCheck,
   BarChart3,
   Building2,
-  Database,
-  Globe2,
+  Factory,
   MapPinned,
-  Radar,
   ShieldCheck,
-  Sparkles,
   TrendingDown,
   UserCheck,
 } from "lucide-react";
 import { COUNTRY_LIST } from "@/lib/countries/countryConfig";
 
-const reconStats = [
-  {
-    label: "Hot Leads",
-    value: "43K",
-    description: "Priority opportunities",
-    tone: "emerald",
-  },
-  {
-    label: "Price Drops",
-    value: "19K",
-    description: "Recent movement",
-    tone: "red",
-  },
-  {
-    label: "Owner / Direct",
-    value: "36K",
-    description: "Direct-style signals",
-    tone: "cyan",
-  },
-  {
-    label: "Stale + Drops",
-    value: "13K",
-    description: "Aged repricing",
-    tone: "amber",
-  },
-];
+// ─── Design tokens (mirrors DashboardLayout) ──────────────────────────────────
+const C = {
+  cardBg:   "#111113",
+  wellBg:   "#18181b",
+  deepBg:   "#0d0d0f",
+  border:   "rgba(255,255,255,0.07)",
+  borderFt: "rgba(255,255,255,0.04)",
+  t1: "#f4f4f5",
+  t2: "#a1a1aa",
+  t3: "#52525b",
+  t4: "#3f3f46",
+  em:    "#10b981",
+  emHi:  "#34d399",
+  emBg:  "rgba(16,185,129,0.07)",
+  emBdr: "rgba(16,185,129,0.18)",
+  am:    "#fbbf24",
+  amBg:  "rgba(245,158,11,0.07)",
+  amBdr: "rgba(245,158,11,0.15)",
+} as const;
 
-const platformHighlights = [
-  "Real local JSON exports",
-  "UAE + KSA country-aware routes",
-  "Product-safe dashboard tables",
-  "Frontend-first before Supabase/auth/billing",
-];
+const CARD_BASE = {
+  background: C.cardBg,
+  borderColor: C.border,
+  boxShadow:  "0 2px 14px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05)",
+} as const;
 
-function toneClasses(tone: string) {
-  if (tone === "emerald") return "border-emerald-400/20 bg-emerald-400/10 text-emerald-200";
-  if (tone === "red") return "border-red-400/20 bg-red-400/10 text-red-200";
-  if (tone === "cyan") return "border-cyan-400/20 bg-cyan-400/10 text-cyan-200";
-  if (tone === "amber") return "border-amber-400/20 bg-amber-400/10 text-amber-200";
-  return "border-white/[0.08] bg-white/[0.04] text-slate-300";
-}
-
-function MiniMetric({
-  label,
-  value,
-  description,
-  tone,
-}: {
+// ─── Static data ──────────────────────────────────────────────────────────────
+const RECON_METRICS: {
   label: string;
   value: string;
-  description: string;
-  tone: string;
-}) {
+  sub: string;
+  variant: "em" | "am" | "neutral";
+}[] = [
+  { label: "Hot Leads",      value: "43K", sub: "Priority opportunities",  variant: "em"      },
+  { label: "Price Drops",    value: "19K", sub: "Recent repricing signals", variant: "neutral" },
+  { label: "Owner / Direct", value: "36K", sub: "Direct-style contacts",    variant: "neutral" },
+  { label: "Stale + Drops",  value: "13K", sub: "Aged inventory pressure",  variant: "am"      },
+];
+
+const PRODUCT_LAYERS: { label: string; icon: React.ElementType }[] = [
+  { label: "Owner / Direct",     icon: UserCheck   },
+  { label: "Price Drops",        icon: TrendingDown },
+  { label: "Listing Truth",      icon: ShieldCheck  },
+  { label: "Inventory Pressure", icon: Activity     },
+  { label: "Market Dominance",   icon: BarChart3    },
+  { label: "Agency Footprint",   icon: Factory      },
+];
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+function Label({ children, em }: { children: React.ReactNode; em?: boolean }) {
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-slate-950/45 p-4">
-      <div
-        className={[
-          "mb-3 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]",
-          toneClasses(tone),
-        ].join(" ")}
+    <span
+      className="text-[9px] font-semibold uppercase tracking-[0.14em]"
+      style={{ color: em ? C.emHi : C.t3 }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function ReconMetric({
+  label,
+  value,
+  sub,
+  variant,
+}: (typeof RECON_METRICS)[number]) {
+  const isEm = variant === "em";
+  const isAm = variant === "am";
+  return (
+    <div
+      className="rounded-xl border p-4"
+      style={{
+        background:  isEm ? C.emBg  : isAm ? C.amBg  : C.wellBg,
+        borderColor: isEm ? C.emBdr : isAm ? C.amBdr : C.border,
+      }}
+    >
+      <Label em={isEm}>{label}</Label>
+      <p
+        className="mt-2 text-2xl font-bold tabular-nums"
+        style={{ color: C.t1, letterSpacing: "-0.03em" }}
       >
-        {label}
-      </div>
-      <div className="text-3xl font-black tracking-[-0.05em] text-white">
         {value}
-      </div>
-      <div className="mt-1 text-xs leading-5 text-slate-500">
-        {description}
-      </div>
+      </p>
+      <p className="mt-0.5 text-[11px]" style={{ color: C.t4 }}>
+        {sub}
+      </p>
     </div>
   );
 }
@@ -99,58 +114,67 @@ function CountryCard({
   const isUae = country.slug === "uae";
 
   return (
-    <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.16 }}>
+    <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.15 }}>
       <Link
         href={country.routeBase}
-        className="group relative block overflow-hidden rounded-[1.6rem] border border-white/[0.08] bg-slate-950/50 p-5 shadow-[0_22px_70px_rgba(0,0,0,0.20)] backdrop-blur-xl transition hover:border-emerald-400/30 hover:bg-slate-900/70"
+        className="group relative block rounded-2xl border p-5 transition-colors duration-200"
+        style={CARD_BASE}
       >
-        <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-emerald-400/[0.08] blur-3xl transition group-hover:bg-emerald-400/[0.13]" />
+        {/* hover tint */}
+        <span
+          className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          style={{ background: "rgba(255,255,255,0.018)" }}
+        />
 
         <div className="relative">
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
-              {isUae ? (
-                <Building2 className="h-5 w-5" />
-              ) : (
-                <MapPinned className="h-5 w-5" />
-              )}
+          {/* Top row */}
+          <div className="mb-4 flex items-start justify-between">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-xl border"
+              style={{ background: C.emBg, borderColor: C.emBdr, color: C.emHi }}
+            >
+              {isUae
+                ? <Building2 className="h-4 w-4" />
+                : <MapPinned className="h-4 w-4" />}
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                {country.currency}
-              </span>
-              <ArrowRight className="h-4 w-4 text-slate-600 transition group-hover:translate-x-1 group-hover:text-emerald-300" />
-            </div>
+            <ArrowRight
+              className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+              style={{ color: C.t4 }}
+            />
           </div>
 
-          <div className="mb-3 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
-            {isUae ? "Primary launch market" : "Second launch market"}
-          </div>
-
-          <h2 className="text-2xl font-black tracking-tight text-white">
+          {/* Eye-brow + title */}
+          <Label em>{isUae ? "Primary market" : "Second market"}</Label>
+          <h2
+            className="mt-1.5 text-xl font-bold"
+            style={{ color: C.t1, letterSpacing: "-0.025em" }}
+          >
             {country.label} Intelligence
           </h2>
-
-          <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-400">
+          <p
+            className="mt-2 text-[13px] leading-[1.55] line-clamp-2"
+            style={{ color: C.t2 }}
+          >
             {country.productPositioning}
           </p>
 
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                Live family
-              </div>
-              <div className="mt-1 text-sm font-bold text-white">Modules 0–5</div>
-            </div>
-            <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-                Status
-              </div>
-              <div className="mt-1 text-sm font-bold text-white">
-                {isUae ? "UAE ready" : "KSA ready"}
-              </div>
-            </div>
+          {/* Footer chips */}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            {[country.currency, "Modules 0–5"].map((chip) => (
+              <span
+                key={chip}
+                className="text-[11px] font-medium rounded-lg px-2.5 py-1"
+                style={{ background: C.wellBg, color: C.t2, border: `1px solid ${C.border}` }}
+              >
+                {chip}
+              </span>
+            ))}
+            <span
+              className="ml-auto text-[11px] font-medium rounded-lg px-2.5 py-1"
+              style={{ background: C.emBg, color: C.emHi, border: `1px solid ${C.emBdr}` }}
+            >
+              {isUae ? "UAE ready" : "KSA ready"}
+            </span>
           </div>
         </div>
       </Link>
@@ -158,151 +182,144 @@ function CountryCard({
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   return (
-    <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-[1.8rem] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_34%),rgba(15,23,42,0.42)] p-5 shadow-[0_24px_90px_rgba(0,0,0,0.26)] backdrop-blur-xl sm:p-7">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/40 to-transparent" />
-        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-emerald-400/[0.10] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 left-16 h-80 w-80 rounded-full bg-cyan-400/[0.08] blur-3xl" />
-
-        <div className="relative grid gap-7 xl:grid-cols-[1fr_430px] xl:items-stretch">
-          <div className="flex flex-col justify-between">
-            <div>
-              <div className="mb-5 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">
-                  <Globe2 className="h-3.5 w-3.5" />
-                  GCC Intelligence SaaS
+    <div className="space-y-4">
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <section
+        className="rounded-2xl border"
+        style={{
+          background:  C.deepBg,
+          borderColor: C.border,
+          boxShadow:   "0 2px 24px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.05)",
+        }}
+      >
+        <div className="grid gap-0 lg:grid-cols-[1fr_300px]">
+          {/* Left: copy */}
+          <div className="p-6 sm:p-8">
+            {/* Chips */}
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] rounded-full px-3 py-1"
+                style={{ color: C.emHi, background: C.emBg, border: `1px solid ${C.emBdr}` }}
+              >
+                <span className="inline-block w-[5px] h-[5px] rounded-full bg-emerald-400 animate-pulse" />
+                GCC Intelligence Platform
+              </span>
+              {["UAE + KSA", "Local preview"].map((chip) => (
+                <span
+                  key={chip}
+                  className="text-[10px] font-medium rounded-full px-3 py-1"
+                  style={{ color: C.t3, background: C.wellBg, border: `1px solid ${C.border}` }}
+                >
+                  {chip}
                 </span>
-
-                <span className="rounded-full border border-white/[0.08] bg-slate-950/55 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                  UAE + KSA
-                </span>
-
-                <span className="rounded-full border border-white/[0.08] bg-slate-950/55 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                  Local export bridge
-                </span>
-              </div>
-
-              <h1 className="max-w-5xl text-4xl font-black tracking-[-0.06em] text-white sm:text-6xl">
-                Real estate intelligence command center.
-              </h1>
-
-              <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base">
-                PropIntel GCC turns your UAE and KSA listing pipelines into a
-                premium operator terminal for opportunities, price movement,
-                listing truth, inventory pressure, dominance, agency footprint,
-                and market activity.
-              </p>
+              ))}
             </div>
 
-            <div className="mt-7 flex flex-wrap gap-3">
+            {/* Headline */}
+            <h1
+              className="text-[32px] font-bold leading-[1.15] tracking-tight sm:text-[40px]"
+              style={{ color: C.t1, letterSpacing: "-0.033em" }}
+            >
+              Real estate intelligence
+              <br />
+              <span style={{ color: C.t3 }}>command center.</span>
+            </h1>
+
+            <p
+              className="mt-4 max-w-xl text-[14px] leading-[1.7]"
+              style={{ color: C.t2 }}
+            >
+              PropIntel GCC converts UAE and KSA listing pipelines into a premium
+              operator terminal for opportunities, price movement, market pressure,
+              and agency intelligence.
+            </p>
+
+            {/* CTAs */}
+            <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/dashboard/uae"
-                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-white shadow-[0_14px_34px_rgba(16,185,129,0.22)] transition hover:bg-emerald-400"
+                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity duration-150 hover:opacity-85"
+                style={{ background: C.em, boxShadow: "0 4px 16px rgba(16,185,129,0.22)" }}
               >
-                Open UAE
-                <ArrowRight className="h-4 w-4" />
+                UAE Dashboard
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
-
               <Link
                 href="/dashboard/ksa"
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.1] bg-white/[0.055] px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-white/[0.08]"
+                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all duration-150 hover:opacity-75"
+                style={{ color: C.t2, background: C.wellBg, border: `1px solid ${C.border}` }}
               >
-                Open KSA
-                <ArrowRight className="h-4 w-4" />
+                KSA Dashboard
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           </div>
 
-          <aside className="rounded-[1.5rem] border border-emerald-400/20 bg-emerald-400/[0.075] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="mb-5 flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
-                <Radar className="h-5 w-5" />
-              </div>
-
-              <div>
-                <h2 className="text-base font-black text-emerald-50">
-                  Recon module preview
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-emerald-100/70">
-                  Real local-export dashboard stats from the first sellable
-                  intelligence module pattern.
-                </p>
-              </div>
+          {/* Right: Recon metrics */}
+          <div
+            className="grid grid-cols-2 gap-3 p-5 lg:border-l lg:content-start"
+            style={{ borderColor: C.border }}
+          >
+            <div className="col-span-2 mb-1">
+              <Label>Recon module · live stats</Label>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {reconStats.map((stat) => (
-                <MiniMetric key={stat.label} {...stat} />
-              ))}
-            </div>
-          </aside>
+            {RECON_METRICS.map((m) => (
+              <ReconMetric key={m.label} {...m} />
+            ))}
+          </div>
         </div>
       </section>
 
+      {/* ── Country cards ──────────────────────────────────────────────────── */}
       <section className="grid gap-4 lg:grid-cols-2">
         {COUNTRY_LIST.map((country) => (
           <CountryCard key={country.slug} country={country} />
         ))}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[1.6rem] border border-white/[0.08] bg-slate-950/45 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
-            <Sparkles className="h-3.5 w-3.5" />
-            Intelligence layers
+      {/* ── Product layers ─────────────────────────────────────────────────── */}
+      <section className="rounded-2xl border p-5" style={CARD_BASE}>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <Label>Intelligence layers</Label>
+            <h2
+              className="mt-1 text-[16px] font-bold"
+              style={{ color: C.t1, letterSpacing: "-0.02em" }}
+            >
+              Product modules
+            </h2>
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {[
-              ["Owner / Direct", UserCheck],
-              ["Price Drops", TrendingDown],
-              ["Listing Truth", ShieldCheck],
-              ["Pressure", BarChart3],
-              ["Dominance", Radar],
-              ["Agency Footprint", FactoryIcon],
-            ].map(([label, Icon]) => {
-              const IconComponent = Icon as React.ElementType;
-
-              return (
-                <div
-                  key={label as string}
-                  className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4"
-                >
-                  <IconComponent className="mb-3 h-5 w-5 text-emerald-300" />
-                  <div className="text-sm font-bold text-white">{label as string}</div>
-                </div>
-              );
-            })}
-          </div>
+          <span
+            className="text-[10px] font-medium rounded-full px-3 py-1"
+            style={{ color: C.t3, background: C.wellBg, border: `1px solid ${C.border}` }}
+          >
+            6 modules
+          </span>
         </div>
 
-        <div className="rounded-[1.6rem] border border-white/[0.08] bg-slate-950/45 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
-            <BadgeCheck className="h-3.5 w-3.5" />
-            Build guardrails
-          </div>
-
-          <div className="space-y-3">
-            {platformHighlights.map((item) => (
+        <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+          {PRODUCT_LAYERS.map(({ label, icon: Icon }) => (
+            <div
+              key={label}
+              className="flex items-center gap-3 rounded-xl border px-4 py-3"
+              style={{ background: C.wellBg, borderColor: C.border }}
+            >
               <div
-                key={item}
-                className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.035] px-3 py-2"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                style={{ background: C.emBg, color: C.emHi, border: `1px solid ${C.emBdr}` }}
               >
-                <BadgeCheck className="h-4 w-4 text-emerald-300" />
-                <span className="text-sm font-medium text-slate-200">
-                  {item}
-                </span>
+                <Icon className="h-3.5 w-3.5" />
               </div>
-            ))}
-          </div>
+              <span className="text-[13px] font-medium" style={{ color: C.t1 }}>
+                {label}
+              </span>
+            </div>
+          ))}
         </div>
       </section>
     </div>
   );
-}
-
-function FactoryIcon(props: React.ComponentProps<typeof Database>) {
-  return <Database {...props} />;
 }

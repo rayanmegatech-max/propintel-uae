@@ -1,20 +1,19 @@
+// app/dashboard/_components/CountryOverviewPage.tsx
 "use client";
 
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
+  Activity,
   ArrowRight,
-  BadgeCheck,
   BarChart3,
   Building2,
   Database,
-  Gauge,
   Globe2,
-  Layers3,
   MapPinned,
   Radar,
+  RefreshCcw,
   ShieldCheck,
-  Sparkles,
   TrendingDown,
   UserCheck,
   Zap,
@@ -24,373 +23,480 @@ import {
   type CountryConfig,
 } from "@/lib/countries/countryConfig";
 
-type CountryOverviewPageProps = {
-  country: CountryConfig;
-};
+// ─── Design tokens (mirrors DashboardLayout) ──────────────────────────────────
+const C = {
+  cardBg:   "#111113",
+  wellBg:   "#18181b",
+  deepBg:   "#0d0d0f",
+  border:   "rgba(255,255,255,0.07)",
+  borderFt: "rgba(255,255,255,0.04)",
+  t1: "#f4f4f5",
+  t2: "#a1a1aa",
+  t3: "#52525b",
+  t4: "#3f3f46",
+  em:    "#10b981",
+  emHi:  "#34d399",
+  emBg:  "rgba(16,185,129,0.07)",
+  emBdr: "rgba(16,185,129,0.18)",
+  am:    "#fbbf24",
+  amBg:  "rgba(245,158,11,0.07)",
+  amBdr: "rgba(245,158,11,0.15)",
+} as const;
 
+const CARD_BASE = {
+  background: C.cardBg,
+  borderColor: C.border,
+  boxShadow:  "0 2px 14px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05)",
+} as const;
+
+// ─── Module data ──────────────────────────────────────────────────────────────
 const MODULE_STATS: Record<string, string> = {
-  recon: "Live",
-  "owner-direct": "36K",
-  "price-drops": "19K",
-  "listing-age": "200K",
+  recon:                 "Live",
+  "owner-direct":        "36K",
+  "price-drops":         "19K",
+  "listing-age":         "200K",
   "market-intelligence": "4.5K",
-  "inventory-pressure": "927",
-  "market-dominance": "5K",
-  "agency-profiles": "7K",
-  "activity-feed": "76K",
-  buildings: "5K",
-  communities: "4.5K",
-  "data-quality": "Admin",
+  "inventory-pressure":  "927",
+  "market-dominance":    "5K",
+  "agency-profiles":     "7K",
+  "activity-feed":       "76K",
+  buildings:             "5K",
+  communities:           "4.5K",
+  "data-quality":        "Admin",
 };
 
-function StatCard({
-  label,
-  value,
-  description,
-  tone = "slate",
+function moduleIcon(slug: string, internalOnly?: boolean): React.ReactNode {
+  const cls = "h-4 w-4";
+  if (internalOnly)                    return <Database className={cls} />;
+  if (slug === "recon")                return <Radar className={cls} />;
+  if (slug === "owner-direct")         return <UserCheck className={cls} />;
+  if (slug === "price-drops")          return <TrendingDown className={cls} />;
+  if (slug === "listing-age")          return <RefreshCcw className={cls} />;
+  if (slug === "market-intelligence")  return <Zap className={cls} />;
+  if (slug === "inventory-pressure")   return <Activity className={cls} />;
+  if (slug === "market-dominance")     return <BarChart3 className={cls} />;
+  if (slug === "agency-profiles")      return <ShieldCheck className={cls} />;
+  if (slug === "activity-feed")        return <Globe2 className={cls} />;
+  if (slug === "buildings")            return <Building2 className={cls} />;
+  if (slug === "communities")          return <MapPinned className={cls} />;
+  return <Zap className={cls} />;
+}
+
+type ModuleStatus = {
+  label:  string;
+  color:  string;
+  bg:     string;
+  border: string;
+};
+
+function moduleStatus(
+  slug: string,
+  internalOnly?: boolean,
+  disabledReason?: string
+): ModuleStatus {
+  if (internalOnly) {
+    return { label: "Internal", color: C.t4, bg: "rgba(255,255,255,0.03)", border: C.borderFt };
+  }
+  if (disabledReason) {
+    return { label: "Limited", color: C.am, bg: C.amBg, border: C.amBdr };
+  }
+  if (slug === "recon") {
+    return { label: "Live", color: C.emHi, bg: C.emBg, border: C.emBdr };
+  }
+  return { label: "Ready", color: C.t2, bg: C.wellBg, border: C.border };
+}
+
+// ─── Small primitives ─────────────────────────────────────────────────────────
+function Label({ children, em }: { children: React.ReactNode; em?: boolean }) {
+  return (
+    <span
+      className="text-[9px] font-semibold uppercase tracking-[0.14em]"
+      style={{ color: em ? C.emHi : C.t3 }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function StatusBadge({ status }: { status: ModuleStatus }) {
+  return (
+    <span
+      className="text-[9px] font-semibold uppercase tracking-[0.1em] rounded-md px-2 py-[3px]"
+      style={{ color: status.color, background: status.bg, border: `1px solid ${status.border}` }}
+    >
+      {status.label}
+    </span>
+  );
+}
+
+// ─── Module card ──────────────────────────────────────────────────────────────
+function ModuleCard({
+  section,
+  countryRouteBase,
 }: {
-  label: string;
-  value: string;
-  description: string;
-  tone?: "emerald" | "cyan" | "amber" | "slate";
+  section: ReturnType<typeof getCountrySections>[number];
+  countryRouteBase: string;
 }) {
-  const toneClassMap = {
-    emerald: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
-    cyan: "border-cyan-400/20 bg-cyan-400/10 text-cyan-300",
-    amber: "border-amber-400/20 bg-amber-400/10 text-amber-300",
-    slate: "border-white/[0.08] bg-white/[0.04] text-slate-300",
-  };
+  const status   = moduleStatus(section.slug, section.internalOnly, section.disabledReason);
+  const stat     = MODULE_STATS[section.slug] ?? "Ready";
+  const isRecon  = section.slug === "recon";
+  const isLimited = !!section.disabledReason;
+  const isAdmin   = !!section.internalOnly;
 
   return (
-    <motion.div
-      whileHover={{ y: -3 }}
-      transition={{ duration: 0.16 }}
-      className="rounded-2xl border border-white/[0.08] bg-slate-950/45 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.16)] backdrop-blur-xl"
-    >
-      <div
-        className={[
-          "mb-4 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em]",
-          toneClassMap[tone],
-        ].join(" ")}
+    <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.14 }}>
+      <Link
+        href={`${countryRouteBase}/${section.slug}`}
+        className="group relative flex flex-col rounded-2xl border p-4 transition-colors duration-200"
+        style={{
+          minHeight: 180,
+          background: isRecon
+            ? C.emBg
+            : isLimited
+            ? C.amBg
+            : C.cardBg,
+          borderColor: isRecon
+            ? C.emBdr
+            : isLimited
+            ? C.amBdr
+            : C.border,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.04)",
+        }}
       >
-        {label}
-      </div>
-      <p className="text-3xl font-black tracking-[-0.05em] text-white">
-        {value}
-      </p>
-      <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
+        {/* Hover tint */}
+        <span
+          className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          style={{ background: "rgba(255,255,255,0.018)" }}
+        />
+
+        <div className="relative flex h-full flex-col">
+          {/* Header */}
+          <div className="mb-3.5 flex items-start justify-between gap-2">
+            {/* Icon */}
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border"
+              style={{
+                background:  isRecon ? "rgba(16,185,129,0.12)" : isLimited ? C.amBg : C.wellBg,
+                borderColor: isRecon ? C.emBdr : isLimited ? C.amBdr : C.border,
+                color:       isRecon ? C.emHi  : isLimited ? C.am    : C.t2,
+              }}
+            >
+              {moduleIcon(section.slug, section.internalOnly)}
+            </div>
+
+            {/* Status + stat column */}
+            <div className="flex flex-col items-end gap-1.5">
+              <StatusBadge status={status} />
+              {!isAdmin && (
+                <span
+                  className="text-xl font-bold tabular-nums"
+                  style={{ color: isLimited ? C.am : C.t1, letterSpacing: "-0.03em" }}
+                >
+                  {stat}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Title */}
+          <h3
+            className="text-[14px] font-semibold leading-snug"
+            style={{ color: isLimited ? C.am : isAdmin ? C.t4 : C.t1 }}
+          >
+            {section.label}
+          </h3>
+
+          {/* Body */}
+          <p
+            className="mt-1.5 text-[12px] leading-[1.55] line-clamp-3 flex-1"
+            style={{ color: isAdmin ? C.t4 : C.t3 }}
+          >
+            {isLimited ? section.disabledReason : section.description}
+          </p>
+
+          {/* Footer */}
+          <div className="mt-auto flex items-center justify-between pt-4">
+            <span
+              className="text-[11px] font-medium"
+              style={{ color: isAdmin ? C.t4 : isLimited ? C.am : C.t3 }}
+            >
+              {isAdmin ? "Internal QA" : isLimited ? "Limited route" : "Open module"}
+            </span>
+            <ArrowRight
+              className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1"
+              style={{ color: isRecon ? C.emHi : C.t4 }}
+            />
+          </div>
+        </div>
+      </Link>
     </motion.div>
   );
 }
 
-function ModuleIcon({ slug, internalOnly }: { slug: string; internalOnly?: boolean }) {
-  if (internalOnly) return <Database className="h-4 w-4" />;
-  if (slug === "recon") return <Radar className="h-4 w-4" />;
-  if (slug === "owner-direct") return <UserCheck className="h-4 w-4" />;
-  if (slug === "price-drops") return <TrendingDown className="h-4 w-4" />;
-  if (slug === "listing-age") return <Gauge className="h-4 w-4" />;
-  if (slug === "market-dominance") return <BarChart3 className="h-4 w-4" />;
-  if (slug === "inventory-pressure") return <Layers3 className="h-4 w-4" />;
-  if (slug === "buildings") return <Building2 className="h-4 w-4" />;
-  if (slug === "communities") return <MapPinned className="h-4 w-4" />;
-  if (slug === "market-intelligence") return <Sparkles className="h-4 w-4" />;
-  if (slug === "activity-feed") return <Globe2 className="h-4 w-4" />;
-  if (slug === "agency-profiles") return <ShieldCheck className="h-4 w-4" />;
-  return <Zap className="h-4 w-4" />;
-}
+// ─── Props ────────────────────────────────────────────────────────────────────
+type CountryOverviewPageProps = { country: CountryConfig };
 
-function getModuleStatus(slug: string, disabledReason?: string) {
-  if (slug === "recon") {
-    return {
-      label: "Live",
-      className:
-        "border-emerald-400/25 bg-emerald-400/10 text-emerald-200",
-    };
-  }
-
-  if (disabledReason) {
-    return {
-      label: "Limited",
-      className: "border-amber-400/20 bg-amber-400/10 text-amber-200",
-    };
-  }
-
-  return {
-    label: "Ready",
-    className: "border-cyan-400/20 bg-cyan-400/10 text-cyan-200",
-  };
-}
-
-export default function CountryOverviewPage({
-  country,
-}: CountryOverviewPageProps) {
-  const sections = getCountrySections(country);
-  const reconSection = sections.find((section) => section.slug === "recon");
-  const publicSections = sections.filter((section) => !section.internalOnly);
-  const internalSections = sections.filter((section) => section.internalOnly);
-  const isUae = country.slug === "uae";
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function CountryOverviewPage({ country }: CountryOverviewPageProps) {
+  const sections        = getCountrySections(country);
+  const reconSection    = sections.find((s) => s.slug === "recon");
+  const publicSections  = sections.filter((s) => !s.internalOnly);
+  const internalSections = sections.filter((s) => s.internalOnly);
+  const isUae           = country.slug === "uae";
 
   return (
-    <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-[1.8rem] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_34%),rgba(15,23,42,0.42)] p-5 shadow-[0_24px_90px_rgba(0,0,0,0.26)] backdrop-blur-xl sm:p-7">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/40 to-transparent" />
-        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-emerald-400/[0.10] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 left-16 h-80 w-80 rounded-full bg-cyan-400/[0.08] blur-3xl" />
+    <div className="space-y-4">
 
-        <div className="relative grid gap-7 xl:grid-cols-[1fr_430px] xl:items-stretch">
-          <div>
+      {/* ── Country hero ────────────────────────────────────────────────── */}
+      <section
+        className="rounded-2xl border"
+        style={{
+          background:  C.deepBg,
+          borderColor: C.border,
+          boxShadow:   "0 2px 24px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.05)",
+        }}
+      >
+        <div className="grid gap-0 lg:grid-cols-[1fr_auto]">
+          {/* Copy block */}
+          <div className="p-6 sm:p-8">
+            {/* Chips */}
             <div className="mb-5 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">
-                <Globe2 className="h-3.5 w-3.5" />
-                {isUae ? "🇦🇪 UAE Market OS" : "🇸🇦 KSA Market OS"}
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] rounded-full px-3 py-1"
+                style={{ color: C.emHi, background: C.emBg, border: `1px solid ${C.emBdr}` }}
+              >
+                <span className="inline-block w-[5px] h-[5px] rounded-full bg-emerald-400 animate-pulse" />
+                {isUae ? "UAE Market OS" : "KSA Market OS"}
               </span>
-
-              <span className="rounded-full border border-white/[0.08] bg-slate-950/55 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                Currency: {country.currency}
-              </span>
-
-              <span className="rounded-full border border-white/[0.08] bg-slate-950/55 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                Local export mode
-              </span>
+              {[`Currency: ${country.currency}`, "Local export mode"].map((chip) => (
+                <span
+                  key={chip}
+                  className="text-[10px] font-medium rounded-full px-3 py-1"
+                  style={{ color: C.t3, background: C.wellBg, border: `1px solid ${C.border}` }}
+                >
+                  {chip}
+                </span>
+              ))}
             </div>
 
-            <h1 className="max-w-5xl text-4xl font-black tracking-[-0.06em] text-white sm:text-6xl">
-              {country.fullName} intelligence command center
+            {/* Headline */}
+            <h1
+              className="text-[28px] font-bold leading-[1.18] sm:text-[36px]"
+              style={{ color: C.t1, letterSpacing: "-0.03em" }}
+            >
+              {country.fullName}
+              <br />
+              <span style={{ color: C.t3 }}>Intelligence platform.</span>
             </h1>
 
-            <p className="mt-5 max-w-4xl text-sm leading-7 text-slate-400 sm:text-base">
+            <p
+              className="mt-4 max-w-2xl text-[13px] leading-[1.7]"
+              style={{ color: C.t2 }}
+            >
               {country.productPositioning}
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
+            {/* CTAs */}
+            <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href={`${country.routeBase}/recon`}
-                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-white shadow-[0_14px_34px_rgba(16,185,129,0.22)] transition hover:bg-emerald-400"
+                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-85"
+                style={{ background: C.em, boxShadow: "0 4px 16px rgba(16,185,129,0.22)" }}
               >
                 Open Recon Hub
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
-
               <Link
                 href={`${country.routeBase}/market-intelligence`}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.1] bg-white/[0.055] px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-white/[0.08]"
+                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all hover:opacity-75"
+                style={{ color: C.t2, background: C.wellBg, border: `1px solid ${C.border}` }}
               >
                 Market Intelligence
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           </div>
 
-          <aside className="rounded-[1.5rem] border border-emerald-400/20 bg-emerald-400/[0.075] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="mb-5 flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-
-              <div>
-                <h2 className="text-base font-black text-emerald-50">
-                  Launchable intelligence workspace
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-emerald-100/70">
-                  Real-data pages are wired through local frontend exports while
-                  hosted sync, auth, and payments remain intentionally out of scope.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3">
+          {/* Right: platform bullets */}
+          <div
+            className="p-5 sm:p-6 lg:w-[280px] lg:border-l lg:self-stretch flex flex-col justify-center"
+            style={{ borderColor: C.border }}
+          >
+            <Label>Platform</Label>
+            <div className="mt-3 space-y-2">
               {[
                 "Country-aware routing",
                 "Product-safe table mapping",
-                "Module 5 real-data pages",
-                isUae ? "Building intelligence enabled" : "City/district first",
+                "Modules 0–5 intelligence",
+                isUae ? "Building intelligence enabled" : "City / district first",
               ].map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-slate-950/35 px-3 py-2"
+                  className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5"
+                  style={{ background: C.wellBg, borderColor: C.border }}
                 >
-                  <BadgeCheck className="h-4 w-4 text-emerald-300" />
-                  <span className="text-sm font-semibold text-emerald-50/90">
+                  <span
+                    className="inline-block w-[5px] h-[5px] rounded-full shrink-0"
+                    style={{ background: C.em }}
+                  />
+                  <span className="text-[12px] font-medium" style={{ color: C.t2 }}>
                     {item}
                   </span>
                 </div>
               ))}
             </div>
-          </aside>
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Product family"
-          value="Modules 0–5"
-          description="Unified lead, listing, pressure, dominance, and activity intelligence."
-          tone="emerald"
-        />
-        <StatCard
-          label="Country"
-          value={country.label}
-          description={`Routes, currency, caveats, and table mappings for ${country.fullName}.`}
-          tone="cyan"
-        />
-        <StatCard
-          label="Live module"
-          value="Recon"
-          description="The first sellable local-data module with tabs, filters, and cards."
-          tone="amber"
-        />
-        <StatCard
-          label="Pages"
-          value={`${publicSections.length}+`}
-          description={`${publicSections.length} public product pages and ${internalSections.length} internal QA page.`}
-        />
-      </section>
-
-      <section className="rounded-[1.6rem] border border-white/[0.08] bg-slate-950/45 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
-              <Sparkles className="h-3.5 w-3.5" />
-              Module grid
-            </div>
-            <h2 className="text-2xl font-black tracking-tight text-white">
-              {country.label} intelligence modules
-            </h2>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
-              Clean launch pages for the country-specific SaaS product family.
+      {/* ── Status row ──────────────────────────────────────────────────────── */}
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            eyebrow:  "Product family",
+            value:    "Modules 0–5",
+            sub:      "Unified lead, listing, pressure, dominance, and activity intelligence.",
+            em:       true,
+          },
+          {
+            eyebrow:  "Country",
+            value:    country.label,
+            sub:      `${country.currency} · Routes, caveats, and table mappings for ${country.fullName}.`,
+            em:       false,
+          },
+          {
+            eyebrow:  "Live module",
+            value:    "Recon",
+            sub:      "The first sellable local-data module with tabs, filters, and cards.",
+            em:       false,
+          },
+          {
+            eyebrow:  "Pages",
+            value:    `${publicSections.length}+`,
+            sub:      `${publicSections.length} public product pages · ${internalSections.length} internal QA.`,
+            em:       false,
+          },
+        ].map(({ eyebrow, value, sub, em }) => (
+          <div
+            key={eyebrow}
+            className="rounded-2xl border p-5"
+            style={{
+              ...CARD_BASE,
+              background:  em ? C.emBg    : C.cardBg,
+              borderColor: em ? C.emBdr   : C.border,
+            }}
+          >
+            <Label em={em}>{eyebrow}</Label>
+            <p
+              className="mt-2 text-2xl font-bold tabular-nums"
+              style={{ color: C.t1, letterSpacing: "-0.03em" }}
+            >
+              {value}
+            </p>
+            <p className="mt-1 text-[12px] leading-[1.55]" style={{ color: C.t3 }}>
+              {sub}
             </p>
           </div>
+        ))}
+      </section>
 
-          <span className="rounded-full border border-white/[0.08] bg-slate-950/50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+      {/* ── Module grid ────────────────────────────────────────────────────── */}
+      <section className="rounded-2xl border p-5" style={CARD_BASE}>
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Label>{country.label} intelligence modules</Label>
+            <h2
+              className="mt-1 text-[18px] font-bold"
+              style={{ color: C.t1, letterSpacing: "-0.02em" }}
+            >
+              {country.label} module grid
+            </h2>
+            <p className="mt-1 text-[13px]" style={{ color: C.t3 }}>
+              Country-specific product pages wired to real local data exports.
+            </p>
+          </div>
+          <span
+            className="shrink-0 text-[10px] font-medium rounded-full px-3 py-1"
+            style={{ color: C.t3, background: C.wellBg, border: `1px solid ${C.border}` }}
+          >
             {publicSections.length} public · {internalSections.length} internal
           </span>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {sections.map((section) => {
-            const disabled = Boolean(section.disabledReason);
-            const status = getModuleStatus(section.slug, section.disabledReason);
-            const isRecon = section.slug === "recon";
-            const stat = MODULE_STATS[section.slug] ?? "Ready";
-
-            return (
-              <motion.div
-                key={section.slug}
-                whileHover={{ y: -3 }}
-                transition={{ duration: 0.16 }}
-              >
-                <Link
-                  href={`${country.routeBase}/${section.slug}`}
-                  className={[
-                    "group relative block min-h-[190px] overflow-hidden rounded-2xl border p-4 shadow-[0_16px_50px_rgba(0,0,0,0.14)] transition",
-                    isRecon
-                      ? "border-emerald-400/25 bg-emerald-400/[0.075] hover:border-emerald-400/40"
-                      : disabled
-                        ? "border-amber-400/15 bg-amber-400/[0.04] hover:border-amber-400/25"
-                        : "border-white/[0.08] bg-white/[0.035] hover:border-cyan-400/25 hover:bg-white/[0.055]",
-                  ].join(" ")}
-                >
-                  <div className="pointer-events-none absolute -right-14 -top-14 h-32 w-32 rounded-full bg-white/[0.04] blur-2xl transition group-hover:bg-emerald-400/10" />
-
-                  <div className="relative flex h-full flex-col">
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                      <div
-                        className={[
-                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border",
-                          isRecon
-                            ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
-                            : disabled
-                              ? "border-amber-400/20 bg-amber-400/10 text-amber-300"
-                              : "border-white/[0.08] bg-white/[0.05] text-slate-300 group-hover:text-cyan-300",
-                        ].join(" ")}
-                      >
-                        <ModuleIcon
-                          slug={section.slug}
-                          internalOnly={section.internalOnly}
-                        />
-                      </div>
-
-                      <div className="flex flex-col items-end gap-2">
-                        <span
-                          className={[
-                            "rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]",
-                            status.className,
-                          ].join(" ")}
-                        >
-                          {status.label}
-                        </span>
-                        <span className="text-2xl font-black tracking-[-0.05em] text-white">
-                          {stat}
-                        </span>
-                      </div>
-                    </div>
-
-                    <h3 className="text-base font-black text-white">
-                      {section.label}
-                    </h3>
-
-                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">
-                      {disabled ? section.disabledReason : section.description}
-                    </p>
-
-                    <div className="mt-auto flex items-center justify-between pt-5">
-                      <span className="text-xs font-semibold text-slate-500">
-                        {section.internalOnly
-                          ? "Internal QA"
-                          : disabled
-                            ? "Limited route"
-                            : "Open module"}
-                      </span>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:translate-x-1 group-hover:text-emerald-300" />
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            );
-          })}
+          {sections.map((section) => (
+            <ModuleCard
+              key={section.slug}
+              section={section}
+              countryRouteBase={country.routeBase}
+            />
+          ))}
         </div>
       </section>
 
-      {reconSection ? (
-        <section className="rounded-[1.6rem] border border-emerald-400/20 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_34%),rgba(16,185,129,0.055)] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-          <div className="grid gap-5 lg:grid-cols-[1fr_300px] lg:items-center">
+      {/* ── Featured Recon card ─────────────────────────────────────────────── */}
+      {reconSection && (
+        <section
+          className="rounded-2xl border p-6"
+          style={{
+            background:  C.emBg,
+            borderColor: C.emBdr,
+            boxShadow:   "0 2px 14px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.06)",
+          }}
+        >
+          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <div className="mb-3 inline-flex rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
-                Featured live module
-              </div>
-              <h2 className="text-2xl font-black tracking-tight text-white">
-                Recon Hub is the current sellable preview.
+              <Label em>Best place to start</Label>
+              <h2
+                className="mt-1.5 text-[20px] font-bold"
+                style={{ color: C.t1, letterSpacing: "-0.025em" }}
+              >
+                Recon Hub is the flagship module.
               </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-                Start here to show a buyer or agency the product value: hot leads,
-                owner/direct, price drops, listing truth, refresh inflation, and
-                contactable opportunity cards.
+              <p className="mt-2 max-w-2xl text-[13px] leading-[1.65]" style={{ color: C.t2 }}>
+                Start here to demonstrate product value: ranked hot leads, owner/direct
+                signals, price drops, listing-age truth, and refresh-inflation data —
+                all derived from local public-listing exports.
               </p>
             </div>
-
             <Link
               href={`${country.routeBase}/${reconSection.slug}`}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-white shadow-[0_14px_34px_rgba(16,185,129,0.22)] transition hover:bg-emerald-400"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-85"
+              style={{ background: C.em, boxShadow: "0 4px 16px rgba(16,185,129,0.24)" }}
             >
               Open Recon Hub
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </section>
-      ) : null}
+      )}
 
-      <section className="rounded-[1.6rem] border border-white/[0.08] bg-slate-950/45 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-        <h2 className="text-base font-black text-white">
-          Country-specific caveats
-        </h2>
+      {/* ── Country caveats ─────────────────────────────────────────────────── */}
+      <section className="rounded-2xl border p-5" style={CARD_BASE}>
+        <div className="mb-4">
+          <Label>Data &amp; product notes</Label>
+          <h2
+            className="mt-1 text-[15px] font-semibold"
+            style={{ color: C.t1, letterSpacing: "-0.015em" }}
+          >
+            {country.label} operating caveats
+          </h2>
+        </div>
 
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          {country.caveats.map((caveat) => (
+        <div className="grid gap-2.5 lg:grid-cols-2">
+          {country.caveats.map((caveat, i) => (
             <div
-              key={caveat}
-              className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-4 text-sm leading-6 text-slate-400"
+              key={i}
+              className="flex items-start gap-3 rounded-xl border px-4 py-3"
+              style={{ background: C.wellBg, borderColor: C.border }}
             >
-              {caveat}
+              <span
+                className="mt-[3px] inline-block w-[5px] h-[5px] rounded-full shrink-0"
+                style={{ background: C.t4 }}
+              />
+              <p className="text-[12px] leading-[1.6]" style={{ color: C.t3 }}>
+                {caveat}
+              </p>
             </div>
           ))}
         </div>
