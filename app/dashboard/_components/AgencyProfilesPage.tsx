@@ -1,29 +1,43 @@
+// app/dashboard/_components/AgencyProfilesPage.tsx
 import Link from "next/link";
+import type { ElementType } from "react";
 import {
   ArrowRight,
   Building2,
   Database,
-  Footprints,
-  Gauge,
-  Network,
+  Eye,
+  Map,
+  PieChart,
   ShieldCheck,
-  Sparkles,
   Users,
 } from "lucide-react";
-import ReconMetricCard from "./ReconMetricCard";
-import {
-  formatCurrency,
-  formatNumber,
-  formatPercent,
-} from "@/lib/recon/formatters";
+import { formatNumber, formatPercent } from "@/lib/recon/formatters";
 import type { CountryConfig } from "@/lib/countries/countryConfig";
-import type {
-  Module5DataResult,
-  Module5ListPayload,
-  Module5Record,
-} from "@/lib/data/module5";
-import type { ReconMetric } from "@/lib/recon/types";
+import type { Module5DataResult, Module5Record } from "@/lib/data/module5";
 
+// ─── Design tokens (elevated graphite, consistent with other Module 5 pages) ──
+const T = {
+  cardBg:  "#111318",
+  wellBg:  "#181c24",
+  border:  "rgba(255,255,255,0.09)",
+  borderFt:"rgba(255,255,255,0.05)",
+  t1: "#f4f4f5",
+  t2: "#b0b1b8",
+  t3: "#6b6d75",
+  t4: "#5a5c63",
+  em:    "#10b981",
+  emHi:  "#34d399",
+  emBg:  "rgba(16,185,129,0.08)",
+  emBdr: "rgba(16,185,129,0.2)",
+  am:    "#fbbf24",
+  amBg:  "rgba(245,158,11,0.06)",
+  amBdr: "rgba(245,158,11,0.14)",
+  rd:    "#fb7185",
+  rdBg:  "rgba(244,63,94,0.05)",
+  rdBdr: "rgba(244,63,94,0.12)",
+} as const;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 type AgencyProfilesPageProps = {
   country: CountryConfig;
   data: Module5DataResult;
@@ -61,34 +75,31 @@ type AgencyCard = {
   note: string | null;
 };
 
+type MetricTone = "emerald" | "amber" | "rose" | "neutral";
+
+// ─── Data helpers (preserved from original) ───────────────────────────────────
 function asString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }
-
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
-
   if (typeof value === "string" && value.trim() !== "") {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
   }
-
   return null;
 }
-
 function formatLabel(value: string | null): string | null {
   if (!value) return null;
-
   return value
     .replace(/_/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    .replace(/\b\w/g, (l) => l.toUpperCase());
 }
-
 function normalizeAgencyCard(
   country: CountryConfig,
   record: Module5Record,
@@ -170,6 +181,80 @@ function normalizeAgencyCard(
   };
 }
 
+// ─── Mini visual primitives (consistent with other pages) ─────────────────────
+function MiniBarRail({ count, tone }: { count?: number; tone: MetricTone }) {
+  const segments = 12;
+  const filled = Math.min(segments, Math.ceil((count ?? 0) / 1000));
+  const color =
+    tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
+  const bg = "rgba(255,255,255,0.1)";
+  return (
+    <div className="flex items-end gap-[2px] h-5 mt-1">
+      {Array.from({ length: segments }).map((_, i) => (
+        <div
+          key={i}
+          className="flex-1 rounded-[1px]"
+          style={{
+            height: `${8 + (i + 1) * 1.2}px`,
+            background: i < filled ? color : bg,
+            opacity: i < filled ? 0.85 : 0.35,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+function MiniDotRow({ count, tone }: { count?: number; tone: MetricTone }) {
+  const dots = 10;
+  const active = Math.min(dots, Math.ceil((count ?? 0) / 500));
+  const color =
+    tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
+  return (
+    <div className="flex items-center gap-[3px] mt-1">
+      {Array.from({ length: dots }).map((_, i) => (
+        <div
+          key={i}
+          className="h-[4px] w-[4px] rounded-full"
+          style={{ background: i < active ? color : "rgba(255,255,255,0.1)" }}
+        />
+      ))}
+    </div>
+  );
+}
+function MiniSignalWave({ tone }: { tone: MetricTone }) {
+  const color =
+    tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
+  return (
+    <svg width="44" height="16" viewBox="0 0 44 16" fill="none" aria-hidden="true" className="opacity-60 mt-1">
+      <path
+        d="M0 12 L4 10 L8 12 L12 6 L16 8 L20 4 L24 6 L28 2 L32 4 L36 1 L40 3 L44 0"
+        stroke={color}
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+function AbstractGrid({ className }: { className?: string }) {
+  return (
+    <div className={`absolute inset-0 pointer-events-none overflow-hidden ${className ?? ""}`} aria-hidden="true">
+      <div
+        className="absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(255,255,255,0.25) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255,255,255,0.25) 1px, transparent 1px)
+          `,
+          backgroundSize: "18px 18px",
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyAgencyState({
   country,
   message,
@@ -177,241 +262,431 @@ function EmptyAgencyState({
   country: CountryConfig;
   message: string;
 }) {
+  const exportCmd =
+    country.slug === "uae"
+      ? "python tools\\export_uae_module5_frontend_data.py"
+      : "python tools\\export_ksa_module5_frontend_data.py";
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-6 backdrop-blur-xl">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300">
-          <Database className="h-6 w-6" />
-        </div>
-
-        <h1 className="text-2xl font-bold text-white">
-          {country.label} Agency Profile export not loaded
-        </h1>
-
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-amber-100/80">
-          {message}
+    <div className="flex flex-col items-center justify-center px-4 py-24 text-center">
+      <div
+        className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border"
+        style={{ background: T.amBg, borderColor: T.amBdr }}
+      >
+        <Database className="h-6 w-6" style={{ color: T.am }} />
+      </div>
+      <h1 className="text-xl font-bold" style={{ color: T.t1 }}>
+        {country.label} Agency Profiles not available
+      </h1>
+      <p className="mt-2 max-w-md text-[13px] leading-relaxed" style={{ color: T.t3 }}>
+        {message}
+      </p>
+      <div
+        className="mt-6 rounded-xl border px-5 py-4 text-left w-full max-w-md"
+        style={{ background: T.cardBg, borderColor: T.border }}
+      >
+        <p className="text-xs font-medium" style={{ color: T.t2 }}>
+          Generate local exports:
         </p>
-
-        <div className="mt-5 rounded-xl border border-white/[0.08] bg-slate-950/50 p-4">
-          <p className="text-sm font-semibold text-white">Run locally:</p>
-          <code className="mt-2 block rounded-lg bg-black/30 p-3 text-xs text-slate-300">
-            {country.slug === "uae"
-              ? "python tools\\export_uae_module5_frontend_data.py"
-              : "python tools\\export_ksa_module5_frontend_data.py"}
-          </code>
-        </div>
-      </section>
+        <code
+          className="mt-2 block rounded-lg p-3 text-xs"
+          style={{ background: "#000", color: T.emHi, fontFamily: "'DM Mono', monospace" }}
+        >
+          {exportCmd}
+        </code>
+      </div>
     </div>
   );
 }
 
-function AgencySignalCard({
-  country,
-  card,
+// ─── KPI metric card (elevated surface, absolute top accent bar) ──────────────
+function MetricCard({
+  label,
+  value,
+  description,
+  tone = "neutral",
+  visual,
 }: {
-  country: CountryConfig;
-  card: AgencyCard;
+  label: string;
+  value: string;
+  description: string;
+  tone?: MetricTone;
+  visual?: "bars" | "dots" | "signal";
 }) {
+  const accentColor =
+    tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t4;
+  const numVal = parseInt(value.replace(/,/g, ""), 10) || 0;
+
   return (
-    <article className="rounded-[1.45rem] border border-white/[0.08] bg-slate-950/45 p-4 shadow-[0_16px_50px_rgba(0,0,0,0.18)] transition hover:border-emerald-300/25 hover:bg-white/[0.055]">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-200">
-          <Users className="h-3.5 w-3.5" />
-          Agency Footprint
-        </span>
-
-        {card.profileType ? (
-          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-            {card.profileType}
-          </span>
-        ) : null}
-
-        {card.confidence ? (
-          <span className="rounded-full border border-cyan-400/15 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-200">
-            {card.confidence}
-          </span>
-        ) : null}
-      </div>
-
-      <h3 className="text-base font-black tracking-tight text-white">
-        {card.agencyName}
-      </h3>
-
-      <p className="mt-2 text-sm leading-6 text-slate-400">
-        Public agency inventory profile based on visible listing activity. This
-        is not an agency quality score or misconduct signal.
+    <div
+      className="relative rounded-2xl border p-5 transition-shadow hover:shadow-lg hover:shadow-black/20"
+      style={{
+        background: T.cardBg,
+        borderColor: T.border,
+        boxShadow: "0 4px 14px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.06)",
+      }}
+    >
+      <span
+        className="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl"
+        style={{ background: accentColor }}
+      />
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em]" style={{ color: accentColor }}>
+        {label}
       </p>
-
-      {card.interpretation ? (
-        <p className="mt-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.07] px-3 py-2 text-xs leading-5 text-emerald-100/85">
-          {card.interpretation}
-        </p>
-      ) : null}
-
-      {card.note ? (
-        <p className="mt-3 rounded-2xl border border-white/[0.08] bg-white/[0.035] px-3 py-2 text-xs leading-5 text-slate-300">
-          {card.note}
-        </p>
-      ) : null}
-
-      <div className="mt-4 grid gap-2 text-xs text-slate-400 sm:grid-cols-2">
-        {card.activeListings !== null ? (
-          <div className="rounded-xl border border-white/[0.08] bg-black/20 p-2">
-            <span className="block text-slate-500">Active listings</span>
-            <span className="font-black text-white">
-              {formatNumber(card.activeListings)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.activeAgents !== null ? (
-          <div className="rounded-xl border border-white/[0.08] bg-black/20 p-2">
-            <span className="block text-slate-500">Active agents</span>
-            <span className="font-black text-white">
-              {formatNumber(card.activeAgents)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.avgPrice !== null ? (
-          <div className="rounded-xl border border-white/[0.08] bg-black/20 p-2">
-            <span className="block text-slate-500">Avg price</span>
-            <span className="font-black text-white">
-              {formatCurrency(card.avgPrice, country.currency)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.footprintScore !== null ? (
-          <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/[0.06] p-2">
-            <span className="block text-emerald-100/70">Footprint score</span>
-            <span className="font-black text-emerald-100">
-              {formatNumber(card.footprintScore)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.pressureScore !== null ? (
-          <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.06] p-2">
-            <span className="block text-amber-100/70">Pressure score</span>
-            <span className="font-black text-amber-100">
-              {formatNumber(card.pressureScore)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.priceDropRate !== null ? (
-          <div className="rounded-xl border border-red-400/15 bg-red-400/[0.06] p-2">
-            <span className="block text-red-100/70">Price-drop rate</span>
-            <span className="font-black text-red-100">
-              {formatPercent(card.priceDropRate)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.refreshRate !== null ? (
-          <div className="rounded-xl border border-cyan-400/15 bg-cyan-400/[0.06] p-2">
-            <span className="block text-cyan-100/70">Refresh rate</span>
-            <span className="font-black text-cyan-100">
-              {formatPercent(card.refreshRate)}
-            </span>
-          </div>
-        ) : null}
-
-        {card.ownerDirectRate !== null ? (
-          <div className="rounded-xl border border-white/[0.08] bg-black/20 p-2">
-            <span className="block text-slate-500">Owner/direct rate</span>
-            <span className="font-black text-white">
-              {formatPercent(card.ownerDirectRate)}
-            </span>
-          </div>
-        ) : null}
+      <p
+        className="mt-2 font-bold tabular-nums leading-none"
+        style={{ color: T.t1, fontSize: "clamp(24px, 2.6vw, 36px)", letterSpacing: "-0.03em" }}
+      >
+        {value}
+      </p>
+      <div className="mt-1 mb-2">
+        {visual === "bars" && <MiniBarRail count={numVal} tone={tone} />}
+        {visual === "dots" && <MiniDotRow count={numVal} tone={tone} />}
+        {visual === "signal" && <MiniSignalWave tone={tone} />}
       </div>
-
-      <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
-        {card.topCity ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1">
-            <Building2 className="h-3.5 w-3.5 text-violet-300" />
-            {card.topCity}
-          </span>
-        ) : null}
-
-        {card.topCommunity ? (
-          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1">
-            {card.topCommunity}
-          </span>
-        ) : null}
-
-        {card.topDistrict ? (
-          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1">
-            {card.topDistrict}
-          </span>
-        ) : null}
-
-        {card.topShare !== null ? (
-          <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1">
-            Top location share: {formatPercent(card.topShare)}
-          </span>
-        ) : null}
-
-        {card.pressureLabel ? (
-          <span className="rounded-full border border-amber-400/15 bg-amber-400/[0.06] px-3 py-1 text-amber-100">
-            {card.pressureLabel}
-          </span>
-        ) : null}
-      </div>
-    </article>
+      <p className="text-[12px] leading-relaxed" style={{ color: T.t3 }}>
+        {description}
+      </p>
+    </div>
   );
 }
 
-function AgencyLane({
-  country,
-  payload,
-  cards,
+// ─── Agency Footprint Pulse featured card ──────────────────────────────────────
+function AgencyFootprintPulse({
+  totalRows,
+  footprintSignals,
+  pressureSignals,
+  averageListings,
 }: {
-  country: CountryConfig;
-  payload: Module5ListPayload;
-  cards: AgencyCard[];
+  totalRows: number;
+  footprintSignals: number;
+  pressureSignals: number;
+  averageListings: number | null;
 }) {
+  const insights = [
+    `${formatNumber(totalRows)} agency profiles in this export`,
+    `${formatNumber(footprintSignals)} agencies with footprint scoring`,
+    `${formatNumber(pressureSignals)} agencies with pressure context`,
+    averageListings !== null
+      ? `Average active listings per agency: ${formatNumber(averageListings)}`
+      : null,
+  ].filter(Boolean);
+
   return (
-    <section className="rounded-[1.7rem] border border-white/[0.08] bg-white/[0.04] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
-            <Sparkles className="h-3.5 w-3.5" />
-            {payload.source_table}
+    <div
+      className="relative overflow-hidden rounded-2xl border"
+      style={{
+        background: `radial-gradient(circle at 30% 60%, rgba(245,158,11,0.06) 0%, transparent 45%), ${T.cardBg}`,
+        borderColor: T.border,
+        boxShadow: "0 6px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)",
+      }}
+    >
+      <AbstractGrid className="opacity-30" />
+      <div className="relative p-6 sm:p-7">
+        <div className="flex items-start gap-4">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
+            style={{ background: T.amBg, borderColor: T.amBdr }}
+          >
+            <Eye className="h-5 w-5" style={{ color: T.am }} />
+          </div>
+          <div>
+            <h2 className="text-[22px] font-bold tracking-tight" style={{ color: T.t1 }}>
+              Agency Footprint Pulse
+            </h2>
+            <p className="mt-1.5 text-[14px]" style={{ color: T.t3 }}>
+              Public agency listing footprint and portfolio context.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <div className="space-y-3">
+            {insights.map((insight, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span
+                  className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
+                  style={{
+                    background:
+                      i === 0 ? T.am : i === 1 ? T.em : i === 2 ? T.rd : T.t3,
+                  }}
+                />
+                <p className="text-[13px] leading-relaxed" style={{ color: T.t2 }}>
+                  {insight}
+                </p>
+              </div>
+            ))}
           </div>
 
-          <h2 className="text-xl font-black tracking-tight text-white">
-            {country.label} agency footprint sample
-          </h2>
-
-          <p className="mt-1 text-sm leading-6 text-slate-400">
-            Showing dashboard-safe agency inventory profile records from Module
-            5. These records describe public listing footprint, not agency
-            quality or official market share.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-          <span className="rounded-full border border-white/[0.08] bg-slate-950/50 px-3 py-1">
-            {formatNumber(payload.total_rows_available)} total
-          </span>
-          <span className="rounded-full border border-white/[0.08] bg-slate-950/50 px-3 py-1">
-            {formatNumber(payload.exported_rows)} exported
-          </span>
+          <div className="hidden sm:flex items-end gap-[4px] h-[80px] opacity-60" aria-hidden="true">
+            {Array.from({ length: 14 }).map((_, i) => {
+              const h =
+                i % 3 === 0
+                  ? 0.5 + (footprintSignals % 10) / 20
+                  : i % 3 === 1
+                    ? 0.3 + (pressureSignals % 10) / 30
+                    : 0.35 + (totalRows % 10) / 35;
+              return (
+                <div
+                  key={i}
+                  className="flex-1 rounded-t-[2px]"
+                  style={{
+                    height: `${Math.min(100, h * 100)}%`,
+                    background:
+                      i % 3 === 0
+                        ? `linear-gradient(to top, ${T.em}40, ${T.em}10)`
+                        : i % 3 === 1
+                          ? `linear-gradient(to top, ${T.rd}40, ${T.rd}10)`
+                          : `linear-gradient(to top, ${T.am}40, ${T.am}10)`,
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
-
-      <div className="grid gap-3 xl:grid-cols-2">
-        {cards.map((card) => (
-          <AgencySignalCard key={card.id} country={country} card={card} />
-        ))}
-      </div>
-    </section>
+    </div>
   );
 }
 
+// ─── Agency Lane Card (absolute left bar, no border conflicts) ─────────────────
+function AgencyLaneCard({
+  icon: Icon,
+  title,
+  description,
+  statLabel,
+  statValue,
+  ctaHref,
+  ctaText,
+  tone = "neutral",
+}: {
+  icon: ElementType;
+  title: string;
+  description: string;
+  statLabel: string;
+  statValue: string;
+  ctaHref?: string;
+  ctaText: string;
+  tone?: "emerald" | "amber" | "rose" | "neutral";
+}) {
+  const accentColor = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
+  const iconBg = tone === "emerald" ? T.emBg : tone === "amber" ? T.amBg : tone === "rose" ? T.rdBg : "rgba(255,255,255,0.04)";
+  const iconBdr = tone === "emerald" ? T.emBdr : tone === "amber" ? T.amBdr : tone === "rose" ? T.rdBdr : T.border;
+  const iconClr = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t2;
+
+  return (
+    <div
+      className="relative flex flex-col rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/20"
+      style={{
+        background: T.cardBg,
+        borderColor: T.border,
+        boxShadow: "0 4px 14px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)",
+      }}
+    >
+      <span
+        className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl"
+        style={{ background: accentColor }}
+      />
+      <div className="flex-1 p-6">
+        <div className="flex items-start gap-4 mb-5">
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
+            style={{ background: iconBg, borderColor: iconBdr }}
+          >
+            <Icon className="h-5 w-5" style={{ color: iconClr }} />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold" style={{ color: T.t1 }}>
+              {title}
+            </h3>
+            <p className="mt-1 text-[13px] leading-relaxed" style={{ color: T.t3 }}>
+              {description}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="flex items-center justify-between rounded-xl border px-4 py-3 mb-5"
+          style={{ background: T.wellBg, borderColor: T.border }}
+        >
+          <span className="text-[11px] font-medium" style={{ color: T.t4 }}>
+            {statLabel}
+          </span>
+          <span className="text-lg font-bold tabular-nums" style={{ color: T.t1, letterSpacing: "-0.025em" }}>
+            {statValue}
+          </span>
+        </div>
+
+        <div className="flex items-end gap-[2px] h-6 opacity-40" aria-hidden="true">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-t-[2px]"
+              style={{
+                height: `${14 + (i % 4) * 6}px`,
+                background: accentColor,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t px-6 py-3.5" style={{ borderColor: T.border }}>
+        {ctaHref ? (
+          <Link
+            href={ctaHref}
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-opacity hover:opacity-75"
+            style={{ color: tone === "neutral" ? T.t2 : accentColor }}
+          >
+            {ctaText}
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        ) : (
+          <span className="text-[13px] font-medium cursor-not-allowed" style={{ color: T.t4 }}>
+            {ctaText}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Agency Watchlist Row (refined spacing, clearer metrics) ──────────────────
+function AgencyWatchCard({ card }: { card: AgencyCard }) {
+  const pressureLevel = (card.pressureLabel ?? "").toLowerCase();
+  const isHigh = pressureLevel.includes("high") || pressureLevel.includes("elevated") || pressureLevel.includes("critical");
+  const isModerate = pressureLevel.includes("moderate") || pressureLevel.includes("medium");
+
+  const accentColor = isHigh ? T.rd : isModerate ? T.am : T.t3;
+  const badgeBg = isHigh ? T.rdBg : isModerate ? T.amBg : "rgba(255,255,255,0.06)";
+  const badgeBdr = isHigh ? T.rdBdr : isModerate ? T.amBdr : T.border;
+  const badgeText = isHigh ? T.rd : isModerate ? T.am : T.t4;
+
+  return (
+    <div
+      className="flex items-center gap-5 rounded-xl border px-4 py-3 transition-colors hover:bg-white/[0.03]"
+      style={{ background: T.cardBg, borderColor: T.border }}
+    >
+      <div
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border"
+        style={{ background: badgeBg, borderColor: badgeBdr }}
+      >
+        <Building2 className="h-4 w-4" style={{ color: accentColor }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[14px] font-semibold truncate" style={{ color: T.t1 }}>
+          {card.agencyName}
+        </p>
+        <div className="flex flex-wrap gap-2 mt-0.5">
+          {card.profileType && (
+            <span className="text-[11px]" style={{ color: T.t4 }}>
+              {card.profileType}
+            </span>
+          )}
+          {card.pressureLabel && (
+            <span
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
+              style={{ background: badgeBg, color: badgeText, border: `1px solid ${badgeBdr}` }}
+            >
+              {card.pressureLabel}
+            </span>
+          )}
+          {card.topCity && (
+            <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: T.t3 }}>
+              <Map className="h-3 w-3" />
+              {card.topCity}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-6 text-right shrink-0">
+        {card.activeListings !== null && (
+          <div className="w-[64px]">
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
+              Listings
+            </p>
+            <p className="text-sm font-bold tabular-nums" style={{ color: T.t1 }}>
+              {formatNumber(card.activeListings)}
+            </p>
+          </div>
+        )}
+        {card.footprintScore !== null && (
+          <div className="w-[64px]">
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
+              Footprint
+            </p>
+            <p className="text-sm font-bold tabular-nums" style={{ color: T.em }}>
+              {formatNumber(card.footprintScore)}
+            </p>
+          </div>
+        )}
+        {card.pressureScore !== null && (
+          <div className="w-[64px]">
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
+              Pressure
+            </p>
+            <p className="text-sm font-bold tabular-nums" style={{ color: accentColor }}>
+              {formatNumber(card.pressureScore)}
+            </p>
+          </div>
+        )}
+        {card.topShare !== null && (
+          <div className="w-[64px] hidden sm:block">
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
+              Top Share
+            </p>
+            <p className="text-sm font-bold tabular-nums" style={{ color: T.t1 }}>
+              {formatPercent(card.topShare)}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Data confidence footer ───────────────────────────────────────────────────
+function DataConfidenceFooter({
+  exportedAt,
+  sourceCount,
+}: {
+  exportedAt?: string | null;
+  sourceCount?: number;
+}) {
+  if (!exportedAt && !sourceCount) return null;
+  const formattedTime = exportedAt
+    ? new Date(exportedAt).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-5 py-3 text-[11px]"
+      style={{ background: "rgba(255,255,255,0.02)", borderColor: T.border, color: T.t4 }}
+    >
+      {formattedTime && (
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: T.em }} />
+          Synced {formattedTime}
+        </div>
+      )}
+      {sourceCount !== undefined && (
+        <div className="flex items-center gap-1.5">
+          <Database className="h-3 w-3" style={{ color: T.t4 }} />
+          {sourceCount} data exports loaded
+        </div>
+      )}
+      <div className="ml-auto flex items-center gap-1.5">
+        <ShieldCheck className="h-3 w-3" style={{ color: T.t4 }} />
+        Dashboard‑safe agency view
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AgencyProfilesPage({
   country,
   data,
@@ -420,216 +695,202 @@ export default function AgencyProfilesPage({
     return <EmptyAgencyState country={country} message={data.message} />;
   }
 
-  const payload =
-    country.slug === "uae" ? data.agencyProfiles : data.agencyProfilesMajor;
+  const isUae = country.slug === "uae";
+  const payload = isUae ? data.agencyProfiles : data.agencyProfilesMajor;
 
   if (!payload || payload.status !== "ready" || payload.items.length === 0) {
     return (
       <EmptyAgencyState
         country={country}
-        message={`${country.label} Agency Profile export loaded, but no usable agency profile records were available in the local frontend sample.`}
+        message={`${country.label} Agency Profile export loaded, but no usable agency records were available.`}
       />
     );
   }
 
-  const cards = payload.items.map((record, index) =>
+  const cards: AgencyCard[] = payload.items.map((record, index) =>
     normalizeAgencyCard(country, record, index)
   );
+  const visibleCards = cards.slice(0, 6);
 
-  const visibleCards = cards.slice(0, 24);
+  // ── Aggregate metrics ──────────────────────────────────────────────────────
+  const totalAgencyRows = payload.total_rows_available;
+  const withFootprintScore = cards.filter((c) => c.footprintScore !== null).length;
+  const withPressureScore = cards.filter((c) => c.pressureScore !== null).length;
 
-  const withPressureScore = cards.filter(
-    (card) => card.pressureScore !== null
-  ).length;
+  const totalListings = cards.reduce((sum, c) => sum + (c.activeListings ?? 0), 0);
+  const averageListings = cards.length > 0 ? totalListings / cards.length : null;
 
-  const withFootprintScore = cards.filter(
-    (card) => card.footprintScore !== null
-  ).length;
-
-  const totalListings = cards.reduce(
-    (sum, card) => sum + (card.activeListings ?? 0),
-    0
-  );
-
-  const averageListings =
-    cards.length > 0 ? totalListings / cards.length : null;
-
-  const highPressureCount = cards.filter((card) => {
-    const label = `${card.pressureLabel ?? ""}`.toLowerCase();
-    return (
-      label.includes("high") ||
-      label.includes("elevated") ||
-      label.includes("critical")
-    );
+  const highPressureCount = cards.filter((c) => {
+    const label = (c.pressureLabel ?? "").toLowerCase();
+    return label.includes("high") || label.includes("elevated") || label.includes("critical");
   }).length;
 
-  const metrics: ReconMetric[] = [
-    {
-      label: "Agency rows",
-      value: formatNumber(payload.total_rows_available),
-      description: `Rows available in ${payload.source_table}.`,
-      tone: "emerald",
-    },
-    {
-      label: "Exported sample",
-      value: formatNumber(payload.exported_rows),
-      description: "Rows loaded into this local frontend preview.",
-      tone: "cyan",
-    },
-    {
-      label: "Avg listings",
-      value: averageListings === null ? "—" : formatNumber(averageListings),
-      description: "Average active listings across the exported sample.",
-      tone: "teal",
-    },
-    {
-      label: "Pressure signals",
-      value: formatNumber(highPressureCount || withPressureScore),
-      description: "Sample rows exposing portfolio pressure context.",
-      tone: "amber",
-    },
-  ];
+  const metricAgencyProfiles = formatNumber(totalAgencyRows);
+  const metricActivePortfolio = formatNumber(totalListings);
+  const metricFootprintSignals = formatNumber(withFootprintScore);
+  const metricPressureWatch = formatNumber(highPressureCount || withPressureScore);
+
+  const exportTime = data.manifest.exported_at;
+  const sourceCount = Object.keys(data.manifest.exports).length;
+  const locationTerm = isUae ? "communities" : "cities/districts";
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_36%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.13),transparent_34%),rgba(255,255,255,0.04)] shadow-[0_24px_90px_rgba(0,0,0,0.26)] backdrop-blur-xl">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/35 to-transparent" />
-        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-emerald-400/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 left-16 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
+      {/* ── Compact hero ───────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div
+            className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+            style={{ color: T.am, background: T.amBg, borderColor: T.amBdr }}
+          >
+            <Users className="h-3 w-3" />
+            {country.label} Agency Profiles
+          </div>
+          <h1
+            className="text-3xl font-bold tracking-tight sm:text-4xl"
+            style={{ color: T.t1, letterSpacing: "-0.03em" }}
+          >
+            Agency Profiles
+          </h1>
+          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed" style={{ color: T.t2 }}>
+            Review visible agency footprint, portfolio distribution, and market coverage from public listings.
+          </p>
+        </div>
 
-        <div className="relative grid gap-8 p-6 sm:p-8 xl:grid-cols-[1fr_390px]">
-          <div>
-            <div className="mb-6 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">
-                <Users className="h-3.5 w-3.5" />
-                {country.label} Agency Profiles
-              </span>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <span
+            className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
+            style={{ color: T.t2, background: T.wellBg, borderColor: T.border }}
+          >
+            {country.label}
+          </span>
+          <span
+            className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
+            style={{ fontFamily: "'DM Mono', monospace", color: T.t3, background: T.wellBg, borderColor: T.border }}
+          >
+            {country.currency}
+          </span>
+          <span
+            className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium"
+            style={{ color: T.emHi, background: T.emBg, borderColor: T.emBdr }}
+          >
+            <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: T.em }} />
+            Live
+          </span>
+        </div>
+      </div>
 
-              <span className="rounded-full border border-white/[0.08] bg-slate-950/55 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                Module 5 real data
-              </span>
+      {/* ── KPI row ─────────────────────────────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Agency Profiles"
+          value={metricAgencyProfiles}
+          description={`Agency records available in ${locationTerm}.`}
+          tone="neutral"
+          visual="bars"
+        />
+        <MetricCard
+          label="Active Portfolio"
+          value={metricActivePortfolio}
+          description="Total active listings across all profiled agencies."
+          tone="emerald"
+          visual="bars"
+        />
+        <MetricCard
+          label="Footprint Signals"
+          value={metricFootprintSignals}
+          description="Agencies with footprint scoring in this export."
+          tone="emerald"
+          visual="dots"
+        />
+        <MetricCard
+          label="Pressure Watch"
+          value={metricPressureWatch}
+          description="Agencies flagged with elevated portfolio pressure."
+          tone="amber"
+          visual="signal"
+        />
+      </div>
 
-              <span className="rounded-full border border-white/[0.08] bg-slate-950/55 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                {country.currency}
-              </span>
+      {/* ── Agency Footprint Pulse featured section ─────────────────────── */}
+      <AgencyFootprintPulse
+        totalRows={totalAgencyRows}
+        footprintSignals={withFootprintScore}
+        pressureSignals={highPressureCount || withPressureScore}
+        averageListings={averageListings}
+      />
+
+      {/* ── Agency intelligence lanes ───────────────────────────────────── */}
+      <div className="grid gap-5 md:grid-cols-3">
+        <AgencyLaneCard
+          icon={Users}
+          title="Portfolio Visibility"
+          description="Agency-level public listing footprint, listing volume, and category presence."
+          statLabel="Active listings"
+          statValue={metricActivePortfolio}
+          ctaHref={`${country.routeBase}/agency-profiles`}
+          ctaText="View profiles"
+          tone="emerald"
+        />
+        <AgencyLaneCard
+          icon={Map}
+          title="Market Coverage"
+          description="Geographic spread and market presence across cities and communities."
+          statLabel="Footprint agencies"
+          statValue={metricFootprintSignals}
+          ctaHref={`${country.routeBase}/market-dominance`}
+          ctaText="View market presence"
+          tone="neutral"
+        />
+        <AgencyLaneCard
+          icon={PieChart}
+          title="Category Mix"
+          description="Rental, purchase, and commercial listing composition across agency portfolios."
+          statLabel="Pressure watch"
+          statValue={metricPressureWatch}
+          ctaHref={`${country.routeBase}/market-intelligence`}
+          ctaText="View market intelligence"
+          tone="amber"
+        />
+      </div>
+
+      {/* ── Agency Watchlist ─────────────────────────────────────────────── */}
+      {visibleCards.length > 0 && (
+        <div
+          className="rounded-2xl border p-6"
+          style={{ background: T.cardBg, borderColor: T.border, boxShadow: "0 4px 14px rgba(0,0,0,0.25)" }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-bold" style={{ color: T.t1 }}>
+                Agency Watchlist
+              </h3>
+              <p className="mt-1 text-[13px]" style={{ color: T.t3 }}>
+                Top {visibleCards.length} agencies with visible public footprint signals.
+              </p>
             </div>
-
-            <h1 className="max-w-5xl text-3xl font-black tracking-tight text-white sm:text-5xl">
-              Agency Inventory Profile
-            </h1>
-
-            <p className="mt-5 max-w-4xl text-sm leading-7 text-slate-400 sm:text-base">
-              A dashboard-safe Module 5 agency footprint view. It summarizes
-              visible public inventory, portfolio concentration, listing mix,
-              location presence, and pressure context without making claims about
-              agency quality, misconduct, or official market share.
+            <span
+              className="rounded-full border px-3 py-1 text-[11px] font-medium"
+              style={{ color: T.t4, background: T.wellBg, borderColor: T.border }}
+            >
+              {formatNumber(totalAgencyRows)} total
+            </span>
+          </div>
+          <div className="space-y-2">
+            {visibleCards.map((card) => (
+              <AgencyWatchCard key={card.id} card={card} />
+            ))}
+          </div>
+          {cards.length > visibleCards.length && (
+            <p className="mt-4 text-center text-[12px]" style={{ color: T.t4 }}>
+              First {visibleCards.length} of {formatNumber(cards.length)} exported
             </p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link
-                href={`${country.routeBase}/market-intelligence`}
-                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-white shadow-[0_14px_34px_rgba(16,185,129,0.18)] transition hover:bg-emerald-400"
-              >
-                Open Market Intelligence
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-
-              <Link
-                href={`${country.routeBase}/market-dominance`}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.1] bg-white/[0.05] px-5 py-3 text-sm font-black text-slate-200 transition hover:bg-white/[0.08]"
-              >
-                Open Market Dominance
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-
-          <aside className="rounded-[1.7rem] border border-emerald-400/20 bg-emerald-400/[0.075] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-
-              <div>
-                <h2 className="text-base font-bold text-emerald-50">
-                  Safe agency wording
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-emerald-100/75">
-                  This page describes visible public agency footprint only. It
-                  does not score agency quality, accuse misconduct, or claim
-                  official market share.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              {[
-                `Source table: ${payload.source_table}`,
-                `Exported rows: ${payload.exported_rows.toLocaleString("en-US")}`,
-                `Total rows: ${payload.total_rows_available.toLocaleString("en-US")}`,
-                `Rows with footprint score: ${withFootprintScore.toLocaleString("en-US")}`,
-                `Rows with pressure score: ${withPressureScore.toLocaleString("en-US")}`,
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl border border-white/[0.08] bg-slate-950/35 px-3 py-2 text-xs leading-5 text-emerald-50/90"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          </aside>
+          )}
         </div>
-      </section>
+      )}
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <ReconMetricCard key={metric.label} metric={metric} />
-        ))}
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300">
-            <Footprints className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-white">
-            Public footprint
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Agency rows describe visible public listing inventory, portal mix,
-            location spread, and listing-category exposure.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
-            <Network className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-white">
-            Portfolio context
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            The page helps users understand agency listing concentration and
-            market presence without treating the data as official market share.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-          <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
-            <Gauge className="h-5 w-5" />
-          </div>
-          <h2 className="text-base font-semibold text-white">
-            Pressure exposure
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Pressure context can help prioritize portfolio review. It does not
-            imply distress, bad quality, or seller motivation.
-          </p>
-        </div>
-      </section>
-
-      <AgencyLane country={country} payload={payload} cards={visibleCards} />
+      {/* ── Data confidence footer ──────────────────────────────────────── */}
+      <DataConfidenceFooter exportedAt={exportTime} sourceCount={sourceCount} />
     </div>
   );
 }
