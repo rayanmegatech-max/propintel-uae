@@ -7,7 +7,7 @@ import DataQualityPage from "../../_components/DataQualityPage";
 import InventoryPressurePage from "../../_components/InventoryPressurePage";
 import KsaReconDataPage from "../../_components/KsaReconDataPage";
 import ListingTruthRadarPage from "../../_components/ListingTruthRadarPage";
-import LocationIntelligencePage from "../../_components/LocationIntelligencePage";
+import CommunitiesPage from "../../_components/CommunitiesPage";
 import MarketDominancePage from "../../_components/MarketDominancePage";
 import MarketIntelligencePage from "../../_components/MarketIntelligencePage";
 import OwnerDirectRadarPage from "../../_components/OwnerDirectRadarPage";
@@ -132,7 +132,7 @@ export default async function CountrySectionPage({
   if (section === "communities") {
     const data = await getModule5Data(country);
 
-    return <LocationIntelligencePage country={countryConfig} data={data} />;
+    return <CommunitiesPage country={countryConfig} data={data} />;
   }
 
   if (country === "uae" && section === "buildings") {
