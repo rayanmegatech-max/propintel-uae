@@ -488,7 +488,7 @@ function LocationLaneCard({
 }
 
 // ─── Location Watchlist Row ───────────────────────────────────────────────────
-function LocationWatchCard({ card, country }: { card: LocationCard; country: CountryConfig }) {
+function LocationWatchCard({ card }: { card: LocationCard }) {
   const pressureLevel = (card.pressureLabel ?? "").toLowerCase();
   const isHigh = pressureLevel.includes("high") || pressureLevel.includes("elevated") || pressureLevel.includes("critical");
   const isModerate = pressureLevel.includes("moderate") || pressureLevel.includes("medium");
@@ -875,7 +875,7 @@ export default function CommunitiesPage({ country, data }: CommunitiesPageProps)
           </div>
           <div className="space-y-2">
             {visibleCards.map((card) => (
-              <LocationWatchCard key={card.id} card={card} country={country} />
+              <LocationWatchCard key={card.id} card={card} />
             ))}
           </div>
           {cards.length > visibleCards.length && (

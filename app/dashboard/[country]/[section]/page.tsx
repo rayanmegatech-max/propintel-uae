@@ -135,7 +135,7 @@ export default async function CountrySectionPage({
     return <CommunitiesPage country={countryConfig} data={data} />;
   }
 
-  if (country === "uae" && section === "buildings") {
+  if (section === "buildings") {
     const data = await getModule5Data(country);
 
     return <BuildingIntelligencePage country={countryConfig} data={data} />;
