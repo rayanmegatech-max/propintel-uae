@@ -1,3 +1,4 @@
+// app/dashboard/_components/UaeReconTabsClient.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -12,6 +13,19 @@ import {
 } from "@/lib/recon/filter";
 import { normalizeReconList } from "@/lib/recon/normalize";
 import type { UaeReconDataResult, UaeReconListPayload } from "@/lib/data/uaeRecon";
+
+const C = {
+  cardBg:  "#111113",
+  wellBg:  "#18181b",
+  border:  "rgba(255,255,255,0.07)",
+  t1: "#f4f4f5",
+  t2: "#a1a1aa",
+  t3: "#52525b",
+  t4: "#3f3f46",
+  emHi:  "#34d399",
+  emBg:  "rgba(16,185,129,0.07)",
+  emBdr: "rgba(16,185,129,0.15)",
+} as const;
 
 type UaeReconTabKey =
   | "hotLeads"
@@ -29,61 +43,17 @@ type UaeReconTabsClientProps = {
   data: UaeReconDataResult;
 };
 
-const TAB_CONFIG: Array<{
-  key: UaeReconTabKey;
-  label: string;
-  description: string;
-}> = [
-  {
-    key: "hotLeads",
-    label: "Hot Leads",
-    description: "Ranked opportunity list",
-  },
-  {
-    key: "priceDrops",
-    label: "Price Drops",
-    description: "Recent price movement",
-  },
-  {
-    key: "ownerDirect",
-    label: "Owner / Direct",
-    description: "Direct-owner signals",
-  },
-  {
-    key: "stalePriceDrops",
-    label: "Stale + Drops",
-    description: "Aged listings with drops",
-  },
-  {
-    key: "refreshInflated",
-    label: "Refresh Inflated",
-    description: "Relisted/refresh signals",
-  },
-  {
-    key: "listingTruth",
-    label: "Listing Truth",
-    description: "True age signals",
-  },
-  {
-    key: "residentialRent",
-    label: "Residential Rent",
-    description: "Rent opportunity view",
-  },
-  {
-    key: "residentialBuy",
-    label: "Residential Buy",
-    description: "Buy opportunity view",
-  },
-  {
-    key: "commercial",
-    label: "Commercial",
-    description: "Commercial listings",
-  },
-  {
-    key: "shortRental",
-    label: "Short Rental",
-    description: "Daily/weekly/monthly",
-  },
+const TAB_CONFIG: Array<{ key: UaeReconTabKey; label: string; description: string }> = [
+  { key: "hotLeads",        label: "Hot Leads",         description: "Ranked opportunity list"      },
+  { key: "priceDrops",      label: "Price Drops",        description: "Recent price movement"        },
+  { key: "ownerDirect",     label: "Owner / Direct",     description: "Direct-owner signals"         },
+  { key: "stalePriceDrops", label: "Stale + Drops",      description: "Aged listings with drops"     },
+  { key: "refreshInflated", label: "Refresh Inflated",   description: "Relisted / refresh signals"   },
+  { key: "listingTruth",    label: "Listing Truth",      description: "True age signals"             },
+  { key: "residentialRent", label: "Residential Rent",   description: "Rent opportunity view"        },
+  { key: "residentialBuy",  label: "Residential Buy",    description: "Buy opportunity view"         },
+  { key: "commercial",      label: "Commercial",         description: "Commercial listings"          },
+  { key: "shortRental",     label: "Short Rental",       description: "Daily / weekly / monthly"     },
 ];
 
 function getPayload(
@@ -93,35 +63,22 @@ function getPayload(
   return data.lists[key] ?? null;
 }
 
-function getCount(payload: UaeReconListPayload | null): number | undefined {
-  return payload?.total_rows_available;
-}
-
 export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
   const [activeTab, setActiveTab] = useState<UaeReconTabKey>("hotLeads");
-  const [filters, setFilters] = useState<ReconFilterState>({
-    ...DEFAULT_RECON_FILTERS,
-  });
+  const [filters, setFilters] = useState<ReconFilterState>({ ...DEFAULT_RECON_FILTERS });
 
   const tabs: ReconTabOption[] = TAB_CONFIG.map((tab) => ({
-    key: tab.key,
-    label: tab.label,
+    key:         tab.key,
+    label:       tab.label,
     description: tab.description,
-    count: getCount(getPayload(data, tab.key)),
+    count:       getPayload(data, tab.key)?.total_rows_available,
   }));
 
-  const activePayload = getPayload(data, activeTab) || data.lists.hotLeads;
+  const activePayload = getPayload(data, activeTab) ?? data.lists.hotLeads ?? null;
 
   const normalizedItems = useMemo(() => {
-    if (!activePayload) {
-      return [];
-    }
-
-    return normalizeReconList(
-      activePayload.items,
-      "uae",
-      activePayload.source_table
-    );
+    if (!activePayload) return [];
+    return normalizeReconList(activePayload.items, "uae", activePayload.source_table);
   }, [activePayload]);
 
   const filterOptions = useMemo(
@@ -134,7 +91,8 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
     [normalizedItems, filters]
   );
 
-  const visibleItems = filteredItems.slice(0, 25);
+  const featuredItem   = filteredItems[0] ?? null;
+  const remainingItems = filteredItems.slice(1);
 
   const handleTabChange = (tabKey: string) => {
     setActiveTab(tabKey as UaeReconTabKey);
@@ -142,61 +100,75 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
   };
 
   return (
-    <section className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 backdrop-blur-xl">
-      <div className="mb-5 space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-white">
-            UAE Recon opportunity tabs
-          </h2>
-          <p className="mt-1 text-sm text-slate-400">
-            Switch between product-safe UAE Recon dashboard exports. Search and
-            filter within the selected local sample.
-          </p>
-        </div>
+    <div className="space-y-5">
+      {/* ── 1. Featured lead (if any) ────────────────────────────── */}
+      {featuredItem && (
+        <section>
+          {/* Section header */}
+          <div className="mb-3 flex items-baseline gap-3">
+            <h2
+              className="text-[15px] font-semibold"
+              style={{ color: C.t1, letterSpacing: "-0.015em" }}
+            >
+              Best opportunity right now
+            </h2>
+            <span className="text-[12px]" style={{ color: C.t4 }}>
+              Ranked from the selected Recon lane.
+            </span>
+          </div>
+          <ReconOpportunityCard opportunity={featuredItem} variant="featured" />
+        </section>
+      )}
 
+      {/* ── 2. Command bar: tabs + filters ───────────────────────── */}
+      <section
+        className="rounded-xl border p-4 space-y-3"
+        style={{ background: C.cardBg, borderColor: C.border }}
+      >
         <ReconTabSelector
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={handleTabChange}
         />
+        <div
+          className="border-t pt-3"
+          style={{ borderColor: "rgba(255,255,255,0.05)" }}
+        >
+          <ReconFiltersBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            options={filterOptions}
+            totalCount={normalizedItems.length}
+            filteredCount={filteredItems.length}
+          />
+        </div>
+      </section>
 
-        {activePayload ? (
-          <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-            <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-3 py-1">
-              Source: {activePayload.source_table}
-            </span>
-            <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-3 py-1">
-              Exported rows: {activePayload.exported_rows}
-            </span>
-            <span className="rounded-full border border-white/[0.08] bg-slate-950/60 px-3 py-1">
-              Total rows: {activePayload.total_rows_available}
-            </span>
-          </div>
-        ) : null}
-
-        <ReconFiltersBar
-          filters={filters}
-          onFiltersChange={setFilters}
-          options={filterOptions}
-          totalCount={normalizedItems.length}
-          filteredCount={filteredItems.length}
-        />
-      </div>
-
-      {visibleItems.length > 0 ? (
+      {/* ── 3. Remaining list cards ───────────────────────────────── */}
+      {remainingItems.length > 0 ? (
         <div className="space-y-3">
-          {visibleItems.map((opportunity) => (
+          {remainingItems.map((opportunity) => (
             <ReconOpportunityCard
               key={opportunity.id}
               opportunity={opportunity}
+              variant="list"
             />
           ))}
         </div>
-      ) : (
-        <div className="rounded-2xl border border-white/[0.08] bg-slate-950/60 p-6 text-sm text-slate-400">
-          No rows match the current filters.
+      ) : !featuredItem ? (
+        /* Empty state — no items at all */
+        <div
+          className="rounded-2xl border p-8 text-center"
+          style={{ background: C.cardBg, borderColor: C.border }}
+        >
+          <p className="text-[14px] font-medium" style={{ color: C.t3 }}>
+            No opportunities match the current filters.
+          </p>
+          <p className="mt-1 text-[12px]" style={{ color: C.t4 }}>
+            Try adjusting the filters or selecting a different lane above.
+          </p>
         </div>
-      )}
-    </section>
+      ) : null}
+    </div>
   );
 }
