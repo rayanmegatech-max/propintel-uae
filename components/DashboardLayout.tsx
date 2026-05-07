@@ -3,11 +3,13 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
   BarChart3,
+  Bell,
   Building2,
+  Cpu,
   Database,
   Factory,
   Globe2,
@@ -17,8 +19,7 @@ import {
   Menu,
   Radar,
   RefreshCcw,
-  ShieldAlert,
-  Sparkles,
+  Search,
   TrendingDown,
   UserCheck,
   X,
@@ -31,9 +32,15 @@ import {
 } from "@/lib/countries/countryConfig";
 import {
   PRODUCT_SECTIONS,
+  getProductSection,
   type ProductSectionSlug,
 } from "@/lib/countries/productNavigation";
 
+// ─── Palette constants ────────────────────────────────────────────────────────
+const BDR  = "rgba(255,255,255,0.08)";
+const BDRS = "rgba(255,255,255,0.05)";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface NavItem {
   label: string;
   href: string;
@@ -42,125 +49,168 @@ interface NavItem {
   disabledReason?: string;
 }
 
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+// ─── Section → icon map ───────────────────────────────────────────────────────
 const SECTION_ICON_MAP: Record<ProductSectionSlug, React.ElementType> = {
-  recon: Radar,
-  "owner-direct": UserCheck,
-  "price-drops": TrendingDown,
-  "listing-age": RefreshCcw,
+  recon:                 Radar,
+  "owner-direct":        UserCheck,
+  "price-drops":         TrendingDown,
+  "listing-age":         RefreshCcw,
   "market-intelligence": LineChart,
-  "inventory-pressure": Activity,
-  "market-dominance": BarChart3,
-  "agency-profiles": Factory,
-  "activity-feed": Globe2,
-  buildings: Building2,
-  communities: MapPinned,
-  "data-quality": Database,
+  "inventory-pressure":  Activity,
+  "market-dominance":    BarChart3,
+  "agency-profiles":     Factory,
+  "activity-feed":       Globe2,
+  buildings:             Building2,
+  communities:           MapPinned,
+  "data-quality":        Database,
 };
 
+// ─── Nav section grouping ─────────────────────────────────────────────────────
+const NAV_GROUP_DEFS: { label: string; slugs: ProductSectionSlug[] }[] = [
+  {
+    label: "OPPORTUNITIES",
+    slugs: ["recon", "owner-direct", "price-drops", "listing-age"],
+  },
+  {
+    label: "MARKET",
+    slugs: [
+      "market-intelligence",
+      "inventory-pressure",
+      "market-dominance",
+      "agency-profiles",
+      "activity-feed",
+    ],
+  },
+  {
+    label: "INTELLIGENCE",
+    slugs: ["buildings", "communities"],
+  },
+  {
+    label: "ADMIN",
+    slugs: ["data-quality"],
+  },
+];
+
+// ─── Path helpers ─────────────────────────────────────────────────────────────
 function getCountryFromPath(pathname: string): CountryConfig | undefined {
-  const maybeCountry = pathname.split("/")[2];
-
-  if (maybeCountry && isCountrySlug(maybeCountry)) {
-    return getCountryConfig(maybeCountry);
-  }
-
+  const segment = pathname.split("/")[2];
+  if (segment && isCountrySlug(segment)) return getCountryConfig(segment);
   return undefined;
 }
 
-function buildNavItems(country: CountryConfig | undefined): NavItem[] {
+function getPageTitle(
+  pathname: string,
+  country: CountryConfig | undefined
+): string {
+  if (!country) return "GCC Overview";
+  const sectionSlug = pathname.split("/")[3];
+  if (!sectionSlug) return `${country.label} Overview`;
+  const section = getProductSection(sectionSlug);
+  return section ? section.label : `${country.label} Overview`;
+}
+
+function buildNavGroups(country: CountryConfig | undefined): NavGroup[] {
   if (!country) {
     return [
       {
-        label: "GCC Overview",
-        href: "/dashboard",
-        icon: LayoutDashboard,
-      },
-      {
-        label: "UAE Dashboard",
-        href: "/dashboard/uae",
-        icon: Building2,
-      },
-      {
-        label: "KSA Dashboard",
-        href: "/dashboard/ksa",
-        icon: MapPinned,
+        label: "COMMAND",
+        items: [
+          { label: "GCC Overview",    href: "/dashboard",     icon: LayoutDashboard },
+          { label: "UAE Dashboard",   href: "/dashboard/uae", icon: Building2       },
+          { label: "KSA Dashboard",   href: "/dashboard/ksa", icon: MapPinned       },
+        ],
       },
     ];
   }
 
-  return [
+  const groups: NavGroup[] = [
     {
-      label: `${country.label} Overview`,
-      href: country.routeBase,
-      icon: LayoutDashboard,
+      label: "COMMAND",
+      items: [
+        {
+          label: `${country.label} Overview`,
+          href: country.routeBase,
+          icon: LayoutDashboard,
+        },
+      ],
     },
-    ...PRODUCT_SECTIONS.map((section) => ({
-      label: section.shortLabel,
-      href: `${country.routeBase}/${section.slug}`,
-      icon: SECTION_ICON_MAP[section.slug],
-      internalOnly: section.internalOnly,
-      disabledReason: country.disabledSections?.[section.slug],
-    })),
   ];
+
+  for (const def of NAV_GROUP_DEFS) {
+    const items: NavItem[] = def.slugs
+      .map<NavItem | null>((slug) => {
+        const section = PRODUCT_SECTIONS.find((s) => s.slug === slug);
+        if (!section) return null;
+        return {
+          label:         section.shortLabel,
+          href:          `${country.routeBase}/${section.slug}`,
+          icon:          SECTION_ICON_MAP[section.slug],
+          internalOnly:  section.internalOnly,
+          disabledReason: country.disabledSections?.[section.slug],
+        } satisfies NavItem;
+      })
+      .filter((item): item is NavItem => item !== null);
+
+    if (items.length > 0) groups.push({ label: def.label, items });
+  }
+
+  return groups;
 }
 
-function PropIntelLogo({
-  className = "h-8 w-auto",
-  uid,
-}: {
-  className?: string;
-  uid: string;
-}) {
-  const gid = `brand-grad-${uid}`;
+// ─── Pulse dot ───────────────────────────────────────────────────────────────
+function Pulse({ color = "bg-emerald-400" }: { color?: string }) {
+  return (
+    <span
+      className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${color}`}
+      style={{ animation: "pdot 2.4s ease-in-out infinite" }}
+    />
+  );
+}
 
+// ─── PropIntel logo SVG ───────────────────────────────────────────────────────
+function PropIntelLogo({ uid }: { uid: string }) {
+  const gid = `pi-g-${uid}`;
   return (
     <svg
-      width="210"
-      height="40"
-      viewBox="0 0 210 40"
+      width="150"
+      height="28"
+      viewBox="0 0 150 28"
       fill="none"
-      className={className}
       aria-label="PropIntel GCC"
     >
       <defs>
-        <linearGradient
-          id={gid}
-          x1="0"
-          y1="0"
-          x2="0"
-          y2="40"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="48%" stopColor="#14b8a6" />
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stopColor="#22d3ee" />
+          <stop offset="48%"  stopColor="#14b8a6" />
           <stop offset="100%" stopColor="#10b981" />
         </linearGradient>
       </defs>
-
-      <g>
-        <rect x="2" y="24" width="5" height="12" rx="1" fill={`url(#${gid})`} />
-        <rect x="10" y="16" width="5" height="20" rx="1" fill={`url(#${gid})`} />
-        <path d="M18 36V6L21 0L24 6V36H18Z" fill={`url(#${gid})`} />
-      </g>
-
+      {/* Chart bar mark */}
+      <rect x="1"  y="18" width="4" height="8"  rx="0.8" fill={`url(#${gid})`} />
+      <rect x="7"  y="12" width="4" height="14" rx="0.8" fill={`url(#${gid})`} />
+      <path d="M13 26V4L15.5 0L18 4V26H13Z" fill={`url(#${gid})`} />
+      {/* Wordmark */}
       <text
-        x="36"
-        y="28"
+        x="26"
+        y="20"
         fontFamily="Inter, -apple-system, sans-serif"
-        fontSize="22"
+        fontSize="16"
         fontWeight="800"
-        letterSpacing="-0.04em"
+        letterSpacing="-0.03em"
       >
-        <tspan fill="#ffffff">PropIntel</tspan>
-        <tspan fill="#14b8a6" fontWeight="500">
-          {" "}
-          GCC
-        </tspan>
+        <tspan fill="#fafafa">PropIntel</tspan>
+        <tspan fill="#14b8a6" fontWeight="500"> GCC</tspan>
       </text>
     </svg>
   );
 }
 
+// ─── Country switcher ─────────────────────────────────────────────────────────
 function CountrySwitcher({
   activeCountry,
   onNav,
@@ -169,53 +219,62 @@ function CountrySwitcher({
   onNav?: () => void;
 }) {
   return (
-    <div className="px-3">
-      <div className="mb-2 flex items-center justify-between px-1">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-          Country
-        </p>
-        <span className="rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-300">
-          GCC
-        </span>
-      </div>
+    <div className="px-4 pt-3.5 pb-3.5 border-b shrink-0" style={{ borderColor: BDR }}>
+      <p
+        className="text-[10px] font-semibold uppercase tracking-widest mb-2 pl-1"
+        style={{ color: "#52525b" }}
+      >
+        Market
+      </p>
 
-      <div className="grid grid-cols-2 gap-2">
+      {/* Toggle pill */}
+      <div
+        className="flex gap-1.5 p-[4px] rounded-xl"
+        style={{ background: "#000000" }}
+      >
         {COUNTRY_LIST.map((country) => {
           const active = activeCountry?.slug === country.slug;
-
           return (
             <Link
               key={country.slug}
               href={country.routeBase}
               onClick={onNav}
               className={[
-                "relative overflow-hidden rounded-xl border px-3 py-2.5 text-center text-xs font-black transition-all duration-200",
+                "flex-1 py-[6px] rounded-[9px] text-[12px] font-semibold transition-all duration-200 text-center",
                 active
-                  ? "border-emerald-400/35 bg-emerald-400/12 text-emerald-100 shadow-[0_10px_30px_rgba(16,185,129,0.12)]"
-                  : "border-white/[0.08] bg-white/[0.035] text-slate-400 hover:border-white/[0.14] hover:bg-white/[0.06] hover:text-slate-100",
+                  ? "text-white shadow-sm"
+                  : "text-zinc-500 hover:text-zinc-200",
               ].join(" ")}
+              style={active ? { background: "#27272a" } : undefined}
             >
-              {active ? (
-                <span className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-emerald-300/70" />
-              ) : null}
               {country.label}
             </Link>
           );
         })}
       </div>
+
+      {/* Live status row */}
+      <div className="flex items-center gap-1.5 mt-2.5 pl-1">
+        <Pulse color={activeCountry ? "bg-emerald-400" : "bg-zinc-600"} />
+        <span className="text-[11px] font-medium" style={{ color: "#a1a1aa" }}>
+          {activeCountry
+            ? `${activeCountry.currency} · Live data`
+            : "GCC · Live data"}
+        </span>
+      </div>
     </div>
   );
 }
 
+// ─── Single nav link ──────────────────────────────────────────────────────────
 function NavLink({ item, onNav }: { item: NavItem; onNav?: () => void }) {
-  const pathname = usePathname();
-
-  const isActive =
-    item.href === "/dashboard"
-      ? pathname === "/dashboard"
-      : pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-  const Icon = item.icon;
+  const pathname   = usePathname();
+  const isActive   = item.href === "/dashboard"
+    ? pathname === "/dashboard"
+    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const isDisabled = !!item.disabledReason;
+  const isAdmin    = !!item.internalOnly;
+  const Icon       = item.icon;
 
   return (
     <Link
@@ -223,107 +282,345 @@ function NavLink({ item, onNav }: { item: NavItem; onNav?: () => void }) {
       onClick={onNav}
       title={item.disabledReason ?? item.label}
       className={[
-        "group relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-200",
+        "relative flex items-center gap-2.5 px-3 py-[9px] rounded-xl transition-all duration-150 group",
         isActive
-          ? "border-white/[0.13] bg-white/[0.105] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_28px_rgba(0,0,0,0.18)]"
-          : item.disabledReason
-            ? "border-amber-400/10 bg-amber-400/[0.025] text-slate-500 hover:border-amber-400/20 hover:bg-amber-400/[0.05] hover:text-amber-100"
-            : "border-transparent bg-transparent text-slate-400 hover:border-white/[0.08] hover:bg-white/[0.05] hover:text-slate-100",
+          ? "text-emerald-400"
+          : isDisabled
+          ? "text-zinc-600 hover:text-amber-300/80"
+          : "text-zinc-400 hover:text-zinc-200",
       ].join(" ")}
+      style={{
+        background: isActive
+          ? "rgba(16,185,129,0.08)"
+          : isDisabled
+          ? "rgba(245,158,11,0.025)"
+          : undefined,
+      }}
     >
-      {isActive ? (
-        <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-emerald-300" />
-      ) : null}
+      {/* Active left accent bar */}
+      {isActive && (
+        <span
+          className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-emerald-400"
+          style={{ width: "2.5px", height: "18px" }}
+        />
+      )}
 
+      {/* Icon bubble */}
       <span
         className={[
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors",
+          "shrink-0 transition-colors",
           isActive
-            ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
-            : item.disabledReason
-              ? "border-amber-400/10 bg-amber-400/[0.04] text-amber-400/70"
-              : "border-white/[0.06] bg-white/[0.035] text-slate-500 group-hover:text-slate-200",
+            ? "text-emerald-400"
+            : isDisabled
+            ? "text-amber-700/60 group-hover:text-amber-500/70"
+            : "text-zinc-600 group-hover:text-zinc-300",
         ].join(" ")}
       >
-        <Icon className="h-3.8 w-3.5" />
+        <Icon className="w-[15px] h-[15px]" />
       </span>
 
-      <span className="flex-1 truncate">{item.label}</span>
+      {/* Label */}
+      <span className="text-[13px] font-medium flex-1 truncate">{item.label}</span>
 
-      {item.internalOnly ? (
-        <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-300">
+      {/* Admin badge */}
+      {isAdmin && !isDisabled && (
+        <span
+          className="rounded-md px-1.5 py-[3px] text-[9px] font-bold uppercase tracking-wide text-amber-400"
+          style={{
+            background: "rgba(245,158,11,0.08)",
+            border: "1px solid rgba(245,158,11,0.18)",
+          }}
+        >
           Admin
         </span>
-      ) : null}
+      )}
 
-      {item.disabledReason ? (
-        <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-300">
+      {/* Limited badge */}
+      {isDisabled && (
+        <span
+          className="rounded-md px-1.5 py-[3px] text-[9px] font-bold uppercase tracking-wide text-amber-500/80"
+          style={{
+            background: "rgba(245,158,11,0.06)",
+            border: "1px solid rgba(245,158,11,0.14)",
+          }}
+        >
           Limited
         </span>
-      ) : null}
+      )}
     </Link>
   );
 }
 
+// ─── Sidebar inner content ────────────────────────────────────────────────────
 function SidebarContent({ onNav }: { onNav?: () => void }) {
-  const pathname = usePathname();
+  const pathname     = usePathname();
   const activeCountry = useMemo(() => getCountryFromPath(pathname), [pathname]);
-  const navItems = useMemo(() => buildNavItems(activeCountry), [activeCountry]);
+  const navGroups    = useMemo(() => buildNavGroups(activeCountry), [activeCountry]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-white/[0.08] px-4 py-4">
-        <Link href="/dashboard" onClick={onNav} aria-label="Go to dashboard">
-          <PropIntelLogo className="h-8 w-auto" uid="sidebar" />
+    <div
+      className="flex h-full flex-col"
+      style={{ fontFamily: "'Plus Jakarta Sans','DM Sans',Inter,sans-serif" }}
+    >
+      {/* ── Logo block ─────────────────────────────────────────────────── */}
+      <div
+        className="relative flex items-center gap-3 px-5 py-[18px] border-b shrink-0"
+        style={{ borderColor: BDR }}
+      >
+        <Link href="/dashboard" onClick={onNav} aria-label="PropIntel GCC home">
+          <PropIntelLogo uid="sidebar" />
         </Link>
 
-        <div className="mt-4 rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.055] p-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-emerald-300" />
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-200">
-              Intelligence OS
-            </span>
-          </div>
-          <p className="mt-2 text-xs leading-5 text-emerald-50/65">
-            UAE + KSA real-data command center.
-          </p>
-        </div>
+        {/* Mobile close button (absolute-positioned) */}
+        {onNav && (
+          <button
+            type="button"
+            className="absolute right-4 top-1/2 -translate-y-1/2 lg:hidden transition-colors"
+            style={{ color: "#52525b" }}
+            onClick={onNav}
+            aria-label="Close navigation"
+          >
+            <X className="w-[15px] h-[15px]" />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 py-4">
-        <CountrySwitcher activeCountry={activeCountry} onNav={onNav} />
+      {/* ── Country switcher ────────────────────────────────────────────── */}
+      <CountrySwitcher activeCountry={activeCountry} onNav={onNav} />
 
-        <div className="mt-5 px-1">
-          <p className="mb-2 px-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-            {activeCountry ? `${activeCountry.label} Intelligence` : "GCC Platform"}
-          </p>
-
-          <ul className="space-y-1">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <NavLink item={item} onNav={onNav} />
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* ── Navigation groups ───────────────────────────────────────────── */}
+      <nav
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-5"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-widest mb-1.5 px-3"
+              style={{ color: "#3f3f46" }}
+            >
+              {group.label}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <NavLink key={item.href} item={item} onNav={onNav} />
+              ))}
+            </div>
+          </div>
+        ))}
       </nav>
 
+      {/* ── Footer: AI engine + user ─────────────────────────────────────── */}
       <div
-        className="border-t border-white/[0.08] px-4 py-3"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        className="px-4 py-4 border-t space-y-3 shrink-0"
+        style={{
+          borderColor: BDR,
+          paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+        }}
       >
-        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] px-3 py-2">
-          <div className="flex items-center gap-2 text-[11px] text-slate-500">
-            <ShieldAlert className="h-3.5 w-3.5 text-slate-500" />
-            <span>Local preview mode</span>
+        {/* AI engine block */}
+        <div
+          className="rounded-xl px-3.5 py-3 border"
+          style={{
+            background:   "#18181b",
+            borderColor:  "rgba(167,139,250,0.14)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <Cpu className="w-3 h-3 text-violet-400 shrink-0" />
+            <span
+              className="text-[9px] font-semibold tracking-[0.16em] text-violet-400"
+              style={{ fontFamily: "'DM Mono',monospace" }}
+            >
+              AI ENGINE
+            </span>
+            <Pulse color="bg-violet-400 ml-auto" />
           </div>
-          <p className="mt-1 text-[10px] text-slate-600">© 2026 PropIntel GCC</p>
+          <p className="text-[12px] leading-snug" style={{ color: "#a1a1aa" }}>
+            Local preview mode
+            <span
+              className="inline-block w-[5px] h-3 rounded-sm animate-pulse ml-1.5 align-middle"
+              style={{ background: "#a78bfa" }}
+            />
+          </p>
+        </div>
+
+        {/* User row */}
+        <div className="flex items-center gap-2.5 pl-1">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+            style={{ background: "linear-gradient(135deg,#10b981,#0e7490)" }}
+          >
+            A
+          </div>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold truncate" style={{ color: "#e4e4e7" }}>
+              Analyst
+            </p>
+            <p
+              className="text-[10px] truncate"
+              style={{ fontFamily: "'DM Mono',monospace", color: "#3f3f46" }}
+            >
+              © 2026 PropIntel GCC
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
+// ─── Top header bar ───────────────────────────────────────────────────────────
+function TopHeader({
+  mobileOpen,
+  onMobileToggle,
+  activeCountry,
+  pageTitle,
+}: {
+  mobileOpen: boolean;
+  onMobileToggle: () => void;
+  activeCountry?: CountryConfig;
+  pageTitle: string;
+}) {
+  return (
+    <header
+      className="shrink-0 h-[54px] flex items-center px-5 sm:px-6 gap-4 border-b backdrop-blur-md z-10"
+      style={{
+        background:  "rgba(9,9,11,0.85)",
+        borderColor: "rgba(255,255,255,0.06)",
+      }}
+    >
+      {/* Mobile hamburger */}
+      <button
+        type="button"
+        onClick={onMobileToggle}
+        className="lg:hidden shrink-0 transition-colors"
+        style={{ color: "#71717a" }}
+        aria-label="Toggle navigation"
+      >
+        {mobileOpen
+          ? <X className="w-[18px] h-[18px]" />
+          : <Menu className="w-[18px] h-[18px]" />
+        }
+      </button>
+
+      {/* Mobile logo */}
+      <div className="lg:hidden shrink-0">
+        <Link href="/dashboard">
+          <PropIntelLogo uid="mobile" />
+        </Link>
+      </div>
+
+      {/* Desktop: title + context chips */}
+      <div className="hidden lg:flex items-center gap-3 min-w-0">
+        <h1
+          className="text-[15px] font-bold tracking-tight truncate"
+          style={{ color: "#fafafa" }}
+        >
+          {pageTitle}
+        </h1>
+
+        {activeCountry && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className="text-[10px] font-semibold uppercase tracking-wide border rounded-[6px] px-2 py-[3px]"
+              style={{
+                color:       "#34d399",
+                background:  "rgba(16,185,129,0.08)",
+                borderColor: "rgba(16,185,129,0.2)",
+              }}
+            >
+              {activeCountry.label}
+            </span>
+
+            <span
+              className="text-[10px] font-medium border rounded-[6px] px-2 py-[3px]"
+              style={{ color: "#d4d4d8", borderColor: BDR }}
+            >
+              {activeCountry.currency}
+            </span>
+
+            <span
+              className="flex items-center gap-1.5 text-[10px] font-medium border rounded-[6px] px-2 py-[3px]"
+              style={{
+                color:       "#22d3ee",
+                background:  "rgba(34,211,238,0.06)",
+                borderColor: "rgba(34,211,238,0.2)",
+              }}
+            >
+              <Pulse color="bg-cyan-400" />
+              LIVE
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1" />
+
+      {/* Right controls */}
+      <div className="flex items-center gap-3">
+        {/* Desktop search */}
+        <div
+          className="hidden md:flex items-center gap-2 border rounded-xl px-3.5 py-[7px] transition-all"
+          style={{
+            background:   "#000000",
+            borderColor:  "rgba(255,255,255,0.09)",
+            boxShadow:    "inset 0 0 0 1px rgba(39,39,42,0.8)",
+          }}
+        >
+          <Search className="w-3.5 h-3.5 shrink-0" style={{ color: "#52525b" }} />
+          <input
+            type="text"
+            placeholder="Search listings…"
+            readOnly
+            className="bg-transparent border-none outline-none text-[13px] w-36 min-w-0 cursor-pointer"
+            style={{
+              color:             "#fafafa",
+              caretColor:        "#10b981",
+            }}
+          />
+          <span
+            className="text-[10px] border rounded px-[5px] py-px ml-2 shrink-0"
+            style={{ color: "#3f3f46", borderColor: BDRS }}
+          >
+            ⌘K
+          </span>
+        </div>
+
+        {/* Mobile search icon */}
+        <button
+          type="button"
+          className="md:hidden transition-colors"
+          style={{ color: "#52525b" }}
+          aria-label="Search"
+        >
+          <Search className="w-[17px] h-[17px]" />
+        </button>
+
+        {/* Notifications */}
+        <button
+          type="button"
+          className="relative transition-colors"
+          style={{ color: "#52525b" }}
+          aria-label="Notifications"
+        >
+          <Bell className="w-[17px] h-[17px]" />
+          <span className="absolute -top-[2px] -right-[2px] w-[6px] h-[6px] bg-emerald-400 rounded-full" />
+        </button>
+
+        {/* Avatar */}
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+          style={{ background: "linear-gradient(135deg,#10b981,#0e7490)" }}
+        >
+          A
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ─── Root layout ──────────────────────────────────────────────────────────────
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
@@ -331,70 +628,117 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const pathname      = usePathname();
+  const activeCountry = useMemo(() => getCountryFromPath(pathname), [pathname]);
+  const pageTitle     = useMemo(
+    () => getPageTitle(pathname, activeCountry),
+    [pathname, activeCountry]
+  );
+
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.10),transparent_30%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.08),transparent_30%),#020617] text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:44px_44px] opacity-30" />
+    <div
+      className="relative flex h-screen overflow-hidden"
+      style={{
+        background:  "#09090b",
+        color:       "#e4e4e7",
+        fontFamily:  "'Plus Jakarta Sans','DM Sans',Inter,sans-serif",
+      }}
+    >
+      {/* ── Global keyframes ──────────────────────────────────────────── */}
+      <style>{`
+        @keyframes pdot { 0%,100%{opacity:.3} 50%{opacity:1} }
+        ::-webkit-scrollbar        { width:3px; height:3px; }
+        ::-webkit-scrollbar-track  { background:transparent; }
+        ::-webkit-scrollbar-thumb  { background:rgba(255,255,255,0.08); border-radius:3px; }
+      `}</style>
 
-      <div className="relative flex h-screen">
-        <aside className="hidden w-[274px] shrink-0 border-r border-white/[0.08] bg-slate-950/55 shadow-[20px_0_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl lg:block">
-          <SidebarContent />
-        </aside>
+      {/* Subtle dot-grid overlay */}
+      <div
+        className="pointer-events-none fixed inset-0 opacity-[0.022]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px)," +
+            "linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+      />
 
-        {mobileOpen ? (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <button
-              type="button"
-              aria-label="Close navigation overlay"
-              className="absolute inset-0 bg-black/70 backdrop-blur-md"
-              onClick={closeMobile}
-            />
+      {/* Ambient corner glows */}
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 0% 0%, rgba(16,185,129,0.07) 0%, transparent 45%)," +
+            "radial-gradient(ellipse at 100% 0%, rgba(34,211,238,0.05) 0%, transparent 45%)",
+        }}
+      />
 
-            <motion.aside
-              initial={{ x: -290, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -290, opacity: 0 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              className="absolute inset-y-0 left-0 w-[284px] border-r border-white/[0.08] bg-slate-950/90 shadow-2xl backdrop-blur-2xl"
-            >
-              <SidebarContent onNav={closeMobile} />
-            </motion.aside>
-          </div>
-        ) : null}
+      {/* ── Mobile backdrop ──────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            key="mob-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-40 lg:hidden backdrop-blur-sm"
+            style={{ background: "rgba(0,0,0,0.72)" }}
+            onClick={closeMobile}
+          />
+        )}
+      </AnimatePresence>
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="flex h-16 items-center border-b border-white/[0.08] bg-slate-950/70 px-4 backdrop-blur-2xl lg:hidden">
-            <button
-              type="button"
-              onClick={() => setMobileOpen((value) => !value)}
-              className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-2 text-slate-300 transition hover:bg-white/[0.08] hover:text-white"
-              aria-label="Toggle navigation"
-            >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+      {/* ── Desktop sidebar ───────────────────────────────────────────── */}
+      <aside
+        className="hidden lg:flex flex-col w-[242px] shrink-0 border-r h-full"
+        style={{ background: "#09090b", borderColor: BDR }}
+      >
+        <SidebarContent />
+      </aside>
 
-            <div className="ml-3">
-              <Link href="/dashboard" onClick={closeMobile}>
-                <PropIntelLogo className="h-7 w-auto" uid="mobile" />
-              </Link>
-            </div>
-          </header>
-
-          <main
-            className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-7 lg:py-6"
-            style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+      {/* ── Mobile sidebar ────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.aside
+            key="mob-sidebar"
+            initial={{ x: -265, opacity: 0 }}
+            animate={{ x: 0,    opacity: 1 }}
+            exit={{ x: -265,    opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed inset-y-0 left-0 z-50 w-[252px] flex flex-col border-r lg:hidden"
+            style={{ background: "#09090b", borderColor: BDR }}
           >
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.28, ease: "easeOut" }}
-              className="mx-auto w-full max-w-[1660px]"
-            >
-              {children}
-            </motion.div>
-          </main>
-        </div>
+            <SidebarContent onNav={closeMobile} />
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* ── Main content column ───────────────────────────────────────── */}
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+        <TopHeader
+          mobileOpen={mobileOpen}
+          onMobileToggle={() => setMobileOpen((v) => !v)}
+          activeCountry={activeCountry}
+          pageTitle={pageTitle}
+        />
+
+        <main
+          className="flex-1 overflow-y-auto overflow-x-hidden"
+          style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+        >
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="mx-auto w-full max-w-[1660px] px-4 py-5 sm:px-6 lg:px-7 lg:py-6"
+          >
+            {children}
+          </motion.div>
+        </main>
       </div>
     </div>
   );
