@@ -15,7 +15,7 @@ import { formatNumber, formatPercent } from "@/lib/recon/formatters";
 import type { CountryConfig } from "@/lib/countries/countryConfig";
 import type { Module5DataResult, Module5Record } from "@/lib/data/module5";
 
-// ─── Design tokens (graphite-first, amber/rose accents only) ──────────────────
+// ─── Design tokens ──────────────────────────────────────────────────────────
 const T = {
   cardBg:  "#0c0c0e",
   wellBg:  "#18181b",
@@ -23,8 +23,8 @@ const T = {
   borderFt:"rgba(255,255,255,0.04)",
   t1: "#f4f4f5",
   t2: "#a1a1aa",
-  t3: "#52525b",
-  t4: "#3f3f46",
+  t3: "#71717a",
+  t4: "#52525b",
   em:    "#10b981",
   emHi:  "#34d399",
   emBg:  "rgba(16,185,129,0.08)",
@@ -37,7 +37,7 @@ const T = {
   rdBdr: "rgba(244,63,94,0.12)",
 } as const;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
 type InventoryPressurePageProps = {
   country: CountryConfig;
   data: Module5DataResult;
@@ -68,7 +68,7 @@ type PressureCard = {
 
 type MetricTone = "emerald" | "amber" | "rose" | "neutral";
 
-// ─── Data helpers (preserved from original) ───────────────────────────────────
+// ─── Data helpers ────────────────────────────────────────────────────────────
 function asString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -164,7 +164,7 @@ function normalizePressureCard(
   };
 }
 
-// ─── Mini visual primitives ───────────────────────────────────────────────────
+// ─── Mini visual primitives ─────────────────────────────────────────────────
 function MiniBarRail({ count, tone }: { count?: number; tone: MetricTone }) {
   const segments = 12;
   const filled = Math.min(segments, Math.ceil((count ?? 0) / 1000));
@@ -234,7 +234,7 @@ function AbstractGrid({ className }: { className?: string }) {
   );
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
+// ─── Empty state ────────────────────────────────────────────────────────────
 function EmptyPressureState({ country, message }: { country: CountryConfig; message: string }) {
   const exportCmd =
     country.slug === "uae"
@@ -272,8 +272,7 @@ function EmptyPressureState({ country, message }: { country: CountryConfig; mess
   );
 }
 
-// ─── KPI metric card ──────────────────────────────────────────────────────────
-// Graphite surface with accent top-border only; numbers stay white.
+// ─── KPI metric card ────────────────────────────────────────────────────────
 function MetricCard({
   label,
   value,
@@ -325,8 +324,7 @@ function MetricCard({
   );
 }
 
-// ─── Featured Pressure Pulse ──────────────────────────────────────────────────
-// Graphite background with subtle amber radial accent; bars softened.
+// ─── Featured Pressure Pulse ────────────────────────────────────────────────
 function PressurePulse({
   totalPressureMarkets,
   priceDropCount,
@@ -338,8 +336,8 @@ function PressurePulse({
 }) {
   const insights = [
     `${formatNumber(totalPressureMarkets)} markets with visible inventory pressure signals`,
-    `${formatNumber(priceDropCount)} records with price‑drop activity`,
-    `${formatNumber(staleCount)} records with stale or aged supply indicators`,
+    `${formatNumber(priceDropCount)} records with directional price‑movement activity`,
+    `${formatNumber(staleCount)} records with aged inventory or slow‑moving supply indicators`,
   ];
 
   return (
@@ -384,7 +382,6 @@ function PressurePulse({
               </div>
             ))}
           </div>
-          {/* Abstract visual — soft opacity */}
           <div className="hidden sm:flex items-end gap-[3px] h-[80px] opacity-50" aria-hidden="true">
             {Array.from({ length: 14 }).map((_, i) => {
               const h =
@@ -416,8 +413,7 @@ function PressurePulse({
   );
 }
 
-// ─── Pressure Lane Card ───────────────────────────────────────────────────────
-// Graphite surfaces with subtle left accent bar instead of full colored borders.
+// ─── Pressure Lane Card ─────────────────────────────────────────────────────
 function PressureLaneCard({
   icon: Icon,
   title,
@@ -518,8 +514,7 @@ function PressureLaneCard({
   );
 }
 
-// ─── Pressure Watchlist Card ──────────────────────────────────────────────────
-// Kept nearly as-is; strongest section with compact row design.
+// ─── Pressure Watchlist Card ────────────────────────────────────────────────
 function PressureWatchCard({ card }: { card: PressureCard }) {
   const pressureLevel =
     card.pressureLabel?.toLowerCase() ?? "";
@@ -601,7 +596,7 @@ function PressureWatchCard({ card }: { card: PressureCard }) {
   );
 }
 
-// ─── Data confidence footer ───────────────────────────────────────────────────
+// ─── Data confidence footer ─────────────────────────────────────────────────
 function DataConfidenceFooter({
   exportedAt,
   sourceCount,
@@ -643,7 +638,7 @@ function DataConfidenceFooter({
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Page ──────────────────────────────────────────────────────────────
 export default function InventoryPressurePage({
   country,
   data,
@@ -671,7 +666,7 @@ export default function InventoryPressurePage({
   );
   const visibleCards = cards.slice(0, 6);
 
-  // ── Aggregate metrics ──────────────────────────────────────────────────────
+  // ── Aggregate metrics ────────────────────────────────────────────────────
   const totalPressureMarkets = payload.total_rows_available;
   const priceDropCount = cards.filter(
     (c) => c.priceDropRate !== null && c.priceDropRate > 0
@@ -695,7 +690,7 @@ export default function InventoryPressurePage({
 
   return (
     <div className="space-y-6">
-      {/* ── Compact hero ───────────────────────────────────────────────── */}
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div
@@ -712,7 +707,7 @@ export default function InventoryPressurePage({
             Inventory Pressure
           </h1>
           <p className="mt-2 max-w-2xl text-[14px] leading-relaxed" style={{ color: T.t2 }}>
-            Track where public listing supply, stale activity, and price movement are building pressure.
+            Track where public listing supply, aged activity, and price movement are building pressure.
           </p>
         </div>
 
@@ -744,29 +739,29 @@ export default function InventoryPressurePage({
         <MetricCard
           label="Pressure Markets"
           value={metricPressureMarkets}
-          description={`Active ${locationTerm} with visible pressure signals.`}
+          description={`Active ${locationTerm} with visible inventory pressure signals.`}
           tone="amber"
           visual="bars"
         />
         <MetricCard
           label="Price Movement"
           value={metricPriceMovement}
-          description="Records with recent price‑drop activity."
+          description="Records with directional price‑movement activity."
           tone="rose"
           visual="dots"
         />
         <MetricCard
-          label="Stale Supply"
+          label="Aged Supply"
           value={metricStaleSupply}
-          description="Records with aged or slow‑moving inventory."
+          description="Records with aged or slow‑moving inventory signals."
           tone="amber"
           visual="signal"
         />
         <MetricCard
           label="Watchlist Items"
           value={metricWatchlist}
-          description="Markets with high/elevated pressure designation."
-          tone="rose"
+          description="Markets with high or elevated pressure designation."
+          tone={highPressureCount === 0 ? "neutral" : "rose"}
           visual="bars"
         />
       </div>
@@ -778,12 +773,12 @@ export default function InventoryPressurePage({
         staleCount={staleCount}
       />
 
-      {/* ── Pressure Lanes ───────────────────────────────────────────────── */}
+      {/* ── Pressure Lanes ──────────────────────────────────────────────── */}
       <div className="grid gap-5 md:grid-cols-3">
         <PressureLaneCard
           icon={Building2}
           title="Inventory Build‑up"
-          description={`Active listing volume and agency concentration in visible pressure ${locationTerm}.`}
+          description={`Active public listing volume and agency concentration in visible pressure ${locationTerm}.`}
           statLabel="Pressure markets"
           statValue={metricPressureMarkets}
           ctaHref={`${country.routeBase}/market-intelligence`}
@@ -802,9 +797,9 @@ export default function InventoryPressurePage({
         />
         <PressureLaneCard
           icon={Activity}
-          title="Stale / Refresh Pressure"
+          title="Aged / Refresh Pressure"
           description="Markets with elevated refresh behaviour or aged supply signals."
-          statLabel="Stale indicators"
+          statLabel="Aged indicators"
           statValue={metricStaleSupply}
           ctaHref={`${country.routeBase}/listing-age`}
           ctaText="View listing age"
@@ -812,7 +807,7 @@ export default function InventoryPressurePage({
         />
       </div>
 
-      {/* ── Pressure Watchlist ────────────────────────────────────────────── */}
+      {/* ── Pressure Watchlist ──────────────────────────────────────────── */}
       {visibleCards.length > 0 && (
         <div
           className="rounded-2xl border p-6"

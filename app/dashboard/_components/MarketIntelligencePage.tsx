@@ -15,17 +15,17 @@ import { formatNumber } from "@/lib/recon/formatters";
 import type { CountryConfig } from "@/lib/countries/countryConfig";
 import type { Module5DataResult, Module5ListPayload } from "@/lib/data/module5";
 
-// ─── Design tokens (aligned with product direction) ───────────────────────────
+// ─── Design tokens ───────────────────────────────────────────────────────────
 const T = {
   pageBg:  "#09090b",
   cardBg:  "#0c0c0e",
   wellBg:  "#18181b",
   border:  "rgba(255,255,255,0.07)",
   borderFt:"rgba(255,255,255,0.04)",
-  t1: "#f4f4f5",   // primary text
-  t2: "#a1a1aa",   // secondary
-  t3: "#52525b",   // muted
-  t4: "#3f3f46",   // dim
+  t1: "#f4f4f5",
+  t2: "#a1a1aa",
+  t3: "#71717a",
+  t4: "#52525b",
   em:    "#10b981",
   emHi:  "#34d399",
   emBg:  "rgba(16,185,129,0.08)",
@@ -35,7 +35,7 @@ const T = {
   amBdr: "rgba(245,158,11,0.18)",
 } as const;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 type MarketIntelligencePageProps = {
   country: CountryConfig;
   data: Module5DataResult;
@@ -43,7 +43,7 @@ type MarketIntelligencePageProps = {
 
 type MetricTone = "emerald" | "amber" | "neutral";
 
-// ─── Data helpers (unchanged from original) ───────────────────────────────────
+// ─── Data helpers (unchanged) ────────────────────────────────────────────────
 function asString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -67,11 +67,10 @@ function getPayloadRows(payload: Module5ListPayload | null): number {
   return payload?.total_rows_available ?? 0;
 }
 
-// ─── Mini visual components (pure CSS, no external assets) ────────────────────
-/** A subtle bar rail for “volume” feel */
+// ─── Mini visual components ──────────────────────────────────────────────────
 function MiniBarRail({ count, tone }: { count?: number; tone: MetricTone }) {
   const segments = 12;
-  const filled = Math.min(segments, Math.ceil((count ?? 0) / 1000)); // abstract mapping
+  const filled = Math.min(segments, Math.ceil((count ?? 0) / 1000));
   const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : T.t3;
   const bg   = "rgba(255,255,255,0.08)";
   return (
@@ -91,7 +90,6 @@ function MiniBarRail({ count, tone }: { count?: number; tone: MetricTone }) {
   );
 }
 
-/** A row of dots representing activity density */
 function MiniDotRow({ count, tone }: { count?: number; tone: MetricTone }) {
   const dots = 10;
   const active = Math.min(dots, Math.ceil((count ?? 0) / 500));
@@ -112,7 +110,6 @@ function MiniDotRow({ count, tone }: { count?: number; tone: MetricTone }) {
   );
 }
 
-/** A minimal sparkline-like signal wave */
 function MiniSignalWave({ tone }: { tone: MetricTone }) {
   const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : T.t3;
   return (
@@ -129,7 +126,6 @@ function MiniSignalWave({ tone }: { tone: MetricTone }) {
   );
 }
 
-/** Tiny abstract grid for Market Pulse background (pure CSS) */
 function AbstractGrid({ className }: { className?: string }) {
   return (
     <div
@@ -150,7 +146,7 @@ function AbstractGrid({ className }: { className?: string }) {
   );
 }
 
-// ─── Empty state (redesigned) ─────────────────────────────────────────────────
+// ─── Empty state ─────────────────────────────────────────────────────────────
 function EmptyMarketState({
   country,
   message,
@@ -205,13 +201,13 @@ function EmptyMarketState({
   );
 }
 
-// ─── KPI Metric Card (rich mini visual) ───────────────────────────────────────
+// ─── KPI Metric Card ──────────────────────────────────────────────────────────
 function MetricCard({
   label,
   value,
   description,
   tone = "neutral",
-  visual,  // visual accent: "bars"|"dots"|"signal"
+  visual,
 }: {
   label: string;
   value: string;
@@ -219,30 +215,26 @@ function MetricCard({
   tone?: MetricTone;
   visual?: "bars" | "dots" | "signal";
 }) {
-  const bg  = tone === "emerald" ? T.emBg : tone === "amber" ? T.amBg : "rgba(255,255,255,0.03)";
-  const bdr = tone === "emerald" ? T.emBdr : tone === "amber" ? T.amBdr : T.border;
-
-  // Generate a numeric value for visual scaling
+  const accentBg  = tone === "emerald" ? T.emBg : tone === "amber" ? T.amBg : "rgba(255,255,255,0.03)";
+  const accentBdr = tone === "emerald" ? T.emBdr : tone === "amber" ? T.amBdr : T.border;
   const numVal = parseInt(value.replace(/,/g, ""), 10) || 0;
 
   return (
     <div
       className="relative rounded-2xl border p-5 transition-shadow hover:shadow-lg hover:shadow-black/20"
       style={{
-        background:  bg,
-        borderColor: bdr,
+        background:  accentBg,
+        borderColor: accentBdr,
         boxShadow:   "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)",
       }}
     >
-      {/* Upper label */}
       <p
-        className="text-[9px] font-semibold uppercase tracking-[0.14em]"
+        className="text-[10px] font-semibold uppercase tracking-[0.12em]"
         style={{ color: T.t4 }}
       >
         {label}
       </p>
 
-      {/* Big number */}
       <p
         className="mt-2 font-bold tabular-nums leading-none"
         style={{
@@ -254,14 +246,12 @@ function MetricCard({
         {value}
       </p>
 
-      {/* Mini visual accent */}
       <div className="mt-1 mb-2">
         {visual === "bars" && <MiniBarRail count={numVal} tone={tone} />}
         {visual === "dots" && <MiniDotRow count={numVal} tone={tone} />}
         {visual === "signal" && <MiniSignalWave tone={tone} />}
       </div>
 
-      {/* Description */}
       <p className="text-[12px] leading-relaxed" style={{ color: T.t3 }}>
         {description}
       </p>
@@ -274,17 +264,28 @@ function MarketPulse({
   totalActiveMarkets,
   highPressureCount,
   activityEvents,
+  activePayloadExists,
 }: {
   totalActiveMarkets: number;
   highPressureCount: number;
   activityEvents: number;
+  activePayloadExists: boolean;
 }) {
-  // Create insight statements from real counts
-  const insights = [
-    `${formatNumber(totalActiveMarkets)} locations with visible public listing signals`,
-    `${formatNumber(highPressureCount)} markets showing inventory pressure indicators`,
-    `${formatNumber(activityEvents)} recent activity events captured in this export`,
-  ];
+  const insights: string[] = [];
+  if (activePayloadExists) {
+    insights.push(`${formatNumber(totalActiveMarkets)} locations with visible public listing signals ready for review`);
+  }
+  if (highPressureCount > 0) {
+    insights.push(`${formatNumber(highPressureCount)} markets showing directional inventory pressure indicators`);
+  }
+  if (activityEvents > 0) {
+    insights.push(`${formatNumber(activityEvents)} recent activity events captured in this export`);
+  }
+
+  // If nothing to show, fallback
+  if (insights.length === 0) {
+    insights.push("Market activity data loaded. Use the lanes below to explore.");
+  }
 
   return (
     <div
@@ -298,7 +299,6 @@ function MarketPulse({
       <AbstractGrid className="opacity-40" />
 
       <div className="relative p-6 sm:p-7">
-        {/* Header */}
         <div className="flex items-start gap-4">
           <div
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
@@ -311,12 +311,11 @@ function MarketPulse({
               Market Pulse
             </h2>
             <p className="mt-1 text-[13px]" style={{ color: T.t3 }}>
-              Where public listing activity, pressure, and agency visibility are moving
+              Directional intelligence from public listing activity, pressure, and agency visibility.
             </p>
           </div>
         </div>
 
-        {/* Insight row + mini visual */}
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <div className="space-y-3">
             {insights.map((insight, i) => (
@@ -332,14 +331,12 @@ function MarketPulse({
             ))}
           </div>
 
-          {/* Abstract mini visual: bar grid using real counts (abstract mapping) */}
           <div className="hidden sm:block relative h-full min-h-[100px]">
             <div
               className="absolute inset-0 flex items-end gap-[3px] opacity-70"
               aria-hidden="true"
             >
               {Array.from({ length: 16 }).map((_, i) => {
-                // Map indices to abstract heights based on counts
                 const h =
                   (i % 3 === 0
                     ? 0.5 + (activityEvents % 10) / 30
@@ -370,7 +367,7 @@ function MarketPulse({
   );
 }
 
-// ─── Intelligence Lane Card (enhanced product module feel) ─────────────────────
+// ─── Intelligence Lane Card ──────────────────────────────────────────────────
 function IntelligenceLane({
   icon: Icon,
   title,
@@ -405,7 +402,6 @@ function IntelligenceLane({
       }}
     >
       <div className="flex-1 p-6">
-        {/* Icon + title */}
         <div className="flex items-start gap-4 mb-5">
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
@@ -423,7 +419,6 @@ function IntelligenceLane({
           </div>
         </div>
 
-        {/* Stat chip */}
         <div
           className="flex items-center justify-between rounded-xl border px-4 py-3 mb-5"
           style={{ background: T.wellBg, borderColor: T.border }}
@@ -439,7 +434,6 @@ function IntelligenceLane({
           </span>
         </div>
 
-        {/* Mini preview strip (abstract bars) */}
         <div className="flex items-end gap-[2px] h-6 opacity-40" aria-hidden="true">
           {Array.from({ length: 10 }).map((_, i) => (
             <div
@@ -454,7 +448,6 @@ function IntelligenceLane({
         </div>
       </div>
 
-      {/* CTA footer */}
       <div
         className="border-t px-6 py-3.5"
         style={{ borderColor: T.borderFt }}
@@ -472,7 +465,7 @@ function IntelligenceLane({
   );
 }
 
-// ─── Data confidence footer (elegant secondary) ────────────────────────────────
+// ─── Data confidence footer ──────────────────────────────────────────────────
 function DataConfidenceFooter({
   exportedAt,
   sourceCount,
@@ -534,7 +527,7 @@ export default function MarketIntelligencePage({
 
   const isUae = country.slug === "uae";
 
-  // Payload selection (UAE vs KSA)
+  // Payloads
   const activityPayload = data.activityFeed;
   const pressurePayload = isUae ? data.inventoryPressure : data.inventoryPressureLarge;
   const agencyPayload   = isUae ? data.agencyProfiles : data.agencyProfilesMajor;
@@ -566,12 +559,12 @@ export default function MarketIntelligencePage({
 
   const highPressureCount  = highPressureMetric ?? pressureRows;
   const activityEventCount = activityMetric ?? activityRows;
+  const hasActivePayload = !!activityPayload;
 
   // Manifest metadata
   const exportTime  = data.manifest.exported_at;
   const sourceCount = Object.keys(data.manifest.exports).length;
 
-  // Country‑aware labels
   const locationLabel = isUae ? "Community Markets" : "City / District Markets";
   const locationDesc  = isUae
     ? "Communities with visible public listing signals ready for review."
@@ -579,7 +572,7 @@ export default function MarketIntelligencePage({
 
   return (
     <div className="space-y-6">
-      {/* ── Compact hero ───────────────────────────────────────────────── */}
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div
@@ -664,14 +657,15 @@ export default function MarketIntelligencePage({
         />
       </div>
 
-      {/* ── Market Pulse featured block ──────────────────────────────────── */}
+      {/* ── Market Pulse ────────────────────────────────────────────────── */}
       <MarketPulse
         totalActiveMarkets={activeMarkets}
         highPressureCount={highPressureCount}
         activityEvents={activityEventCount}
+        activePayloadExists={hasActivePayload}
       />
 
-      {/* ── Intelligence lane cards ──────────────────────────────────────── */}
+      {/* ── Intelligence lane cards ─────────────────────────────────────── */}
       <div className="grid gap-5 md:grid-cols-3">
         <IntelligenceLane
           icon={Map}
