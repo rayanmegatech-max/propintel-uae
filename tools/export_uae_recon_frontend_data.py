@@ -16,6 +16,12 @@ EXPORT_DIR = PROJECT_ROOT / "exports" / "frontend" / "uae"
 
 DEFAULT_LIMIT = 500
 
+# Per-portal minimum row quota used by the portal-balanced sampler.
+# Ensures bayut, dubizzle, and pf each appear in the export even when
+# lower-ranked rows from one portal would be displaced by a plain LIMIT.
+# The remaining budget is always filled by global top-ranked rows.
+_MIN_ROWS_PER_PORTAL = 100
+
 RECON_EXPORTS = {
     "hot_leads": {
         "table": "recon_dashboard_hot_leads",
@@ -93,34 +99,26 @@ def _is_bayut_row(data: dict[str, Any]) -> bool:
 
 
 def _extract_bayut_id_from_url(url: str) -> str | None:
-    """Return the numeric ID embedded in a Bayut URL, or None."""
     match = _BAYUT_ID_RE.search(url)
     return match.group(1) if match else None
 
 
 def _canonicalize_bayut_url(data: dict[str, Any]) -> str | None:
-    """
-    Return a canonical Bayut URL for this row, or None if no ID can be found.
-    Non-Bayut rows must never call this function.
-    """
-    # 1. Try all URL-bearing fields.
+    """Return canonical Bayut URL for this row, or None if no ID found."""
     for field in _BAYUT_URL_FIELDS:
         url = data.get(field)
         if isinstance(url, str) and url.strip():
             bid = _extract_bayut_id_from_url(url.strip())
             if bid:
                 return f"https://www.bayut.com/property/details-{bid}.html"
-
-    # 2. Fallback: explicit numeric ID columns.
     for field in _BAYUT_ID_FIELDS:
         val = str(data.get(field) or "").strip()
         if val.isdigit() and val:
             return f"https://www.bayut.com/property/details-{val}.html"
-
     return None
 
 
-# ─── Row normalization ────────────────────────────────────────────────────────
+# ─── Core helpers ─────────────────────────────────────────────────────────────
 
 def quote_identifier(identifier: str) -> str:
     safe = identifier.replace('"', '""')
@@ -130,7 +128,6 @@ def quote_identifier(identifier: str) -> str:
 def connect_db(db_path: Path) -> sqlite3.Connection:
     if not db_path.exists():
         raise FileNotFoundError(f"Database not found: {db_path}")
-
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     return conn
@@ -138,15 +135,9 @@ def connect_db(db_path: Path) -> sqlite3.Connection:
 
 def table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     row = conn.execute(
-        """
-        SELECT name
-        FROM sqlite_master
-        WHERE type = 'table'
-          AND name = ?
-        """,
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
         (table_name,),
     ).fetchone()
-
     return row is not None
 
 
@@ -154,12 +145,13 @@ def get_row_count(conn: sqlite3.Connection, table_name: str) -> int:
     row = conn.execute(
         f"SELECT COUNT(*) AS row_count FROM {quote_identifier(table_name)}"
     ).fetchone()
-
     return int(row["row_count"])
 
 
 def get_table_columns(conn: sqlite3.Connection, table_name: str) -> list[str]:
-    rows = conn.execute(f"PRAGMA table_info({quote_identifier(table_name)})").fetchall()
+    rows = conn.execute(
+        f"PRAGMA table_info({quote_identifier(table_name)})"
+    ).fetchall()
     return [row["name"] for row in rows]
 
 
@@ -172,40 +164,31 @@ def choose_sort_columns(columns: list[str]) -> str:
             dashboard_rank ASC,
             recon_score DESC
         """
-
     if "recon_rank" in column_set and "recon_score" in column_set:
         return """
             CASE WHEN recon_rank IS NULL THEN 1 ELSE 0 END ASC,
             recon_rank ASC,
             recon_score DESC
         """
-
     if "priority_score" in column_set:
         return "priority_score DESC"
-
     if "recon_score" in column_set:
         return "recon_score DESC"
-
     if "built_at" in column_set:
         return "built_at DESC"
-
     if "listing_scraped_at" in column_set:
         return "listing_scraped_at DESC"
-
     return "rowid ASC"
 
 
 def safe_json_loads(value: Any) -> Any:
     if value is None:
         return []
-
     if not isinstance(value, str):
         return value
-
     stripped = value.strip()
     if not stripped:
         return []
-
     try:
         return json.loads(stripped)
     except json.JSONDecodeError:
@@ -213,7 +196,10 @@ def safe_json_loads(value: Any) -> Any:
 
 
 def normalize_row(row: sqlite3.Row) -> dict[str, Any]:
-    data = {key: row[key] for key in row.keys()}
+    # Exclude the 'rowid' pseudo-column when it is explicitly selected
+    # (as in SELECT rowid, * used by the portal-balanced fetch).
+    # For plain SELECT * queries rowid is never present, so this guard is a no-op.
+    data = {key: row[key] for key in row.keys() if key != "rowid"}
 
     if "badges_json" in data:
         data["badges"] = safe_json_loads(data.get("badges_json"))
@@ -227,42 +213,120 @@ def normalize_row(row: sqlite3.Row) -> dict[str, Any]:
     return data
 
 
+# ─── Portal-balanced fetch ────────────────────────────────────────────────────
+
 def fetch_rows(
     conn: sqlite3.Connection,
     table_name: str,
     limit: int,
+    min_per_portal: int = _MIN_ROWS_PER_PORTAL,
 ) -> tuple[list[dict[str, Any]], int, list[str], str]:
+    """
+    Dashboard-safe representative sampling.
+
+    Strategy:
+      Phase 1 – Per-portal quota: fetch up to `min_per_portal` top-ranked rows
+                 for each portal value present in the table.  This guarantees
+                 bayut, dubizzle, and pf each appear in the export even when
+                 their rows rank lower in the global ordering.
+
+      Phase 2 – Global fill: fill the remaining budget with globally top-ranked
+                 rows not already included from Phase 1.
+
+    Deduplication is performed by SQLite rowid so no record appears twice.
+    The `total_rows_available` count always reflects the true database total
+    and is not affected by this sampling strategy.
+    """
     columns = get_table_columns(conn, table_name)
+    column_set = set(columns)
     row_count = get_row_count(conn, table_name)
     sort_clause = choose_sort_columns(columns)
 
-    rows = conn.execute(
-        f"""
-        SELECT *
-        FROM {quote_identifier(table_name)}
-        ORDER BY {sort_clause}
-        LIMIT ?
-        """,
-        (limit,),
-    ).fetchall()
+    # Detect portal column for balanced sampling.
+    portal_col: str | None = None
+    if "portal" in column_set:
+        portal_col = "portal"
+    elif "source_portal" in column_set:
+        portal_col = "source_portal"
 
-    return [normalize_row(row) for row in rows], row_count, columns, sort_clause
+    # No portal column → plain global ranked fetch (original behavior).
+    if portal_col is None:
+        rows = conn.execute(
+            f"SELECT * FROM {quote_identifier(table_name)} ORDER BY {sort_clause} LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [normalize_row(r) for r in rows], row_count, columns, sort_clause
 
+    # Discover non-null portal values present in this table.
+    portals: list[str] = [
+        str(r[0])
+        for r in conn.execute(
+            f"SELECT DISTINCT {quote_identifier(portal_col)} "
+            f"FROM {quote_identifier(table_name)} "
+            f"WHERE {quote_identifier(portal_col)} IS NOT NULL "
+            f"ORDER BY {quote_identifier(portal_col)}"
+        ).fetchall()
+        if r[0] is not None
+    ]
+
+    seen_rowids: set[int] = set()
+    result: list[dict[str, Any]] = []
+
+    # ── Phase 1: per-portal quota ─────────────────────────────────────────────
+    for portal_val in portals:
+        if len(result) >= limit:
+            break
+        quota = min(min_per_portal, limit - len(result))
+        rows = conn.execute(
+            f"""
+            SELECT rowid, *
+            FROM {quote_identifier(table_name)}
+            WHERE {quote_identifier(portal_col)} = ?
+            ORDER BY {sort_clause}
+            LIMIT ?
+            """,
+            (portal_val, quota),
+        ).fetchall()
+        for row in rows:
+            rid = int(row["rowid"])
+            if rid not in seen_rowids:
+                seen_rowids.add(rid)
+                result.append(normalize_row(row))
+
+    # ── Phase 2: fill remaining budget with global top-ranked rows ────────────
+    remaining = limit - len(result)
+    if remaining > 0:
+        rows = conn.execute(
+            f"""
+            SELECT rowid, *
+            FROM {quote_identifier(table_name)}
+            ORDER BY {sort_clause}
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        for row in rows:
+            if len(result) >= limit:
+                break
+            rid = int(row["rowid"])
+            if rid not in seen_rowids:
+                seen_rowids.add(rid)
+                result.append(normalize_row(row))
+
+    return result, row_count, columns, sort_clause
+
+
+# ─── Summary ──────────────────────────────────────────────────────────────────
 
 def fetch_summary(conn: sqlite3.Connection) -> tuple[list[dict[str, Any]], int]:
     if not table_exists(conn, SUMMARY_TABLE):
         return [], 0
-
     rows = conn.execute(
-        f"""
-        SELECT *
-        FROM {quote_identifier(SUMMARY_TABLE)}
-        """
+        f"SELECT * FROM {quote_identifier(SUMMARY_TABLE)}"
     ).fetchall()
-
-    return [{key: row[key] for key in row.keys()} for row in rows], get_row_count(
-        conn,
-        SUMMARY_TABLE,
+    return (
+        [{key: row[key] for key in row.keys()} for row in rows],
+        get_row_count(conn, SUMMARY_TABLE),
     )
 
 
@@ -272,6 +336,8 @@ def write_json(path: Path, payload: Any) -> None:
         encoding="utf-8",
     )
 
+
+# ─── Main export ──────────────────────────────────────────────────────────────
 
 def export_uae_recon(limit: int = DEFAULT_LIMIT) -> None:
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -292,7 +358,14 @@ def export_uae_recon(limit: int = DEFAULT_LIMIT) -> None:
             "raw_internal_tables_exposed": False,
             "badges_json_parsed_to_badges": True,
             "bayut_urls_canonicalized": True,
-            "note": "UAE Recon dashboard tabs are exported from product-safe recon_dashboard_* tables. Bayut URLs are canonicalized to /property/details-{id}.html.",
+            "portal_balanced_sampling": True,
+            "min_rows_per_portal": _MIN_ROWS_PER_PORTAL,
+            "note": (
+                "UAE Recon dashboard tabs are exported from product-safe recon_dashboard_* "
+                "tables.  Bayut URLs are canonicalized to /property/details-{id}.html.  "
+                "Rows are portal-balanced so bayut, dubizzle, and pf all appear in the "
+                "export even when PF rows rank lower in the global ordering."
+            ),
         },
         "do_not_expose_directly": [
             "listing_price_events",
@@ -325,6 +398,12 @@ def export_uae_recon(limit: int = DEFAULT_LIMIT) -> None:
                 limit=limit,
             )
 
+            # Count portal distribution for manifest transparency
+            portal_counts: dict[str, int] = {}
+            for row in rows:
+                pv = str(row.get("portal") or row.get("source_portal") or "unknown")
+                portal_counts[pv] = portal_counts.get(pv, 0) + 1
+
             payload = {
                 "country": "uae",
                 "currency": "AED",
@@ -344,6 +423,7 @@ def export_uae_recon(limit: int = DEFAULT_LIMIT) -> None:
                 "exists": True,
                 "total_rows_available": total_rows,
                 "exported_rows": len(rows),
+                "portal_counts": portal_counts,
                 "output": str(output_path),
                 "columns": columns,
                 "sort": sort_clause.strip(),
@@ -376,22 +456,27 @@ def export_uae_recon(limit: int = DEFAULT_LIMIT) -> None:
     write_json(MANIFEST_OUTPUT, manifest)
 
     print("UAE Recon frontend export complete.")
-    print(f"Database: {UAE_DB_PATH}")
+    print(f"Database:         {UAE_DB_PATH}")
+    print(f"Export directory: {EXPORT_DIR}")
     print("")
 
     for export_key, export_result in manifest["exports"].items():
         status = "OK" if export_result["exists"] else "MISSING"
+        portal_str = ""
+        if export_result.get("portal_counts"):
+            parts = ", ".join(
+                f"{p}={n}" for p, n in sorted(export_result["portal_counts"].items())
+            )
+            portal_str = f" | portals: {parts}"
         print(
             f"{export_key}: {status} | "
-            f"table={export_result['table']} | "
             f"total={export_result['total_rows_available']:,} | "
             f"exported={export_result['exported_rows']:,}"
+            f"{portal_str}"
         )
 
     print("")
-    print(f"Summary rows: {summary_total_rows:,}")
-    print("")
-    print(f"Export directory: {EXPORT_DIR}")
+    print(f"Summary rows:     {summary_total_rows:,}")
     print(f"Manifest JSON:    {MANIFEST_OUTPUT}")
 
 

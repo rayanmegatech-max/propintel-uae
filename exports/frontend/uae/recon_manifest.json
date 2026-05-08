@@ -3,7 +3,7 @@
   "country": "uae",
   "currency": "AED",
   "database_path": "C:\\Users\\User\\Documents\\malesh\\intelligence.db",
-  "exported_at": "2026-05-08T19:06:30",
+  "exported_at": "2026-05-08T19:33:35",
   "limit": 500,
   "exports": {
     "hot_leads": {
@@ -11,6 +11,11 @@
       "exists": true,
       "total_rows_available": 43368,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 190,
+        "dubizzle": 210,
+        "pf": 100
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_hot_leads.json",
       "columns": [
         "dashboard_rank",
@@ -109,6 +114,11 @@
       "exists": true,
       "total_rows_available": 18822,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 190,
+        "dubizzle": 210,
+        "pf": 100
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_price_drops.json",
       "columns": [
         "dashboard_rank",
@@ -207,6 +217,11 @@
       "exists": true,
       "total_rows_available": 36336,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 122,
+        "dubizzle": 278,
+        "pf": 100
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_owner_direct.json",
       "columns": [
         "dashboard_rank",
@@ -305,6 +320,11 @@
       "exists": true,
       "total_rows_available": 12794,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 244,
+        "dubizzle": 156,
+        "pf": 100
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_stale_price_drops.json",
       "columns": [
         "dashboard_rank",
@@ -403,6 +423,10 @@
       "exists": true,
       "total_rows_available": 150000,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 274,
+        "dubizzle": 226
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_refresh_inflated.json",
       "columns": [
         "dashboard_rank",
@@ -501,6 +525,11 @@
       "exists": true,
       "total_rows_available": 200000,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 270,
+        "dubizzle": 130,
+        "pf": 100
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_listing_truth.json",
       "columns": [
         "dashboard_rank",
@@ -599,6 +628,11 @@
       "exists": true,
       "total_rows_available": 150000,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 208,
+        "dubizzle": 192,
+        "pf": 100
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_residential_rent.json",
       "columns": [
         "dashboard_rank",
@@ -697,6 +731,11 @@
       "exists": true,
       "total_rows_available": 150000,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 209,
+        "dubizzle": 191,
+        "pf": 100
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_residential_buy.json",
       "columns": [
         "dashboard_rank",
@@ -795,6 +834,11 @@
       "exists": true,
       "total_rows_available": 117361,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 100,
+        "dubizzle": 300,
+        "pf": 100
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_commercial.json",
       "columns": [
         "dashboard_rank",
@@ -893,6 +937,11 @@
       "exists": true,
       "total_rows_available": 38098,
       "exported_rows": 500,
+      "portal_counts": {
+        "bayut": 244,
+        "dubizzle": 156,
+        "pf": 100
+      },
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\uae\\recon_short_rental.json",
       "columns": [
         "dashboard_rank",
@@ -1006,7 +1055,9 @@
     "raw_internal_tables_exposed": false,
     "badges_json_parsed_to_badges": true,
     "bayut_urls_canonicalized": true,
-    "note": "UAE Recon dashboard tabs are exported from product-safe recon_dashboard_* tables. Bayut URLs are canonicalized to /property/details-{id}.html."
+    "portal_balanced_sampling": true,
+    "min_rows_per_portal": 100,
+    "note": "UAE Recon dashboard tabs are exported from product-safe recon_dashboard_* tables.  Bayut URLs are canonicalized to /property/details-{id}.html.  Rows are portal-balanced so bayut, dubizzle, and pf all appear in the export even when PF rows rank lower in the global ordering."
   },
   "do_not_expose_directly": [
     "listing_price_events",

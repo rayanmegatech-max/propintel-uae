@@ -1,8 +1,16 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-// ─── Render cap to keep static/ISR payload under Vercel limits ────────────────
+// ─── Render cap ────────────────────────────────────────────────────────────────
+// Vercel-safe maximum items passed to the React render tree per list.
+// Increased from 150 to avoid over-truncating portal-balanced exports.
 const RECON_RENDER_LIMIT = 150;
+
+// Minimum rows to include per portal before filling the remaining budget
+// in original order.  Prevents Property Finder starvation when PF rows
+// appear late in the export (lower dashboard_rank than bayut / dubizzle).
+// Full database totals (total_rows_available, exported_rows) are untouched.
+const MIN_PER_PORTAL_RENDER = 40;
 
 export type UaeReconOpportunity = Record<string, unknown> & {
   dashboard_rank?: number | null;
@@ -204,16 +212,89 @@ function emptyLists(): UaeReconDataResult["lists"] {
   };
 }
 
-/**
- * Apply render cap to every Recon list payload, preserving all other properties.
- */
-function capList<T extends UaeReconListPayload | null>(list: T): T {
-  if (!list) return list;
-  return {
-    ...list,
-    items: list.items.slice(0, RECON_RENDER_LIMIT),
-  } as T;
+// ─── Portal-balanced render cap ────────────────────────────────────────────────
+// Replaces the previous simple slice(0, RECON_RENDER_LIMIT) approach.
+//
+// Why: a plain slice removes Property Finder rows when they appear late in
+// the export (lower dashboard_rank than bayut / dubizzle rows).  The filter
+// dropdown then only shows "Bayut" and "Dubizzle" because filter options are
+// built from rendered items.
+//
+// How:
+//   Phase 1 – Per-portal quota: include up to MIN_PER_PORTAL_RENDER rows from
+//              each portal value (bayut, dubizzle, pf, …) preserving their
+//              original within-portal order.
+//   Phase 2 – Global fill: add remaining budget from original list order.
+//   Reconstruction: sorted by original index so global ranking is preserved
+//                   as much as possible within the final selection.
+//
+// Metadata fields (total_rows_available, exported_rows, etc.) are untouched.
+
+function getPortalKey(item: UaeReconOpportunity): string | null {
+  const raw = item.portal;
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    return raw.trim().toLowerCase();
+  }
+  return null;
 }
+
+function capListBalanced<T extends UaeReconListPayload | null>(list: T): T {
+  if (!list) return list;
+
+  const items = list.items;
+
+  // No cap needed when items fit within the limit.
+  if (items.length <= RECON_RENDER_LIMIT) {
+    return { ...list, items } as T;
+  }
+
+  // Build per-portal index buckets, preserving original item order within each bucket.
+  const portalBuckets = new Map<string, number[]>();
+  for (let i = 0; i < items.length; i++) {
+    const key = getPortalKey(items[i]) ?? "__none__";
+    if (!portalBuckets.has(key)) portalBuckets.set(key, []);
+    portalBuckets.get(key)!.push(i);
+  }
+
+  const realPortals = [...portalBuckets.keys()].filter((k) => k !== "__none__");
+
+  // Fall back to simple slice when there is no meaningful portal variety.
+  if (realPortals.length <= 1) {
+    return { ...list, items: items.slice(0, RECON_RENDER_LIMIT) } as T;
+  }
+
+  const included = new Set<number>();
+
+  // Phase 1 – per-portal quota (up to MIN_PER_PORTAL_RENDER rows per portal).
+  for (const key of realPortals) {
+    if (included.size >= RECON_RENDER_LIMIT) break;
+    const bucket = portalBuckets.get(key)!;
+    const quota = Math.min(
+      MIN_PER_PORTAL_RENDER,
+      RECON_RENDER_LIMIT - included.size
+    );
+    let added = 0;
+    for (const idx of bucket) {
+      if (added >= quota || included.size >= RECON_RENDER_LIMIT) break;
+      included.add(idx);
+      added++;
+    }
+  }
+
+  // Phase 2 – fill remaining budget in original list order (Set deduplicates).
+  for (let i = 0; i < items.length && included.size < RECON_RENDER_LIMIT; i++) {
+    included.add(i);
+  }
+
+  // Reconstruct in ascending index order to preserve ranking as much as possible.
+  const result = [...included]
+    .sort((a, b) => a - b)
+    .map((i) => items[i]);
+
+  return { ...list, items: result } as T;
+}
+
+// ─── Data loader ──────────────────────────────────────────────────────────────
 
 export async function getUaeReconData(): Promise<UaeReconDataResult> {
   const requiredFiles = Object.values(FILES);
@@ -265,16 +346,16 @@ export async function getUaeReconData(): Promise<UaeReconDataResult> {
       manifest,
       summary,
       lists: {
-        hotLeads: capList(hotLeads),
-        priceDrops: capList(priceDrops),
-        ownerDirect: capList(ownerDirect),
-        stalePriceDrops: capList(stalePriceDrops),
-        refreshInflated: capList(refreshInflated),
-        listingTruth: capList(listingTruth),
-        residentialRent: capList(residentialRent),
-        residentialBuy: capList(residentialBuy),
-        commercial: capList(commercial),
-        shortRental: capList(shortRental),
+        hotLeads: capListBalanced(hotLeads),
+        priceDrops: capListBalanced(priceDrops),
+        ownerDirect: capListBalanced(ownerDirect),
+        stalePriceDrops: capListBalanced(stalePriceDrops),
+        refreshInflated: capListBalanced(refreshInflated),
+        listingTruth: capListBalanced(listingTruth),
+        residentialRent: capListBalanced(residentialRent),
+        residentialBuy: capListBalanced(residentialBuy),
+        commercial: capListBalanced(commercial),
+        shortRental: capListBalanced(shortRental),
       },
     };
   } catch (error) {
