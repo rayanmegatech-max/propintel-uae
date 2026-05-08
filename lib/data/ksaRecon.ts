@@ -1,6 +1,9 @@
 import { promises as fs } from "fs";
 import path from "path";
 
+// ─── Render cap to keep static/ISR payload under Vercel limits ────────────────
+const RECON_RENDER_LIMIT = 150;
+
 export type KsaReconOpportunity = Record<string, unknown> & {
   dashboard_rank?: number | null;
   recon_id?: number | null;
@@ -187,6 +190,17 @@ async function fileExists(fileName: string): Promise<boolean> {
   }
 }
 
+/**
+ * Apply render cap to every KSA Recon list payload, preserving all other properties.
+ */
+function capList<T extends KsaReconListPayload | null>(list: T): T {
+  if (!list) return list;
+  return {
+    ...list,
+    items: list.items.slice(0, RECON_RENDER_LIMIT),
+  } as T;
+}
+
 export async function getKsaReconData(): Promise<KsaReconDataResult> {
   const requiredFiles = Object.values(FILES);
   const existence = await Promise.all(requiredFiles.map(fileExists));
@@ -248,16 +262,16 @@ export async function getKsaReconData(): Promise<KsaReconDataResult> {
       manifest,
       summary,
       lists: {
-        hotLeads,
-        multiSignal,
-        ownerDirect,
-        priceDrops,
-        refreshInflation,
-        contactable,
-        urlOnly,
-        residentialRent,
-        residentialBuy,
-        commercial,
+        hotLeads: capList(hotLeads),
+        multiSignal: capList(multiSignal),
+        ownerDirect: capList(ownerDirect),
+        priceDrops: capList(priceDrops),
+        refreshInflation: capList(refreshInflation),
+        contactable: capList(contactable),
+        urlOnly: capList(urlOnly),
+        residentialRent: capList(residentialRent),
+        residentialBuy: capList(residentialBuy),
+        commercial: capList(commercial),
       },
     };
   } catch (error) {

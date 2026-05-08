@@ -1,6 +1,9 @@
 import { promises as fs } from "fs";
 import path from "path";
 
+// ─── Render cap to keep static/ISR payload under Vercel limits ────────────────
+const RECON_RENDER_LIMIT = 150;
+
 export type UaeReconOpportunity = Record<string, unknown> & {
   dashboard_rank?: number | null;
   recon_id?: number | null;
@@ -201,6 +204,17 @@ function emptyLists(): UaeReconDataResult["lists"] {
   };
 }
 
+/**
+ * Apply render cap to every Recon list payload, preserving all other properties.
+ */
+function capList<T extends UaeReconListPayload | null>(list: T): T {
+  if (!list) return list;
+  return {
+    ...list,
+    items: list.items.slice(0, RECON_RENDER_LIMIT),
+  } as T;
+}
+
 export async function getUaeReconData(): Promise<UaeReconDataResult> {
   const requiredFiles = Object.values(FILES);
   const existence = await Promise.all(requiredFiles.map(fileExists));
@@ -251,16 +265,16 @@ export async function getUaeReconData(): Promise<UaeReconDataResult> {
       manifest,
       summary,
       lists: {
-        hotLeads,
-        priceDrops,
-        ownerDirect,
-        stalePriceDrops,
-        refreshInflated,
-        listingTruth,
-        residentialRent,
-        residentialBuy,
-        commercial,
-        shortRental,
+        hotLeads: capList(hotLeads),
+        priceDrops: capList(priceDrops),
+        ownerDirect: capList(ownerDirect),
+        stalePriceDrops: capList(stalePriceDrops),
+        refreshInflated: capList(refreshInflated),
+        listingTruth: capList(listingTruth),
+        residentialRent: capList(residentialRent),
+        residentialBuy: capList(residentialBuy),
+        commercial: capList(commercial),
+        shortRental: capList(shortRental),
       },
     };
   } catch (error) {
