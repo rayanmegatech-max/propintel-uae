@@ -187,6 +187,86 @@ function sizeLabel(row: RawReconRow, sizeValue: number | null): string | null {
     : `${sizeValue.toLocaleString("en-US")} size`;
 }
 
+// ─── Bayut URL canonicalization ──────────────────────────────────────────────
+//
+// Bayut slug URLs are broken: /property/some-long-title-{id}.html resolves to
+// a 404. The canonical pattern is: /property/details-{id}.html
+//
+// This helper:
+//   1. Returns the input URL unchanged for any non-Bayut portal.
+//   2. For Bayut, extracts the numeric listing ID from:
+//      a) the trailing segment of any URL  (…-8500411.html → 8500411)
+//      b) explicit ID fields in the row     (external_id, listing_id, …)
+//   3. Reconstructs the canonical URL when an ID is found.
+//   4. Returns the original URL if no numeric ID can be found, so nothing is lost.
+
+const BAYUT_ID_FIELDS = [
+  "external_id",
+  "listing_id",
+  "property_id",
+  "source_listing_id",
+  "portal_id",
+] as const;
+
+function isBayutPortal(row: RawReconRow): boolean {
+  const portal =
+    firstString(row, ["portal", "source_portal"]) ?? "";
+  return portal.toLowerCase().includes("bayut");
+}
+
+/** Extract the last unbroken run of digits before `.html` in a URL string. */
+function extractBayutNumericId(url: string): string | null {
+  // Matches the last sequence of digits immediately before ".html"
+  // Works for both slug URLs and already-canonical URLs.
+  const match = url.match(/(\d+)\.html(?:[?#].*)?$/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * If the row belongs to Bayut, return the canonical URL.
+ * Otherwise return the rawUrl as-is (including null).
+ */
+function canonicalizeBayutUrl(
+  rawUrl: string | null,
+  row: RawReconRow
+): string | null {
+  if (!isBayutPortal(row)) {
+    return rawUrl;
+  }
+
+  // 1. Try to extract ID from the URL itself (handles slug and canonical forms).
+  if (rawUrl) {
+    const id = extractBayutNumericId(rawUrl);
+    if (id) {
+      return `https://www.bayut.com/property/details-${id}.html`;
+    }
+  }
+
+  // 2. Fallback: check all URL-bearing fields for an embedded ID.
+  for (const field of ["property_url", "source_url", "listing_url", "url", "detail_url"]) {
+    const candidate = asString(row[field]);
+    if (candidate) {
+      const id = extractBayutNumericId(candidate);
+      if (id) {
+        return `https://www.bayut.com/property/details-${id}.html`;
+      }
+    }
+  }
+
+  // 3. Fallback: check explicit numeric ID fields.
+  for (const field of BAYUT_ID_FIELDS) {
+    const val = String(row[field] ?? "").trim();
+    if (/^\d+$/.test(val) && val.length > 0) {
+      return `https://www.bayut.com/property/details-${val}.html`;
+    }
+  }
+
+  // No ID found — preserve whatever we had rather than returning null.
+  return rawUrl;
+}
+
+// ─── Main normalizer ─────────────────────────────────────────────────────────
+
 export function normalizeReconOpportunity(
   row: RawReconRow,
   selectedCountry: ReconCountry,
@@ -249,6 +329,18 @@ export function normalizeReconOpportunity(
   const rentalMode = firstString(row, ["rental_mode", "rentalMode"]);
   const priceFrequency = firstString(row, ["price_frequency", "priceFrequency", "rent_frequency"]);
 
+  // Raw URL before Bayut canonicalization
+  const rawListingUrl = firstString(row, [
+    "property_url",
+    "source_url",
+    "listing_url",
+    "url",
+    "detail_url",
+  ]);
+
+  // Apply Bayut canonicalization; all other portals pass through unchanged.
+  const listingUrl = canonicalizeBayutUrl(rawListingUrl, row);
+
   const normalized: NormalizedReconOpportunity = {
     country: selectedCountry,
     currency,
@@ -291,13 +383,7 @@ export function normalizeReconOpportunity(
       "company_name",
     ]),
 
-    listingUrl: firstString(row, [
-      "property_url",
-      "source_url",
-      "listing_url",
-      "url",
-      "detail_url",
-    ]),
+    listingUrl,
     ctaLabel:
       firstString(row, ["cta_text", "portal_action_label"]) || "Open Listing",
 

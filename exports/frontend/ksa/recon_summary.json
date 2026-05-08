@@ -2,378 +2,388 @@
   "country": "ksa",
   "currency": "SAR",
   "source_table": "ksa_recon_dashboard_summary",
-  "exported_at": "2026-05-06T00:28:58",
-  "total_rows_available": 37,
+  "exported_at": "2026-05-08T19:06:39",
+  "total_rows_available": 38,
   "items": [
     {
       "id": 1,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "overall",
       "metric_key": "source_opportunities",
-      "rows": 39828,
-      "metric_value": "39828",
+      "rows": 43943,
+      "metric_value": "43943",
       "extra_json": null
     },
     {
       "id": 2,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_hot_leads",
-      "rows": 167,
-      "metric_value": "167",
-      "extra_json": "{\"pct_of_source\": 0.42}"
+      "rows": 313,
+      "metric_value": "313",
+      "extra_json": "{\"pct_of_source\": 0.71}"
     },
     {
       "id": 3,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_multi_signal",
-      "rows": 2249,
-      "metric_value": "2249",
-      "extra_json": "{\"pct_of_source\": 5.65}"
+      "rows": 2714,
+      "metric_value": "2714",
+      "extra_json": "{\"pct_of_source\": 6.18}"
     },
     {
       "id": 4,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_owner_direct",
-      "rows": 7047,
-      "metric_value": "7047",
-      "extra_json": "{\"pct_of_source\": 17.69}"
+      "rows": 7617,
+      "metric_value": "7617",
+      "extra_json": "{\"pct_of_source\": 17.33}"
     },
     {
       "id": 5,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_price_drops",
-      "rows": 84,
-      "metric_value": "84",
-      "extra_json": "{\"pct_of_source\": 0.21}"
+      "rows": 100,
+      "metric_value": "100",
+      "extra_json": "{\"pct_of_source\": 0.23}"
     },
     {
       "id": 6,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_refresh_inflation",
-      "rows": 18359,
-      "metric_value": "18359",
-      "extra_json": "{\"pct_of_source\": 46.1}"
+      "rows": 11690,
+      "metric_value": "11690",
+      "extra_json": "{\"pct_of_source\": 26.6}"
     },
     {
       "id": 7,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_contactable",
-      "rows": 9151,
-      "metric_value": "9151",
-      "extra_json": "{\"pct_of_source\": 22.98}"
+      "rows": 9965,
+      "metric_value": "9965",
+      "extra_json": "{\"pct_of_source\": 22.68}"
     },
     {
       "id": 8,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_url_only",
-      "rows": 17676,
-      "metric_value": "17676",
-      "extra_json": "{\"pct_of_source\": 44.38}"
+      "rows": 10071,
+      "metric_value": "10071",
+      "extra_json": "{\"pct_of_source\": 22.92}"
     },
     {
       "id": 9,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_residential_buy",
-      "rows": 20391,
-      "metric_value": "20391",
-      "extra_json": "{\"pct_of_source\": 51.2}"
+      "rows": 14293,
+      "metric_value": "14293",
+      "extra_json": "{\"pct_of_source\": 32.53}"
     },
     {
       "id": 10,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_residential_rent",
-      "rows": 4864,
-      "metric_value": "4864",
-      "extra_json": "{\"pct_of_source\": 12.21}"
+      "rows": 4469,
+      "metric_value": "4469",
+      "extra_json": "{\"pct_of_source\": 10.17}"
     },
     {
       "id": 11,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "dashboard_table",
       "metric_key": "ksa_recon_dashboard_commercial",
-      "rows": 1572,
-      "metric_value": "1572",
-      "extra_json": "{\"pct_of_source\": 3.95}"
+      "rows": 1273,
+      "metric_value": "1273",
+      "extra_json": "{\"pct_of_source\": 2.9}"
     },
     {
       "id": 12,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "priority",
       "metric_key": "LOW",
-      "rows": 39661,
-      "metric_value": "22.93",
-      "extra_json": "{\"key\": \"LOW\", \"rows\": 39661, \"avg_score\": 22.93}"
+      "rows": 43630,
+      "metric_value": "21.74",
+      "extra_json": "{\"key\": \"LOW\", \"rows\": 43630, \"avg_score\": 21.74}"
     },
     {
       "id": 13,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "priority",
       "metric_key": "WATCH",
-      "rows": 166,
-      "metric_value": "58.26",
-      "extra_json": "{\"key\": \"WATCH\", \"rows\": 166, \"avg_score\": 58.26}"
+      "rows": 312,
+      "metric_value": "56.95",
+      "extra_json": "{\"key\": \"WATCH\", \"rows\": 312, \"avg_score\": 56.95}"
     },
     {
       "id": 14,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "priority",
-      "metric_key": "HOT",
+      "metric_key": "WARM",
       "rows": 1,
-      "metric_value": "98.6",
-      "extra_json": "{\"key\": \"HOT\", \"rows\": 1, \"avg_score\": 98.6}"
+      "metric_value": "71.2",
+      "extra_json": "{\"key\": \"WARM\", \"rows\": 1, \"avg_score\": 71.2}"
     },
     {
       "id": 15,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
       "metric_key": "REFRESH_INFLATION_ONLY",
-      "rows": 17246,
-      "metric_value": "25.99",
-      "extra_json": "{\"key\": \"REFRESH_INFLATION_ONLY\", \"rows\": 17246, \"avg_score\": 25.99}"
+      "rows": 20410,
+      "metric_value": "22.99",
+      "extra_json": "{\"key\": \"REFRESH_INFLATION_ONLY\", \"rows\": 20410, \"avg_score\": 22.99}"
     },
     {
       "id": 16,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
       "metric_key": "OWNER_CONTACTABLE_OR_WEAK_ONLY",
-      "rows": 15302,
-      "metric_value": "14.31",
-      "extra_json": "{\"key\": \"OWNER_CONTACTABLE_OR_WEAK_ONLY\", \"rows\": 15302, \"avg_score\": 14.31}"
+      "rows": 15683,
+      "metric_value": "14.34",
+      "extra_json": "{\"key\": \"OWNER_CONTACTABLE_OR_WEAK_ONLY\", \"rows\": 15683, \"avg_score\": 14.34}"
     },
     {
       "id": 17,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
       "metric_key": "OWNER_DIRECT_ONLY",
-      "rows": 4794,
+      "rows": 4789,
       "metric_value": "30.37",
-      "extra_json": "{\"key\": \"OWNER_DIRECT_ONLY\", \"rows\": 4794, \"avg_score\": 30.37}"
+      "extra_json": "{\"key\": \"OWNER_DIRECT_ONLY\", \"rows\": 4789, \"avg_score\": 30.37}"
     },
     {
       "id": 18,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
       "metric_key": "CONTACTABLE_REFRESHED",
-      "rows": 2152,
-      "metric_value": "44.58",
-      "extra_json": "{\"key\": \"CONTACTABLE_REFRESHED\", \"rows\": 2152, \"avg_score\": 44.58}"
+      "rows": 2556,
+      "metric_value": "42.24",
+      "extra_json": "{\"key\": \"CONTACTABLE_REFRESHED\", \"rows\": 2556, \"avg_score\": 42.24}"
     },
     {
       "id": 19,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
-      "metric_key": "PRICE_DROP_ONLY",
-      "rows": 190,
-      "metric_value": "14.09",
-      "extra_json": "{\"key\": \"PRICE_DROP_ONLY\", \"rows\": 190, \"avg_score\": 14.09}"
+      "metric_key": "OWNER_DIRECT_REFRESHED",
+      "rows": 217,
+      "metric_value": "58.25",
+      "extra_json": "{\"key\": \"OWNER_DIRECT_REFRESHED\", \"rows\": 217, \"avg_score\": 58.25}"
     },
     {
       "id": 20,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
-      "metric_key": "OWNER_DIRECT_REFRESHED",
-      "rows": 83,
-      "metric_value": "62.94",
-      "extra_json": "{\"key\": \"OWNER_DIRECT_REFRESHED\", \"rows\": 83, \"avg_score\": 62.94}"
+      "metric_key": "PRICE_DROP_ONLY",
+      "rows": 204,
+      "metric_value": "13.7",
+      "extra_json": "{\"key\": \"PRICE_DROP_ONLY\", \"rows\": 204, \"avg_score\": 13.7}"
     },
     {
       "id": 21,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
       "metric_key": "CONTACTABLE_PRICE_DROP",
-      "rows": 39,
-      "metric_value": "34.08",
-      "extra_json": "{\"key\": \"CONTACTABLE_PRICE_DROP\", \"rows\": 39, \"avg_score\": 34.08}"
+      "rows": 47,
+      "metric_value": "34.44",
+      "extra_json": "{\"key\": \"CONTACTABLE_PRICE_DROP\", \"rows\": 47, \"avg_score\": 34.44}"
     },
     {
       "id": 22,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
       "metric_key": "PRICE_DROP_REFRESHED",
-      "rows": 17,
-      "metric_value": "47.77",
-      "extra_json": "{\"key\": \"PRICE_DROP_REFRESHED\", \"rows\": 17, \"avg_score\": 47.77}"
+      "rows": 29,
+      "metric_value": "49.62",
+      "extra_json": "{\"key\": \"PRICE_DROP_REFRESHED\", \"rows\": 29, \"avg_score\": 49.62}"
     },
     {
       "id": 23,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
       "metric_key": "OWNER_DIRECT_PRICE_DROP",
-      "rows": 3,
-      "metric_value": "54.02",
-      "extra_json": "{\"key\": \"OWNER_DIRECT_PRICE_DROP\", \"rows\": 3, \"avg_score\": 54.02}"
+      "rows": 5,
+      "metric_value": "60.83",
+      "extra_json": "{\"key\": \"OWNER_DIRECT_PRICE_DROP\", \"rows\": 5, \"avg_score\": 60.83}"
     },
     {
       "id": 24,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "opportunity_lane",
       "metric_key": "ALL_THREE_SIGNALS",
-      "rows": 2,
-      "metric_value": "81.25",
-      "extra_json": "{\"key\": \"ALL_THREE_SIGNALS\", \"rows\": 2, \"avg_score\": 81.25}"
+      "rows": 3,
+      "metric_value": "62.98",
+      "extra_json": "{\"key\": \"ALL_THREE_SIGNALS\", \"rows\": 3, \"avg_score\": 62.98}"
     },
     {
       "id": 25,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "signal_count",
       "metric_key": "3",
-      "rows": 2,
-      "metric_value": "81.25",
-      "extra_json": "{\"key\": \"3\", \"rows\": 2, \"avg_score\": 81.25}"
+      "rows": 3,
+      "metric_value": "62.98",
+      "extra_json": "{\"key\": \"3\", \"rows\": 3, \"avg_score\": 62.98}"
     },
     {
       "id": 26,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "signal_count",
       "metric_key": "2",
-      "rows": 2294,
-      "metric_value": "45.1",
-      "extra_json": "{\"key\": \"2\", \"rows\": 2294, \"avg_score\": 45.1}"
+      "rows": 2854,
+      "metric_value": "43.44",
+      "extra_json": "{\"key\": \"2\", \"rows\": 2854, \"avg_score\": 43.44}"
     },
     {
       "id": 27,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "signal_count",
       "metric_key": "1",
-      "rows": 37532,
-      "metric_value": "21.73",
-      "extra_json": "{\"key\": \"1\", \"rows\": 37532, \"avg_score\": 21.73}"
+      "rows": 41086,
+      "metric_value": "20.5",
+      "extra_json": "{\"key\": \"1\", \"rows\": 41086, \"avg_score\": 20.5}"
     },
     {
       "id": 28,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "source",
       "metric_key": "aqar / aqar_buy",
-      "rows": 21922,
-      "metric_value": "24.68",
-      "extra_json": "{\"key\": \"aqar / aqar_buy\", \"rows\": 21922, \"avg_score\": 24.68}"
+      "rows": 23988,
+      "metric_value": "22.51",
+      "extra_json": "{\"key\": \"aqar / aqar_buy\", \"rows\": 23988, \"avg_score\": 22.51}"
     },
     {
       "id": 29,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "source",
       "metric_key": "aqar / aqar_rent",
-      "rows": 6966,
-      "metric_value": "21.95",
-      "extra_json": "{\"key\": \"aqar / aqar_rent\", \"rows\": 6966, \"avg_score\": 21.95}"
+      "rows": 7721,
+      "metric_value": "21.17",
+      "extra_json": "{\"key\": \"aqar / aqar_rent\", \"rows\": 7721, \"avg_score\": 21.17}"
     },
     {
       "id": 30,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "source",
       "metric_key": "bayut / bayut_buy_residential",
-      "rows": 4478,
-      "metric_value": "26.07",
-      "extra_json": "{\"key\": \"bayut / bayut_buy_residential\", \"rows\": 4478, \"avg_score\": 26.07}"
+      "rows": 4671,
+      "metric_value": "27.02",
+      "extra_json": "{\"key\": \"bayut / bayut_buy_residential\", \"rows\": 4671, \"avg_score\": 27.02}"
     },
     {
       "id": 31,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "source",
       "metric_key": "wasalt / wasalt_buy",
-      "rows": 2452,
-      "metric_value": "15.46",
-      "extra_json": "{\"key\": \"wasalt / wasalt_buy\", \"rows\": 2452, \"avg_score\": 15.46}"
+      "rows": 3273,
+      "metric_value": "17.23",
+      "extra_json": "{\"key\": \"wasalt / wasalt_buy\", \"rows\": 3273, \"avg_score\": 17.23}"
     },
     {
       "id": 32,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "source",
       "metric_key": "bayut / bayut_rent_residential",
-      "rows": 1897,
-      "metric_value": "26.7",
-      "extra_json": "{\"key\": \"bayut / bayut_rent_residential\", \"rows\": 1897, \"avg_score\": 26.7}"
+      "rows": 2142,
+      "metric_value": "27.21",
+      "extra_json": "{\"key\": \"bayut / bayut_rent_residential\", \"rows\": 2142, \"avg_score\": 27.21}"
     },
     {
       "id": 33,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "source",
       "metric_key": "wasalt / wasalt_rent",
-      "rows": 1815,
-      "metric_value": "6.59",
-      "extra_json": "{\"key\": \"wasalt / wasalt_rent\", \"rows\": 1815, \"avg_score\": 6.59}"
+      "rows": 1836,
+      "metric_value": "7.43",
+      "extra_json": "{\"key\": \"wasalt / wasalt_rent\", \"rows\": 1836, \"avg_score\": 7.43}"
     },
     {
       "id": 34,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "source",
       "metric_key": "bayut / bayut_rent_commercial",
-      "rows": 195,
-      "metric_value": "26.66",
-      "extra_json": "{\"key\": \"bayut / bayut_rent_commercial\", \"rows\": 195, \"avg_score\": 26.66}"
+      "rows": 208,
+      "metric_value": "27.35",
+      "extra_json": "{\"key\": \"bayut / bayut_rent_commercial\", \"rows\": 208, \"avg_score\": 27.35}"
     },
     {
       "id": 35,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "source",
       "metric_key": "bayut / bayut_buy_commercial",
       "rows": 103,
-      "metric_value": "25.61",
-      "extra_json": "{\"key\": \"bayut / bayut_buy_commercial\", \"rows\": 103, \"avg_score\": 25.61}"
+      "metric_value": "26.7",
+      "extra_json": "{\"key\": \"bayut / bayut_buy_commercial\", \"rows\": 103, \"avg_score\": 26.7}"
     },
     {
       "id": 36,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
-      "metric_scope": "contact",
-      "metric_key": "URL_ONLY",
-      "rows": 29554,
-      "metric_value": "21.57",
-      "extra_json": "{\"key\": \"URL_ONLY\", \"rows\": 29554, \"avg_score\": 21.57}"
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
+      "metric_scope": "source",
+      "metric_key": "wasalt / wasalt_daily_rent",
+      "rows": 1,
+      "metric_value": "24.75",
+      "extra_json": "{\"key\": \"wasalt / wasalt_daily_rent\", \"rows\": 1, \"avg_score\": 24.75}"
     },
     {
       "id": 37,
-      "run_id": "ksa_recon_views_20260504_180137",
-      "generated_at": "2026-05-04T18:01:37+00:00",
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
+      "metric_scope": "contact",
+      "metric_key": "URL_ONLY",
+      "rows": 32873,
+      "metric_value": "20.07",
+      "extra_json": "{\"key\": \"URL_ONLY\", \"rows\": 32873, \"avg_score\": 20.07}"
+    },
+    {
+      "id": 38,
+      "run_id": "ksa_recon_views_20260506_222019",
+      "generated_at": "2026-05-06T22:20:19+00:00",
       "metric_scope": "contact",
       "metric_key": "CONTACTABLE",
-      "rows": 10274,
-      "metric_value": "27.41",
-      "extra_json": "{\"key\": \"CONTACTABLE\", \"rows\": 10274, \"avg_score\": 27.41}"
+      "rows": 11070,
+      "metric_value": "27.7",
+      "extra_json": "{\"key\": \"CONTACTABLE\", \"rows\": 11070, \"avg_score\": 27.7}"
     }
   ]
 }

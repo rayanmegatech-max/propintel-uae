@@ -3,14 +3,14 @@
   "country": "ksa",
   "currency": "SAR",
   "database_path": "C:\\Users\\User\\Documents\\malesh\\KSA\\intelligence\\ksa_intelligence.db",
-  "exported_at": "2026-05-06T00:28:58",
+  "exported_at": "2026-05-08T19:06:39",
   "limit": 500,
   "exports": {
     "hot_leads": {
       "table": "ksa_recon_dashboard_hot_leads",
       "exists": true,
-      "total_rows_available": 167,
-      "exported_rows": 167,
+      "total_rows_available": 313,
+      "exported_rows": 313,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_hot_leads.json",
       "columns": [
         "dashboard_rank",
@@ -96,7 +96,7 @@
     "multi_signal": {
       "table": "ksa_recon_dashboard_multi_signal",
       "exists": true,
-      "total_rows_available": 2249,
+      "total_rows_available": 2714,
       "exported_rows": 500,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_multi_signal.json",
       "columns": [
@@ -183,7 +183,7 @@
     "owner_direct": {
       "table": "ksa_recon_dashboard_owner_direct",
       "exists": true,
-      "total_rows_available": 7047,
+      "total_rows_available": 7617,
       "exported_rows": 500,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_owner_direct.json",
       "columns": [
@@ -270,8 +270,8 @@
     "price_drops": {
       "table": "ksa_recon_dashboard_price_drops",
       "exists": true,
-      "total_rows_available": 84,
-      "exported_rows": 84,
+      "total_rows_available": 100,
+      "exported_rows": 100,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_price_drops.json",
       "columns": [
         "dashboard_rank",
@@ -357,7 +357,7 @@
     "refresh_inflation": {
       "table": "ksa_recon_dashboard_refresh_inflation",
       "exists": true,
-      "total_rows_available": 18359,
+      "total_rows_available": 11690,
       "exported_rows": 500,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_refresh_inflation.json",
       "columns": [
@@ -444,7 +444,7 @@
     "contactable": {
       "table": "ksa_recon_dashboard_contactable",
       "exists": true,
-      "total_rows_available": 9151,
+      "total_rows_available": 9965,
       "exported_rows": 500,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_contactable.json",
       "columns": [
@@ -531,7 +531,7 @@
     "url_only": {
       "table": "ksa_recon_dashboard_url_only",
       "exists": true,
-      "total_rows_available": 17676,
+      "total_rows_available": 10071,
       "exported_rows": 500,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_url_only.json",
       "columns": [
@@ -618,7 +618,7 @@
     "residential_rent": {
       "table": "ksa_recon_dashboard_residential_rent",
       "exists": true,
-      "total_rows_available": 4864,
+      "total_rows_available": 4469,
       "exported_rows": 500,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_residential_rent.json",
       "columns": [
@@ -705,7 +705,7 @@
     "residential_buy": {
       "table": "ksa_recon_dashboard_residential_buy",
       "exists": true,
-      "total_rows_available": 20391,
+      "total_rows_available": 14293,
       "exported_rows": 500,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_residential_buy.json",
       "columns": [
@@ -792,7 +792,7 @@
     "commercial": {
       "table": "ksa_recon_dashboard_commercial",
       "exists": true,
-      "total_rows_available": 1572,
+      "total_rows_available": 1273,
       "exported_rows": 500,
       "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_commercial.json",
       "columns": [
@@ -896,7 +896,8 @@
     "raw_internal_tables_exposed": false,
     "badges_json_parsed_to_badges": true,
     "source_url_normalized_to_property_url": true,
-    "note": "KSA may have weaker phone/WhatsApp coverage; URL-lead/source URL paths are valid."
+    "bayut_urls_canonicalized": true,
+    "note": "KSA may have weaker phone/WhatsApp coverage; URL-lead/source URL paths are valid. Bayut URLs are canonicalized to /property/details-{id}.html."
   },
   "do_not_expose_directly": [
     "ksa_listing_price_events",
@@ -907,8 +908,8 @@
   "summary": {
     "table": "ksa_recon_dashboard_summary",
     "exists": true,
-    "total_rows_available": 37,
-    "exported_rows": 37,
+    "total_rows_available": 38,
+    "exported_rows": 38,
     "output": "C:\\Users\\User\\Documents\\malesh\\re-dashboard\\exports\\frontend\\ksa\\recon_summary.json"
   }
 }

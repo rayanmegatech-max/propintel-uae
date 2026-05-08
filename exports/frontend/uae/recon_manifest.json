@@ -3,7 +3,7 @@
   "country": "uae",
   "currency": "AED",
   "database_path": "C:\\Users\\User\\Documents\\malesh\\intelligence.db",
-  "exported_at": "2026-05-06T01:39:35",
+  "exported_at": "2026-05-08T19:06:30",
   "limit": 500,
   "exports": {
     "hot_leads": {
@@ -1005,7 +1005,8 @@
     "currency": "AED",
     "raw_internal_tables_exposed": false,
     "badges_json_parsed_to_badges": true,
-    "note": "UAE Recon dashboard tabs are exported from product-safe recon_dashboard_* tables."
+    "bayut_urls_canonicalized": true,
+    "note": "UAE Recon dashboard tabs are exported from product-safe recon_dashboard_* tables. Bayut URLs are canonicalized to /property/details-{id}.html."
   },
   "do_not_expose_directly": [
     "listing_price_events",
