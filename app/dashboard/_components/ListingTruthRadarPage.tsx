@@ -33,6 +33,9 @@ import type {
   NormalizedReconOpportunity,
 } from "@/lib/recon/types";
 
+// ─── Render cap to keep static/ISR payload under Vercel limits ────────────────
+const LISTING_TRUTH_RENDER_LIMIT = 150;
+
 // ─── Design tokens — violet/indigo accent, distinct from all other modules ──
 // Emerald = Recon Hub | Cyan = Owner Direct | Amber/Red = Price Drops
 // Violet = Listing Truth / Freshness
@@ -157,7 +160,12 @@ function buildLanes(
             )
           : [],
       },
-    ].filter((lane) => lane.items.length > 0);
+    ]
+      .map((lane) => ({
+        ...lane,
+        items: lane.items.slice(0, LISTING_TRUTH_RENDER_LIMIT),
+      }))
+      .filter((lane) => lane.items.length > 0);
   }
 
   const ksaData = data as KsaReconDataResult;
@@ -179,7 +187,12 @@ function buildLanes(
           )
         : [],
     },
-  ].filter((lane) => lane.items.length > 0);
+  ]
+    .map((lane) => ({
+      ...lane,
+      items: lane.items.slice(0, LISTING_TRUTH_RENDER_LIMIT),
+    }))
+    .filter((lane) => lane.items.length > 0);
 }
 
 // ─── Compact date ───────────────────────────────────────────────────────────
