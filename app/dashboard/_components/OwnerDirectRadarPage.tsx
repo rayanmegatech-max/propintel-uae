@@ -371,7 +371,7 @@ function QualificationBreakdown({
       <div className="grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0"
         style={{ "--tw-divide-opacity": "1" } as React.CSSProperties}
       >
-        {items.map(({ icon: Icon, iconColor, label, value, note }, i) => (
+        {items.map(({ icon: Icon, iconColor, label, value, note }) => (
           <div
             key={label}
             className="flex items-center gap-3 px-4 py-3 sm:gap-4 sm:py-4"
