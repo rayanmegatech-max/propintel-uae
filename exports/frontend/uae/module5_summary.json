@@ -1,0 +1,103 @@
+{
+  "country": "uae",
+  "currency": "AED",
+  "export_key": "summary",
+  "source_table": "module5_dashboard_summary",
+  "exported_at": "2026-05-06T16:24:42.674336+00:00",
+  "status": "ready",
+  "total_rows_available": 17,
+  "exported_rows": 17,
+  "default_sort": "\"built_at\" DESC",
+  "columns": [
+    "metric_key",
+    "metric_value",
+    "built_at"
+  ],
+  "items": [
+    {
+      "metric_key": "market_dominance_building",
+      "metric_value": 19640,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "market_dominance_community",
+      "metric_value": 5505,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "inventory_pressure_building",
+      "metric_value": 19650,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "inventory_pressure_community",
+      "metric_value": 5508,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "agency_inventory_profiles",
+      "metric_value": 7060,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "agency_inventory_by_community",
+      "metric_value": 110490,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "agency_inventory_by_building",
+      "metric_value": 120345,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "market_activity_feed",
+      "metric_value": 76784,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "market_activity_summary",
+      "metric_value": 1234,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "high_confidence_agency_profiles",
+      "metric_value": 2288,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "medium_confidence_agency_profiles",
+      "metric_value": 2336,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "high_pressure_communities",
+      "metric_value": 927,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "high_pressure_buildings",
+      "metric_value": 2786,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "dominated_communities",
+      "metric_value": 442,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "dominated_buildings",
+      "metric_value": 2718,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "critical_activity_rows",
+      "metric_value": 27665,
+      "built_at": "2026-05-05 14:41:42"
+    },
+    {
+      "metric_key": "high_activity_rows",
+      "metric_value": 32111,
+      "built_at": "2026-05-05 14:41:42"
+    }
+  ]
+}

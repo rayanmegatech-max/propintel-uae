@@ -1,0 +1,226 @@
+{
+  "country": "uae",
+  "currency": "AED",
+  "source_table": "recon_dashboard_summary",
+  "exported_at": "2026-05-06T01:39:35",
+  "total_rows_available": 31,
+  "items": [
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_hot_leads",
+      "metric_value": 43368.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_price_drops",
+      "metric_value": 18822.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_owner_direct",
+      "metric_value": 36336.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_stale_price_drops",
+      "metric_value": 12794.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_refresh_inflated",
+      "metric_value": 150000.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_listing_truth",
+      "metric_value": 200000.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_residential_rent",
+      "metric_value": 150000.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_residential_buy",
+      "metric_value": 150000.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_commercial",
+      "metric_value": 117361.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "dashboard_table_count",
+      "metric_name": "recon_dashboard_short_rental",
+      "metric_value": 38098.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "total_recon_opportunities",
+      "metric_value": 1519685.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "critical_opportunities",
+      "metric_value": 27858.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "high_opportunities",
+      "metric_value": 8907.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "hot_leads",
+      "metric_value": 25499.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "market_movements",
+      "metric_value": 18531.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "listing_truth",
+      "metric_value": 1420084.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "owner_direct",
+      "metric_value": 36339.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "price_drops",
+      "metric_value": 18873.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "owner_direct_price_drop",
+      "metric_value": 342.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "stale_price_drop",
+      "metric_value": 12794.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "refresh_inflated_price_drop",
+      "metric_value": 17750.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "recon_count",
+      "metric_name": "review_confidence",
+      "metric_value": 60695.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "source_category_count",
+      "metric_name": "residential_buy",
+      "metric_value": 672686.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "source_category_count",
+      "metric_name": "residential_rent",
+      "metric_value": 607707.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "source_category_count",
+      "metric_name": "commercial_rent",
+      "metric_value": 121845.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "source_category_count",
+      "metric_name": "short_rental",
+      "metric_value": 55615.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "source_category_count",
+      "metric_name": "commercial_buy",
+      "metric_value": 36432.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "source_category_count",
+      "metric_name": "land_buy",
+      "metric_value": 25400.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "portal_count",
+      "metric_name": "dubizzle",
+      "metric_value": 693221.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "portal_count",
+      "metric_name": "bayut",
+      "metric_value": 586009.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    },
+    {
+      "metric_group": "portal_count",
+      "metric_name": "pf",
+      "metric_value": 240455.0,
+      "metric_text": null,
+      "created_at": "2026-05-05 14:07:10"
+    }
+  ]
+}

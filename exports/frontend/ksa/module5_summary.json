@@ -1,0 +1,393 @@
+{
+  "country": "ksa",
+  "currency": "SAR",
+  "export_key": "summary",
+  "source_table": "ksa_module5_dashboard_summary",
+  "exported_at": "2026-05-06T16:24:50.137008+00:00",
+  "status": "ready",
+  "total_rows_available": 37,
+  "exported_rows": 37,
+  "default_sort": null,
+  "columns": [
+    "id",
+    "run_id",
+    "generated_at",
+    "metric_scope",
+    "metric_key",
+    "rows",
+    "metric_value",
+    "extra_json"
+  ],
+  "items": [
+    {
+      "id": 1,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_activity_agency",
+      "rows": 568,
+      "metric_value": "568",
+      "extra_json": null
+    },
+    {
+      "id": 2,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_activity_dominance",
+      "rows": 178,
+      "metric_value": "178",
+      "extra_json": null
+    },
+    {
+      "id": 3,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_activity_pressure",
+      "rows": 243,
+      "metric_value": "243",
+      "extra_json": null
+    },
+    {
+      "id": 4,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_activity_price_movements",
+      "rows": 251,
+      "metric_value": "251",
+      "extra_json": null
+    },
+    {
+      "id": 5,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_activity_priority",
+      "rows": 947,
+      "metric_value": "947",
+      "extra_json": null
+    },
+    {
+      "id": 6,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_activity_recently_detected",
+      "rows": 5000,
+      "metric_value": "5000",
+      "extra_json": null
+    },
+    {
+      "id": 7,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_activity_recon",
+      "rows": 5000,
+      "metric_value": "5000",
+      "extra_json": null
+    },
+    {
+      "id": 8,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_agency_city_profiles",
+      "rows": 1358,
+      "metric_value": "1358",
+      "extra_json": null
+    },
+    {
+      "id": 9,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_agency_district_profiles",
+      "rows": 3724,
+      "metric_value": "3724",
+      "extra_json": null
+    },
+    {
+      "id": 10,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_agency_profiles_major",
+      "rows": 1292,
+      "metric_value": "1292",
+      "extra_json": null
+    },
+    {
+      "id": 11,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_agency_profiles_micro",
+      "rows": 2515,
+      "metric_value": "2515",
+      "extra_json": null
+    },
+    {
+      "id": 12,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_city_alias_audit",
+      "rows": 75,
+      "metric_value": "75",
+      "extra_json": null
+    },
+    {
+      "id": 13,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_city_intelligence",
+      "rows": 75,
+      "metric_value": "75",
+      "extra_json": null
+    },
+    {
+      "id": 14,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_city_intelligence_major",
+      "rows": 10,
+      "metric_value": "10",
+      "extra_json": null
+    },
+    {
+      "id": 15,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_city_intelligence_small",
+      "rows": 65,
+      "metric_value": "65",
+      "extra_json": null
+    },
+    {
+      "id": 16,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_city_pressure_signals",
+      "rows": 18,
+      "metric_value": "18",
+      "extra_json": null
+    },
+    {
+      "id": 17,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_district_alias_audit",
+      "rows": 1279,
+      "metric_value": "1279",
+      "extra_json": null
+    },
+    {
+      "id": 18,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_district_intelligence",
+      "rows": 1279,
+      "metric_value": "1279",
+      "extra_json": null
+    },
+    {
+      "id": 19,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_inventory_pressure_large_markets",
+      "rows": 406,
+      "metric_value": "406",
+      "extra_json": null
+    },
+    {
+      "id": 20,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_inventory_pressure_small_markets",
+      "rows": 873,
+      "metric_value": "873",
+      "extra_json": null
+    },
+    {
+      "id": 21,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_market_dominance_large_markets",
+      "rows": 406,
+      "metric_value": "406",
+      "extra_json": null
+    },
+    {
+      "id": 22,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "dashboard_table",
+      "metric_key": "ksa_module5_dashboard_market_dominance_small_markets",
+      "rows": 873,
+      "metric_value": "873",
+      "extra_json": null
+    },
+    {
+      "id": 23,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "source_table",
+      "metric_key": "ksa_market_dominance_city",
+      "rows": 79,
+      "metric_value": "79",
+      "extra_json": null
+    },
+    {
+      "id": 24,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "source_table",
+      "metric_key": "ksa_market_dominance_district",
+      "rows": 1309,
+      "metric_value": "1309",
+      "extra_json": null
+    },
+    {
+      "id": 25,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "source_table",
+      "metric_key": "ksa_agency_inventory_profile",
+      "rows": 3807,
+      "metric_value": "3807",
+      "extra_json": null
+    },
+    {
+      "id": 26,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "source_table",
+      "metric_key": "ksa_market_activity_feed",
+      "rows": 11240,
+      "metric_value": "11240",
+      "extra_json": null
+    },
+    {
+      "id": 27,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "large_market_dominance_rows",
+      "rows": 406,
+      "metric_value": "406",
+      "extra_json": null
+    },
+    {
+      "id": 28,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "small_market_dominance_rows",
+      "rows": 873,
+      "metric_value": "873",
+      "extra_json": null
+    },
+    {
+      "id": 29,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "large_market_pressure_rows",
+      "rows": 406,
+      "metric_value": "406",
+      "extra_json": null
+    },
+    {
+      "id": 30,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "small_market_pressure_rows",
+      "rows": 873,
+      "metric_value": "873",
+      "extra_json": null
+    },
+    {
+      "id": 31,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "major_agency_rows",
+      "rows": 1292,
+      "metric_value": "1292",
+      "extra_json": null
+    },
+    {
+      "id": 32,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "micro_agency_rows",
+      "rows": 2515,
+      "metric_value": "2515",
+      "extra_json": null
+    },
+    {
+      "id": 33,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "city_intelligence_major_rows",
+      "rows": 10,
+      "metric_value": "10",
+      "extra_json": null
+    },
+    {
+      "id": 34,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "city_intelligence_small_rows",
+      "rows": 65,
+      "metric_value": "65",
+      "extra_json": null
+    },
+    {
+      "id": 35,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "city_pressure_signal_rows",
+      "rows": 18,
+      "metric_value": "18",
+      "extra_json": null
+    },
+    {
+      "id": 36,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "city_alias_audit_rows",
+      "rows": 75,
+      "metric_value": "75",
+      "extra_json": null
+    },
+    {
+      "id": 37,
+      "run_id": "ksa_module5_dashboard_v1_3_2_20260505_160927",
+      "generated_at": "2026-05-05T16:09:27+00:00",
+      "metric_scope": "product_split",
+      "metric_key": "district_alias_audit_rows",
+      "rows": 1279,
+      "metric_value": "1279",
+      "extra_json": null
+    }
+  ]
+}
