@@ -1,8 +1,11 @@
+// app/dashboard/_components/KsaReconDataPage.tsx
+
 import Link from "next/link";
 import { ArrowUpRight, Database } from "lucide-react";
 import KsaReconTabsClient from "./KsaReconTabsClient";
 import ReconPageHero from "./ReconPageHero";
 import ReconStatusStrip from "./ReconStatusStrip";
+import ReconMetricCard from "./ReconMetricCard";
 import { formatNumber } from "@/lib/recon/formatters";
 import type { ReconMetric } from "@/lib/recon/types";
 import type { KsaReconDataResult } from "@/lib/data/ksaRecon";
@@ -14,19 +17,48 @@ type KsaReconDataPageProps = {
 function EmptyExportState({ message }: { message: string }) {
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-6 backdrop-blur-xl">
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300">
-          <Database className="h-6 w-6" />
+      <section
+        className="rounded-xl border p-6"
+        style={{
+          background: "rgba(245,158,11,0.04)",
+          borderColor: "rgba(245,158,11,0.15)",
+        }}
+      >
+        <div
+          className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg"
+          style={{
+            background: "rgba(245,158,11,0.08)",
+            border: "1px solid rgba(245,158,11,0.15)",
+          }}
+        >
+          <Database className="h-5 w-5" style={{ color: "#fbbf24" }} />
         </div>
-        <h1 className="text-2xl font-bold text-white">
+        <h1
+          className="text-lg font-bold"
+          style={{ color: "#f4f4f5" }}
+        >
           KSA Recon export not loaded
         </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-amber-100/80">
+        <p
+          className="mt-2 max-w-2xl text-[13px] leading-relaxed"
+          style={{ color: "rgba(251,191,36,0.7)" }}
+        >
           {message}
         </p>
-        <div className="mt-5 rounded-xl border border-white/[0.08] bg-slate-950/50 p-4">
-          <p className="text-sm font-semibold text-white">Run locally:</p>
-          <code className="mt-2 block rounded-lg bg-black/30 p-3 text-xs text-slate-300">
+        <div
+          className="mt-4 rounded-lg p-3"
+          style={{
+            background: "rgba(0,0,0,0.25)",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          <p className="text-[12px] font-medium" style={{ color: "#a1a1aa" }}>
+            Run locally:
+          </p>
+          <code
+            className="mt-1.5 block rounded-md p-2.5 text-[11px]"
+            style={{ background: "rgba(0,0,0,0.3)", color: "#52525b" }}
+          >
             python tools\export_ksa_recon_frontend_data.py
           </code>
         </div>
@@ -40,22 +72,29 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
     return <EmptyExportState message={data.message} />;
   }
 
-  const totalHotLeads = data.manifest.exports.hot_leads?.total_rows_available ?? 0;
-  const totalMultiSignal = data.manifest.exports.multi_signal?.total_rows_available ?? 0;
-  const totalOwnerDirect = data.manifest.exports.owner_direct?.total_rows_available ?? 0;
-  const totalUrlOnly = data.manifest.exports.url_only?.total_rows_available ?? 0;
+  const totalHotLeads =
+    data.manifest.exports.hot_leads?.total_rows_available ?? 0;
+  const totalMultiSignal =
+    data.manifest.exports.multi_signal?.total_rows_available ?? 0;
+  const totalOwnerDirect =
+    data.manifest.exports.owner_direct?.total_rows_available ?? 0;
+  const totalUrlOnly =
+    data.manifest.exports.url_only?.total_rows_available ?? 0;
 
-  const loadedTabs = Object.values(data.manifest.exports).filter((item) => item.exists).length;
+  const loadedTabs = Object.values(data.manifest.exports).filter(
+    (item) => item.exists
+  ).length;
 
+  // KSA priority metrics: Hot Leads > Multi-signal > Owner/Direct > URL Leads
   const metrics: ReconMetric[] = [
     {
       label: "Hot Leads",
       value: formatNumber(totalHotLeads),
-      description: "Highest‑opportunity contacts today",
+      description: "Top-ranked opportunities to review today",
       tone: "emerald",
     },
     {
-      label: "Multi‑signal",
+      label: "Multi-signal",
       value: formatNumber(totalMultiSignal),
       description: "Leads with multiple opportunity signals",
       tone: "teal",
@@ -63,30 +102,32 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
     {
       label: "Owner / Direct",
       value: formatNumber(totalOwnerDirect),
-      description: "Owner‑connected or direct‑style leads",
+      description: "Owner/direct-style contact signals",
       tone: "cyan",
     },
     {
       label: "URL Leads",
       value: formatNumber(totalUrlOnly),
-      description: "Source links without direct contact data",
+      description: "Source links — verify before outreach",
       tone: "amber",
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* ── Header ──────────────────────────────────────────────── */}
       <ReconPageHero
         countryLabel="Kingdom of Saudi Arabia"
         countryCode="KSA"
         currency="SAR"
         exportedAt={data.manifest.exported_at}
         title="KSA Recon Hub"
-        description="Multi‑signal leads, owner/direct candidates, and listing intelligence for KSA."
+        description="Daily cockpit — multi-signal leads, owner/direct candidates, and URL-based opportunities."
         primaryTableText=""
         marketScopeText=""
       />
 
+      {/* ── Status strip ────────────────────────────────────────── */}
       <ReconStatusStrip
         countryLabel="KSA"
         exportLimit={data.manifest.limit}
@@ -95,47 +136,28 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
         activeDataMode="Local JSON"
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* ── KPI row ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <div
-            key={metric.label}
-            className="relative rounded-2xl bg-zinc-900 border border-white/[0.08] p-4 sm:p-5 flex flex-col gap-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
-            style={
-              metric.tone
-                ? {
-                    borderTopColor:
-                      metric.tone === "emerald"
-                        ? "#10b981"
-                        : metric.tone === "teal"
-                        ? "#14b8a6"
-                        : metric.tone === "cyan"
-                        ? "#22d3ee"
-                        : "#fbbf24",
-                    borderTopWidth: "2px",
-                  }
-                : undefined
-            }
-          >
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
-              {metric.label}
-            </span>
-            <span className="text-[28px] sm:text-[32px] font-bold tracking-tight text-white leading-none tabular-nums">
-              {metric.value}
-            </span>
-            <span className="text-[11px] text-zinc-500 leading-tight">{metric.description}</span>
-          </div>
+          <ReconMetricCard key={metric.label} metric={metric} />
         ))}
       </div>
 
+      {/* ── Tabs + content ──────────────────────────────────────── */}
       <KsaReconTabsClient data={data} />
 
-      <div className="flex justify-end">
+      {/* ── Footer nav ──────────────────────────────────────────── */}
+      <div className="flex justify-end pt-2">
         <Link
           href="/dashboard/ksa"
-          className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 py-2 text-sm font-medium text-zinc-200 transition hover:bg-white/[0.08]"
+          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-white/[0.04]"
+          style={{
+            color: "#52525b",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
         >
           Back to KSA overview
-          <ArrowUpRight className="h-4 w-4" />
+          <ArrowUpRight className="h-3 w-3" />
         </Link>
       </div>
     </div>

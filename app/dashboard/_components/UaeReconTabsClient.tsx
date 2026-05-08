@@ -12,17 +12,19 @@ import {
   type ReconFilterState,
 } from "@/lib/recon/filter";
 import { normalizeReconList } from "@/lib/recon/normalize";
-import type { UaeReconDataResult, UaeReconListPayload } from "@/lib/data/uaeRecon";
+import type {
+  UaeReconDataResult,
+  UaeReconListPayload,
+} from "@/lib/data/uaeRecon";
 
 const C = {
-  cardBg:   "#111113",
-  border:   "rgba(255,255,255,0.07)",
+  cardBg: "#111113",
+  border: "rgba(255,255,255,0.07)",
   borderFt: "rgba(255,255,255,0.04)",
   t1: "#f4f4f5",
   t3: "#52525b",
   t4: "#3f3f46",
   emHi: "#34d399",
-  emBg: "rgba(16,185,129,0.07)",
 } as const;
 
 type UaeReconTabKey =
@@ -39,20 +41,67 @@ type UaeReconTabKey =
 
 type UaeReconTabsClientProps = { data: UaeReconDataResult };
 
-const TAB_CONFIG: Array<{ key: UaeReconTabKey; label: string; description: string }> = [
-  { key: "hotLeads",        label: "Hot Leads",        description: "Ranked opportunity list"    },
-  { key: "priceDrops",      label: "Price Drops",       description: "Recent price movement"      },
-  { key: "ownerDirect",     label: "Owner / Direct",    description: "Direct-owner signals"       },
-  { key: "stalePriceDrops", label: "Stale + Drops",     description: "Aged listings with drops"   },
-  { key: "refreshInflated", label: "Refresh Inflated",  description: "Relisted / refresh signals" },
-  { key: "listingTruth",    label: "Listing Truth",     description: "True age signals"           },
-  { key: "residentialRent", label: "Residential Rent",  description: "Rent opportunity view"      },
-  { key: "residentialBuy",  label: "Residential Buy",   description: "Buy opportunity view"       },
-  { key: "commercial",      label: "Commercial",        description: "Commercial listings"        },
-  { key: "shortRental",     label: "Short Rental",      description: "Daily / weekly / monthly"   },
+const TAB_CONFIG: Array<{
+  key: UaeReconTabKey;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: "hotLeads",
+    label: "Hot Leads",
+    description: "Ranked opportunity list",
+  },
+  {
+    key: "priceDrops",
+    label: "Price Drops",
+    description: "Recent price movement",
+  },
+  {
+    key: "ownerDirect",
+    label: "Owner / Direct",
+    description: "Direct-owner signals",
+  },
+  {
+    key: "stalePriceDrops",
+    label: "Stale + Drops",
+    description: "Aged listings with drops",
+  },
+  {
+    key: "refreshInflated",
+    label: "Refresh Inflated",
+    description: "Relisted / refresh signals",
+  },
+  {
+    key: "listingTruth",
+    label: "Listing Truth",
+    description: "True age signals",
+  },
+  {
+    key: "residentialRent",
+    label: "Residential Rent",
+    description: "Rent opportunity view",
+  },
+  {
+    key: "residentialBuy",
+    label: "Residential Buy",
+    description: "Buy opportunity view",
+  },
+  {
+    key: "commercial",
+    label: "Commercial",
+    description: "Commercial listings",
+  },
+  {
+    key: "shortRental",
+    label: "Short Rental",
+    description: "Daily / weekly / monthly",
+  },
 ];
 
-function getPayload(data: UaeReconDataResult, key: UaeReconTabKey): UaeReconListPayload | null {
+function getPayload(
+  data: UaeReconDataResult,
+  key: UaeReconTabKey
+): UaeReconListPayload | null {
   return data.lists[key] ?? null;
 }
 
@@ -62,20 +111,27 @@ function activeTabLabel(key: UaeReconTabKey): string {
 
 export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
   const [activeTab, setActiveTab] = useState<UaeReconTabKey>("hotLeads");
-  const [filters, setFilters]     = useState<ReconFilterState>({ ...DEFAULT_RECON_FILTERS });
+  const [filters, setFilters] = useState<ReconFilterState>({
+    ...DEFAULT_RECON_FILTERS,
+  });
 
   const tabs: ReconTabOption[] = TAB_CONFIG.map((tab) => ({
-    key:         tab.key,
-    label:       tab.label,
+    key: tab.key,
+    label: tab.label,
     description: tab.description,
-    count:       getPayload(data, tab.key)?.total_rows_available,
+    count: getPayload(data, tab.key)?.total_rows_available,
   }));
 
-  const activePayload = getPayload(data, activeTab) ?? data.lists.hotLeads ?? null;
+  const activePayload =
+    getPayload(data, activeTab) ?? data.lists.hotLeads ?? null;
 
   const normalizedItems = useMemo(() => {
     if (!activePayload) return [];
-    return normalizeReconList(activePayload.items, "uae", activePayload.source_table);
+    return normalizeReconList(
+      activePayload.items,
+      "uae",
+      activePayload.source_table
+    );
   }, [activePayload]);
 
   const filterOptions = useMemo(
@@ -88,7 +144,7 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
     [normalizedItems, filters]
   );
 
-  const featuredItem   = filteredItems[0] ?? null;
+  const featuredItem = filteredItems[0] ?? null;
   const remainingItems = filteredItems.slice(1);
 
   const handleTabChange = (tabKey: string) => {
@@ -97,23 +153,22 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
   };
 
   return (
-    <div className="space-y-5">
-      {/* ── 1. Featured lead ─────────────────────────────────────── */}
+    <div className="space-y-4">
+      {/* ── 1. Featured lead ───────────────────────────────────── */}
       {featuredItem && (
         <section>
-          <div className="mb-3 flex items-center gap-3">
-            {/* Emerald accent line */}
+          <div className="mb-2.5 flex items-center gap-2.5">
             <div
               className="h-4 w-[3px] rounded-full shrink-0"
               style={{ background: C.emHi }}
             />
             <h2
-              className="text-[15px] font-semibold"
-              style={{ color: C.t1, letterSpacing: "-0.015em" }}
+              className="text-[14px] font-semibold"
+              style={{ color: C.t1, letterSpacing: "-0.01em" }}
             >
-              Best opportunity right now
+              Review first
             </h2>
-            <span className="text-[12px]" style={{ color: C.t4 }}>
+            <span className="text-[11px]" style={{ color: C.t4 }}>
               · {activeTabLabel(activeTab)} lane
             </span>
           </div>
@@ -121,12 +176,11 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
         </section>
       )}
 
-      {/* ── 2. Command bar ───────────────────────────────────────── */}
+      {/* ── 2. Command bar ─────────────────────────────────────── */}
       <section
         className="rounded-xl border"
         style={{ background: C.cardBg, borderColor: C.border }}
       >
-        {/* Tab selector */}
         <div className="p-3 pb-0">
           <ReconTabSelector
             tabs={tabs}
@@ -135,7 +189,6 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
           />
         </div>
 
-        {/* Filter rail */}
         <div
           className="border-t px-4 py-3"
           style={{ borderColor: C.borderFt }}
@@ -150,9 +203,9 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
         </div>
       </section>
 
-      {/* ── 3. Remaining list ────────────────────────────────────── */}
+      {/* ── 3. Remaining list ──────────────────────────────────── */}
       {remainingItems.length > 0 ? (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {remainingItems.map((opportunity) => (
             <ReconOpportunityCard
               key={opportunity.id}
@@ -163,13 +216,13 @@ export default function UaeReconTabsClient({ data }: UaeReconTabsClientProps) {
         </div>
       ) : !featuredItem ? (
         <div
-          className="rounded-2xl border p-10 text-center"
+          className="rounded-xl border p-10 text-center"
           style={{ background: C.cardBg, borderColor: C.border }}
         >
-          <p className="text-[14px] font-medium" style={{ color: C.t3 }}>
+          <p className="text-[13px] font-medium" style={{ color: C.t3 }}>
             No opportunities match the current filters.
           </p>
-          <p className="mt-1.5 text-[12px]" style={{ color: C.t4 }}>
+          <p className="mt-1.5 text-[11px]" style={{ color: C.t4 }}>
             Try adjusting your filters or selecting a different lane.
           </p>
         </div>

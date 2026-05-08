@@ -54,6 +54,11 @@ export type NormalizedReconOpportunity = {
 
   signalBadges: ReconSignalBadge[];
 
+  // New market-context fields
+  purpose: string | null;
+  rentalMode: string | null;
+  priceFrequency: string | null;
+
   raw: Record<string, unknown>;
 };
 

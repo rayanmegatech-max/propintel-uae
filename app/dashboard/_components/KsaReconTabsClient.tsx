@@ -12,17 +12,19 @@ import {
   type ReconFilterState,
 } from "@/lib/recon/filter";
 import { normalizeReconList } from "@/lib/recon/normalize";
-import type { KsaReconDataResult, KsaReconListPayload } from "@/lib/data/ksaRecon";
+import type {
+  KsaReconDataResult,
+  KsaReconListPayload,
+} from "@/lib/data/ksaRecon";
 
 const C = {
-  cardBg:   "#111113",
-  border:   "rgba(255,255,255,0.07)",
+  cardBg: "#111113",
+  border: "rgba(255,255,255,0.07)",
   borderFt: "rgba(255,255,255,0.04)",
   t1: "#f4f4f5",
   t3: "#52525b",
   t4: "#3f3f46",
   emHi: "#34d399",
-  emBg: "rgba(16,185,129,0.07)",
 } as const;
 
 type KsaReconTabKey =
@@ -39,20 +41,67 @@ type KsaReconTabKey =
 
 type KsaReconTabsClientProps = { data: KsaReconDataResult };
 
-const TAB_CONFIG: Array<{ key: KsaReconTabKey; label: string; description: string }> = [
-  { key: "hotLeads",         label: "Hot Leads",        description: "Ranked opportunity list"      },
-  { key: "multiSignal",      label: "Multi-Signal",      description: "Combined opportunity signals" },
-  { key: "ownerDirect",      label: "Owner / Direct",    description: "Direct-owner candidates"      },
-  { key: "priceDrops",       label: "Price Drops",       description: "Verified price movement"      },
-  { key: "refreshInflation", label: "Refresh Signals",   description: "Relisting / refresh signals"  },
-  { key: "contactable",      label: "Contactable",       description: "Contact-ready leads"          },
-  { key: "urlOnly",          label: "URL Leads",         description: "Source URL lead paths"        },
-  { key: "residentialRent",  label: "Residential Rent",  description: "Rent opportunity view"        },
-  { key: "residentialBuy",   label: "Residential Buy",   description: "Buy opportunity view"         },
-  { key: "commercial",       label: "Commercial",        description: "Commercial opportunity view"  },
+const TAB_CONFIG: Array<{
+  key: KsaReconTabKey;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: "hotLeads",
+    label: "Hot Leads",
+    description: "Ranked opportunity list",
+  },
+  {
+    key: "multiSignal",
+    label: "Multi-Signal",
+    description: "Combined opportunity signals",
+  },
+  {
+    key: "ownerDirect",
+    label: "Owner / Direct",
+    description: "Direct-owner candidates",
+  },
+  {
+    key: "priceDrops",
+    label: "Price Drops",
+    description: "Verified price movement",
+  },
+  {
+    key: "refreshInflation",
+    label: "Refresh Signals",
+    description: "Relisting / refresh signals",
+  },
+  {
+    key: "contactable",
+    label: "Contactable",
+    description: "Contact-ready leads",
+  },
+  {
+    key: "urlOnly",
+    label: "URL Leads",
+    description: "Source URL lead paths",
+  },
+  {
+    key: "residentialRent",
+    label: "Residential Rent",
+    description: "Rent opportunity view",
+  },
+  {
+    key: "residentialBuy",
+    label: "Residential Buy",
+    description: "Buy opportunity view",
+  },
+  {
+    key: "commercial",
+    label: "Commercial",
+    description: "Commercial opportunity view",
+  },
 ];
 
-function getPayload(data: KsaReconDataResult, key: KsaReconTabKey): KsaReconListPayload | null {
+function getPayload(
+  data: KsaReconDataResult,
+  key: KsaReconTabKey
+): KsaReconListPayload | null {
   return data.lists[key] ?? null;
 }
 
@@ -62,13 +111,15 @@ function activeTabLabel(key: KsaReconTabKey): string {
 
 export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
   const [activeTab, setActiveTab] = useState<KsaReconTabKey>("hotLeads");
-  const [filters, setFilters]     = useState<ReconFilterState>({ ...DEFAULT_RECON_FILTERS });
+  const [filters, setFilters] = useState<ReconFilterState>({
+    ...DEFAULT_RECON_FILTERS,
+  });
 
   const tabs: ReconTabOption[] = TAB_CONFIG.map((tab) => ({
-    key:         tab.key,
-    label:       tab.label,
+    key: tab.key,
+    label: tab.label,
     description: tab.description,
-    count:       getPayload(data, tab.key)?.total_rows_available,
+    count: getPayload(data, tab.key)?.total_rows_available,
   }));
 
   // KSA-specific fallback chain: hotLeads → multiSignal → contactable
@@ -81,7 +132,11 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
 
   const normalizedItems = useMemo(() => {
     if (!activePayload) return [];
-    return normalizeReconList(activePayload.items, "ksa", activePayload.source_table);
+    return normalizeReconList(
+      activePayload.items,
+      "ksa",
+      activePayload.source_table
+    );
   }, [activePayload]);
 
   const filterOptions = useMemo(
@@ -94,7 +149,7 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
     [normalizedItems, filters]
   );
 
-  const featuredItem   = filteredItems[0] ?? null;
+  const featuredItem = filteredItems[0] ?? null;
   const remainingItems = filteredItems.slice(1);
 
   const handleTabChange = (tabKey: string) => {
@@ -103,23 +158,22 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
   };
 
   return (
-    <div className="space-y-5">
-      {/* ── 1. Featured lead ─────────────────────────────────────── */}
+    <div className="space-y-4">
+      {/* ── 1. Featured lead ───────────────────────────────────── */}
       {featuredItem && (
         <section>
-          <div className="mb-3 flex items-center gap-3">
-            {/* Emerald accent line */}
+          <div className="mb-2.5 flex items-center gap-2.5">
             <div
               className="h-4 w-[3px] rounded-full shrink-0"
               style={{ background: C.emHi }}
             />
             <h2
-              className="text-[15px] font-semibold"
-              style={{ color: C.t1, letterSpacing: "-0.015em" }}
+              className="text-[14px] font-semibold"
+              style={{ color: C.t1, letterSpacing: "-0.01em" }}
             >
-              Best opportunity right now
+              Review first
             </h2>
-            <span className="text-[12px]" style={{ color: C.t4 }}>
+            <span className="text-[11px]" style={{ color: C.t4 }}>
               · {activeTabLabel(activeTab)} lane
             </span>
           </div>
@@ -127,12 +181,11 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
         </section>
       )}
 
-      {/* ── 2. Command bar ───────────────────────────────────────── */}
+      {/* ── 2. Command bar ─────────────────────────────────────── */}
       <section
         className="rounded-xl border"
         style={{ background: C.cardBg, borderColor: C.border }}
       >
-        {/* Tab selector */}
         <div className="p-3 pb-0">
           <ReconTabSelector
             tabs={tabs}
@@ -141,7 +194,6 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
           />
         </div>
 
-        {/* Filter rail */}
         <div
           className="border-t px-4 py-3"
           style={{ borderColor: C.borderFt }}
@@ -156,9 +208,9 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
         </div>
       </section>
 
-      {/* ── 3. Remaining list ────────────────────────────────────── */}
+      {/* ── 3. Remaining list ──────────────────────────────────── */}
       {remainingItems.length > 0 ? (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {remainingItems.map((opportunity) => (
             <ReconOpportunityCard
               key={opportunity.id}
@@ -169,13 +221,13 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
         </div>
       ) : !featuredItem ? (
         <div
-          className="rounded-2xl border p-10 text-center"
+          className="rounded-xl border p-10 text-center"
           style={{ background: C.cardBg, borderColor: C.border }}
         >
-          <p className="text-[14px] font-medium" style={{ color: C.t3 }}>
+          <p className="text-[13px] font-medium" style={{ color: C.t3 }}>
             No opportunities match the current filters.
           </p>
-          <p className="mt-1.5 text-[12px]" style={{ color: C.t4 }}>
+          <p className="mt-1.5 text-[11px]" style={{ color: C.t4 }}>
             Try adjusting your filters or selecting a different lane.
           </p>
         </div>

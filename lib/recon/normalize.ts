@@ -205,9 +205,11 @@ export function normalizeReconOpportunity(
       ? `${city} · ${districtOrCommunity}`
       : city || districtOrCommunity || "Unknown location";
 
+  // area_sqm placed before generic area to prioritize explicit sqm field
   const sizeValue = firstNumber(row, [
     "size_sqft",
     "size_sqm",
+    "area_sqm",
     "area",
     "plot_size",
   ]);
@@ -241,6 +243,11 @@ export function normalizeReconOpportunity(
     row,
     isKsa ? "KSA public-listing opportunity" : "UAE public-listing opportunity"
   );
+
+  // Market-context fields
+  const purpose = firstString(row, ["purpose", "listing_purpose", "transaction_type"]);
+  const rentalMode = firstString(row, ["rental_mode", "rentalMode"]);
+  const priceFrequency = firstString(row, ["price_frequency", "priceFrequency", "rent_frequency"]);
 
   const normalized: NormalizedReconOpportunity = {
     country: selectedCountry,
@@ -305,6 +312,10 @@ export function normalizeReconOpportunity(
       Boolean(firstString(row, ["contact_email"])),
 
     signalBadges: signalBadges(row),
+
+    purpose,
+    rentalMode,
+    priceFrequency,
 
     raw: row,
   };

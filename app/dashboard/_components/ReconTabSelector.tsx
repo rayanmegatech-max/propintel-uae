@@ -1,6 +1,5 @@
+// app/dashboard/_components/ReconTabSelector.tsx
 "use client";
-
-import { BarChart3 } from "lucide-react";
 
 export type ReconTabOption = {
   key: string;
@@ -14,6 +13,19 @@ type ReconTabSelectorProps = {
   activeTab: string;
   onTabChange: (tabKey: string) => void;
 };
+
+const C = {
+  t1: "#f4f4f5",
+  t2: "#a1a1aa",
+  t3: "#71717a",
+  t4: "#52525b",
+  t5: "#3f3f46",
+  emHi: "#34d399",
+  emBg: "rgba(16,185,129,0.08)",
+  emBdr: "rgba(16,185,129,0.22)",
+  border: "rgba(255,255,255,0.07)",
+  borderFt: "rgba(255,255,255,0.04)",
+} as const;
 
 function formatCount(value: number | undefined) {
   if (value === undefined || Number.isNaN(value)) return null;
@@ -31,80 +43,112 @@ export default function ReconTabSelector({
 }: ReconTabSelectorProps) {
   if (tabs.length === 0) return null;
 
-  const primaryTabs = tabs.slice(0, 4);
-  const moreTabs = tabs.slice(4);
+  const priorityTabs = tabs.slice(0, 4);
+  const secondaryTabs = tabs.slice(4);
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto pb-1">
-      <div className="mr-2 flex items-center gap-1.5 text-zinc-500 shrink-0">
-        <BarChart3 className="h-3.5 w-3.5" />
-        <span className="text-[10px] font-black uppercase tracking-[0.18em]">
-          Lanes
+    <div className="space-y-2">
+      {/* Lane label */}
+      <div className="flex items-center gap-2">
+        <span
+          className="text-[9px] font-black uppercase tracking-[0.16em]"
+          style={{ color: C.t5 }}
+        >
+          Workflow lanes
         </span>
+        <div className="h-px flex-1" style={{ background: C.borderFt }} />
       </div>
 
-      {primaryTabs.map((tab) => {
-        const isActive = tab.key === activeTab;
-        const countLabel = formatCount(tab.count);
-        return (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onTabChange(tab.key)}
-            className={[
-              "flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold whitespace-nowrap rounded-t-lg transition-colors",
-              isActive
-                ? "bg-white/[0.03] border-b-2 border-emerald-400 text-white"
-                : "text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent",
-            ].join(" ")}
-            aria-pressed={isActive}
-          >
-            {tab.label}
-            {countLabel && (
-              <span
-                className={[
-                  "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-black",
-                  isActive
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : "bg-white/[0.06] text-zinc-500",
-                ].join(" ")}
-              >
-                {countLabel}
-              </span>
-            )}
-          </button>
-        );
-      })}
+      {/* Priority + secondary lane row */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {priorityTabs.map((tab) => {
+          const isActive = tab.key === activeTab;
+          const countLabel = formatCount(tab.count);
 
-      {moreTabs.length > 0 && (
-        <div className="flex items-center gap-1 ml-1 border-l border-white/[0.08] pl-2">
-          {moreTabs.map((tab) => {
-            const isActive = tab.key === activeTab;
-            const countLabel = formatCount(tab.count);
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => onTabChange(tab.key)}
-                className={[
-                  "flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap rounded-lg transition-colors",
-                  isActive
-                    ? "bg-white/[0.04] text-white"
-                    : "text-zinc-500 hover:text-zinc-300",
-                ].join(" ")}
-                aria-pressed={isActive}
-              >
-                {tab.label}
-                {countLabel && (
-                  <span className="text-[10px] bg-white/[0.06] rounded px-1 py-0.5 text-zinc-500">
-                    {countLabel}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => onTabChange(tab.key)}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-[7px] text-[12px] font-semibold whitespace-nowrap transition-all duration-150"
+              style={{
+                color: isActive ? C.emHi : C.t3,
+                background: isActive ? C.emBg : "rgba(255,255,255,0.025)",
+                border: `1px solid ${isActive ? C.emBdr : C.borderFt}`,
+                boxShadow: isActive
+                  ? "0 0 12px rgba(16,185,129,0.08)"
+                  : "none",
+              }}
+              aria-pressed={isActive}
+            >
+              {isActive && (
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
+                  style={{
+                    background: C.emHi,
+                    boxShadow: "0 0 4px rgba(52,211,153,0.5)",
+                  }}
+                />
+              )}
+              {tab.label}
+              {countLabel && (
+                <span
+                  className="rounded px-1.5 py-[1px] text-[10px] font-bold tabular-nums"
+                  style={{
+                    color: isActive ? C.emHi : C.t4,
+                    background: isActive
+                      ? "rgba(16,185,129,0.1)"
+                      : "rgba(255,255,255,0.04)",
+                  }}
+                >
+                  {countLabel}
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {/* Separator + secondary lanes */}
+        {secondaryTabs.length > 0 && (
+          <>
+            <div
+              className="mx-1 hidden h-5 w-px sm:block"
+              style={{ background: C.borderFt }}
+            />
+            {secondaryTabs.map((tab) => {
+              const isActive = tab.key === activeTab;
+              const countLabel = formatCount(tab.count);
+
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => onTabChange(tab.key)}
+                  className="flex items-center gap-1 rounded-md px-2.5 py-[5px] text-[11px] font-medium whitespace-nowrap transition-all duration-150"
+                  style={{
+                    color: isActive ? C.t1 : C.t4,
+                    background: isActive
+                      ? "rgba(255,255,255,0.05)"
+                      : "transparent",
+                    border: `1px solid ${isActive ? C.border : "transparent"}`,
+                  }}
+                  aria-pressed={isActive}
+                >
+                  {tab.label}
+                  {countLabel && (
+                    <span
+                      className="text-[10px] tabular-nums"
+                      style={{ color: isActive ? C.t3 : C.t5 }}
+                    >
+                      {countLabel}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </>
+        )}
+      </div>
     </div>
   );
 }
