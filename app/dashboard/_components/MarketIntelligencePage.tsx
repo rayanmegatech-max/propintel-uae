@@ -635,7 +635,7 @@ export default function MarketIntelligencePage({
           visual="bars"
         />
         <MetricCard
-          label="Activity Feed"
+          label="Recent Market Movement"
           value={metricActivity}
           description="Recent market activity events and public listing changes."
           tone="emerald"

@@ -86,7 +86,7 @@ const PRODUCT_MODULES = [
   },
   {
     icon: LineChart,
-    title: "Market Activity Feed",
+    title: "Recent Market Movement",
     description:
       "A balanced feed of recon opportunities, price movement, pressure, dominance, and agency signals.",
   },

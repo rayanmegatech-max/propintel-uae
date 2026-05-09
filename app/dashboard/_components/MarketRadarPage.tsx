@@ -397,7 +397,7 @@ export default function MarketRadarPage({ country }: { country: CountryConfig })
           chips={["New activity", "Agency movement", "Market shifts"]}
           icon={<Globe2 className="h-5 w-5" />}
           accentColor={C.cyHi}
-          primaryCta={{ label: "Open Activity Feed", href: `${country.routeBase}/activity-feed` }}
+          primaryCta={{ label: "Open Recent Market Movement", href: `${country.routeBase}/activity-feed` }}
         />
 
         <IntelligencePanel

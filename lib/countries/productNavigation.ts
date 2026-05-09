@@ -155,7 +155,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
   },
   {
     slug: "activity-feed",
-    label: "Market Activity Feed",
+    label: "Recent Market Movement",
     shortLabel: "Activity",
     eyebrow: "Daily Activity",
     description:
