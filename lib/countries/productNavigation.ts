@@ -144,7 +144,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
   },
   {
     slug: "agency-profiles",
-    label: "Agency Inventory Profile",
+    label: "Agency Profiles",
     shortLabel: "Agencies",
     eyebrow: "Agency Footprint",
     description:

@@ -80,7 +80,7 @@ const PRODUCT_MODULES = [
   },
   {
     icon: Factory,
-    title: "Agency Inventory Profile",
+    title: "Agency Profiles",
     description:
       "Analyze public agency portfolios, footprint, category mix, portal mix, and pressure exposure.",
   },
