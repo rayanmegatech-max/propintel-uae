@@ -20,6 +20,7 @@ import {
   Radar,
   RefreshCcw,
   Search,
+  ShieldCheck,
   TrendingDown,
   UserCheck,
   X,
@@ -86,6 +87,8 @@ interface NavGroup {
 // ─── Section → icon ───────────────────────────────────────────────────────────
 const SECTION_ICON: Record<ProductSectionSlug, React.ElementType> = {
   recon:                 Radar,
+  "market-radar":        Activity,
+  "competitor-radar":    ShieldCheck,
   "owner-direct":        UserCheck,
   "price-drops":         TrendingDown,
   "listing-age":         RefreshCcw,
@@ -108,6 +111,8 @@ const GROUP_DEFS: { label: string; slugs: ProductSectionSlug[] }[] = [
   {
     label: "Market",
     slugs: [
+      "market-radar",
+      "competitor-radar",
       "market-intelligence",
       "inventory-pressure",
       "market-dominance",
@@ -175,7 +180,8 @@ function buildGroups(country: CountryConfig | undefined): NavGroup[] {
     const items = def.slugs
       .map<NavItem | null>((slug) => {
         const sec = PRODUCT_SECTIONS.find((s) => s.slug === slug);
-        if (!sec) return null;
+        // Exclude completely if not found or explicitly hidden from sidebar
+        if (!sec || sec.isHidden) return null;
         return {
           label:          sec.shortLabel,
           href:           `${country.routeBase}/${sec.slug}`,

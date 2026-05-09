@@ -13,6 +13,9 @@ import MarketIntelligencePage from "../../_components/MarketIntelligencePage";
 import OwnerDirectRadarPage from "../../_components/OwnerDirectRadarPage";
 import PriceDropRadarPage from "../../_components/PriceDropRadarPage";
 import UaeReconDataPage from "../../_components/UaeReconDataPage";
+import MarketRadarPage from "../../_components/MarketRadarPage";
+import CompetitorRadarPage from "../../_components/CompetitorRadarPage";
+
 import {
   COUNTRY_LIST,
   getCountryConfig,
@@ -51,99 +54,93 @@ export default async function CountrySectionPage({
     notFound();
   }
 
+  // V1 Combined Workspace Previews
+  if (section === "market-radar") {
+    return <MarketRadarPage country={countryConfig} />;
+  }
+
+  if (section === "competitor-radar") {
+    return <CompetitorRadarPage country={countryConfig} />;
+  }
+
+  // Existing Legacy Data Routes
   if (country === "uae" && section === "recon") {
     const data = await getUaeReconData();
-
     return <UaeReconDataPage data={data} />;
   }
 
   if (country === "ksa" && section === "recon") {
     const data = await getKsaReconData();
-
     return <KsaReconDataPage data={data} />;
   }
 
   if (country === "uae" && section === "owner-direct") {
     const data = await getUaeReconData();
-
     return <OwnerDirectRadarPage country={countryConfig} data={data} />;
   }
 
   if (country === "ksa" && section === "owner-direct") {
     const data = await getKsaReconData();
-
     return <OwnerDirectRadarPage country={countryConfig} data={data} />;
   }
 
   if (country === "uae" && section === "price-drops") {
     const data = await getUaeReconData();
-
     return <PriceDropRadarPage country={countryConfig} data={data} />;
   }
 
   if (country === "ksa" && section === "price-drops") {
     const data = await getKsaReconData();
-
     return <PriceDropRadarPage country={countryConfig} data={data} />;
   }
 
   if (country === "uae" && section === "listing-age") {
     const data = await getUaeReconData();
-
     return <ListingTruthRadarPage country={countryConfig} data={data} />;
   }
 
   if (country === "ksa" && section === "listing-age") {
     const data = await getKsaReconData();
-
     return <ListingTruthRadarPage country={countryConfig} data={data} />;
   }
 
   if (section === "activity-feed") {
     const data = await getModule5Data(country);
-
     return <ActivityFeedPage country={countryConfig} data={data} />;
   }
 
   if (section === "market-intelligence") {
     const data = await getModule5Data(country);
-
     return <MarketIntelligencePage country={countryConfig} data={data} />;
   }
 
   if (section === "inventory-pressure") {
     const data = await getModule5Data(country);
-
     return <InventoryPressurePage country={countryConfig} data={data} />;
   }
 
   if (section === "market-dominance") {
     const data = await getModule5Data(country);
-
     return <MarketDominancePage country={countryConfig} data={data} />;
   }
 
   if (section === "agency-profiles") {
     const data = await getModule5Data(country);
-
     return <AgencyProfilesPage country={countryConfig} data={data} />;
   }
 
   if (section === "communities") {
     const data = await getModule5Data(country);
-
     return <CommunitiesPage country={countryConfig} data={data} />;
   }
 
   if (section === "buildings") {
     const data = await getModule5Data(country);
-
     return <BuildingIntelligencePage country={countryConfig} data={data} />;
   }
 
   if (section === "data-quality") {
     const data = await getExportHealthData(country);
-
     return <DataQualityPage country={countryConfig} data={data} />;
   }
 
