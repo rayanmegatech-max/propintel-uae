@@ -787,7 +787,7 @@ export default function BuildingIntelligencePage({
         <MetricCard
           label="Pressure Signals"
           value={metricPressureSignals}
-          description="Records with inventory pressure scoring."
+          description="Records with Supply Pressure scoring."
           tone="amber"
           visual="dots"
         />
@@ -817,7 +817,7 @@ export default function BuildingIntelligencePage({
         />
         <BuildingLaneCard
           icon={TrendingDown}
-          title="Inventory Pressure"
+          title="Supply Pressure"
           description="Pressure signals including price-drop rates, refresh activity, and opportunity density."
           statLabel="Pressure records"
           statValue={metricPressureSignals}

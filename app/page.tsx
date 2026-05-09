@@ -74,7 +74,7 @@ const PRODUCT_MODULES = [
   },
   {
     icon: Activity,
-    title: "Inventory Pressure",
+    title: "Supply Pressure",
     description:
       "Spot pressure signals across markets, communities, districts, buildings, and listing categories.",
   },

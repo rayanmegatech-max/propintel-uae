@@ -1,640 +1,461 @@
 // app/dashboard/_components/InventoryPressurePage.tsx
+"use client";
+
 import Link from "next/link";
-import type { ElementType } from "react";
 import {
   Activity,
+  AlertTriangle,
   ArrowRight,
-  Building2,
-  Database,
+  CheckCircle2,
+  Clock,
   Gauge,
+  Globe2,
+  Layers,
+  MapPinned,
   ShieldCheck,
   TrendingDown,
-  Zap,
 } from "lucide-react";
-import { formatNumber, formatPercent } from "@/lib/recon/formatters";
+import { formatNumber } from "@/lib/recon/formatters";
 import type { CountryConfig } from "@/lib/countries/countryConfig";
 import type { Module5DataResult, Module5Record } from "@/lib/data/module5";
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
-const T = {
-  cardBg:  "#0c0c0e",
-  wellBg:  "#18181b",
-  border:  "rgba(255,255,255,0.07)",
-  borderFt:"rgba(255,255,255,0.04)",
-  t1: "#f4f4f5",
-  t2: "#a1a1aa",
-  t3: "#71717a",
-  t4: "#52525b",
-  em:    "#10b981",
-  emHi:  "#34d399",
-  emBg:  "rgba(16,185,129,0.08)",
-  emBdr: "rgba(16,185,129,0.2)",
-  am:    "#fbbf24",
-  amBg:  "rgba(245,158,11,0.06)",
-  amBdr: "rgba(245,158,11,0.14)",
-  rd:    "#fb7185",
-  rdBg:  "rgba(244,63,94,0.05)",
-  rdBdr: "rgba(244,63,94,0.12)",
+const C = {
+  t1: "#ffffff",
+  t2: "#e4e4e7",
+  t3: "#a1a1aa",
+  t4: "#71717a",
+  em: "#10b981",
+  emHi: "#34d399",
+  cy: "#06b6d4",
+  cyHi: "#22d3ee",
+  am: "#fbbf24",
+  amHi: "#fcd34d",
+  rd: "#fb7185",
+  rdHi: "#f43f5e",
+  border: "rgba(255,255,255,0.06)",
+  borderSub: "rgba(255,255,255,0.04)",
 } as const;
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-type InventoryPressurePageProps = {
-  country: CountryConfig;
-  data: Module5DataResult;
-};
-
-type PressureCard = {
-  id: string;
-  rank: number | null;
-  location: string;
-  marketType: string;
-  category: string | null;
-  activeListings: number | null;
-  agencies: number | null;
-  avgPrice: number | null;
-  pressureScore: number | null;
-  pressureLabel: string | null;
-  pressureReason: string | null;
-  priceDropRate: number | null;
-  refreshRate: number | null;
-  ownerDirectRate: number | null;
-  staleRate: number | null;
-  topAgency: string | null;
-  topAgencyShare: number | null;
-  confidence: string | null;
-  action: string | null;
-  note: string | null;
-};
-
-type MetricTone = "emerald" | "amber" | "rose" | "neutral";
-
-// ─── Data helpers ────────────────────────────────────────────────────────────
-function asString(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-function asNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
+// ─── Type Helpers ─────────────────────────────────────────────────────────
+function getStringField(record: Module5Record, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const val = record[key];
+    if (typeof val === "string" && val.trim() !== "") {
+      return val.trim();
+    }
   }
-  return null;
+  return undefined;
 }
-function formatLabel(value: string | null): string | null {
-  if (!value) return null;
+
+function getNumberField(record: Module5Record, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const val = record[key];
+    if (typeof val === "number") {
+      return val;
+    }
+    if (typeof val === "string") {
+      const parsed = parseFloat(val);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return undefined;
+}
+
+// ─── Formatters ───────────────────────────────────────────────────────────
+function formatDisplayLabel(value: string | undefined): string {
+  if (!value) return "";
   return value
-    .replace(/_/g, " ")
-    .replace(/\s+/g, " ")
     .trim()
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-function joinParts(parts: Array<string | null | undefined>): string {
-  return parts.filter(Boolean).join(" · ");
-}
-function getLocation(country: CountryConfig, record: Module5Record): string {
-  if (country.slug === "ksa") {
-    return (
-      joinParts([
-        asString(record.city_display_name) ?? asString(record.city),
-        asString(record.district_display_name) ?? asString(record.district),
-      ]) || "KSA market"
-    );
-  }
-  return (
-    joinParts([
-      asString(record.city),
-      asString(record.community),
-      asString(record.building_name),
-    ]) || "UAE market"
-  );
-}
-function normalizePressureCard(
-  country: CountryConfig,
-  record: Module5Record,
-  index: number
-): PressureCard {
-  return {
-    id:
-      asString(record.market_key) ||
-      asString(record.canonical_market_key) ||
-      `${country.slug}-pressure-${index}`,
-    rank: asNumber(record.dashboard_rank),
-    location: getLocation(country, record),
-    marketType:
-      formatLabel(asString(record.dashboard_level)) ||
-      formatLabel(asString(record.market_level)) ||
-      "Market",
-    category: formatLabel(asString(record.source_category)),
-    activeListings:
-      asNumber(record.active_listings) ?? asNumber(record.total_listings),
-    agencies:
-      asNumber(record.agencies) ??
-      asNumber(record.unique_agencies) ??
-      asNumber(record.total_agencies),
-    avgPrice: asNumber(record.avg_price),
-    pressureScore:
-      asNumber(record.inventory_pressure_score) ?? asNumber(record.pressure_score),
-    pressureLabel:
-      formatLabel(asString(record.pressure_label)) ||
-      formatLabel(asString(record.pressure_bucket)),
-    pressureReason: formatLabel(asString(record.pressure_reason)),
-    priceDropRate: asNumber(record.price_drop_rate_pct),
-    refreshRate:
-      asNumber(record.refresh_inflated_rate_pct) ??
-      asNumber(record.refresh_rate_pct),
-    ownerDirectRate: asNumber(record.owner_direct_rate_pct),
-    staleRate: asNumber(record.stale_rate_pct),
-    topAgency: asString(record.top_agency_name),
-    topAgencyShare:
-      asNumber(record.top_agency_share_pct) ??
-      asNumber(record.top3_agency_share_pct) ??
-      asNumber(record.top_5_agency_share_pct),
-    confidence: formatLabel(asString(record.confidence_tier)),
-    action:
-      asString(record.recommended_action) ||
-      asString(record.pressure_action) ||
-      asString(record.recommended_use),
-    note:
-      asString(record.interpretation_note) ||
-      asString(record.explanation) ||
-      asString(record.product_note),
-  };
+    .replace(/\|+/g, " · ")
+    .replace(/\s+/g, " ")
+    .replace(/\s·\s·\s/g, " · ")
+    .trim();
 }
 
-// ─── Mini visual primitives ─────────────────────────────────────────────────
-function MiniBarRail({ count, tone }: { count?: number; tone: MetricTone }) {
-  const segments = 12;
-  const filled = Math.min(segments, Math.ceil((count ?? 0) / 1000));
-  const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
-  const bg = "rgba(255,255,255,0.08)";
-  return (
-    <div className="flex items-end gap-[2px] h-5 mt-1">
-      {Array.from({ length: segments }).map((_, i) => (
-        <div
-          key={i}
-          className="flex-1 rounded-[1px]"
-          style={{
-            height: `${8 + (i + 1) * 1.2}px`,
-            background: i < filled ? color : bg,
-            opacity: i < filled ? 0.7 : 0.25,
-          }}
-        />
-      ))}
-    </div>
-  );
+function buildPressureCardKey(record: Module5Record, idx: number, isUae: boolean): string {
+  const city = formatDisplayLabel(getStringField(record, ["city"]));
+  const community = formatDisplayLabel(getStringField(record, ["community_name", "community"]));
+  const buildingName = formatDisplayLabel(getStringField(record, ["building_name", "building"]));
+  const district = formatDisplayLabel(getStringField(record, ["district_name", "district"]));
+  const fallback = formatDisplayLabel(getStringField(record, ["market_key", "canonical_market_key", "card_title", "location_label", "area_name", "name"]));
+
+  const parts = isUae
+    ? [city, community, buildingName, fallback]
+    : [city, district, fallback];
+
+  const key = parts.filter(Boolean).join("-").toLowerCase();
+
+  return key || `pressure-area-${idx}`;
 }
-function MiniDotRow({ count, tone }: { count?: number; tone: MetricTone }) {
-  const dots = 10;
-  const active = Math.min(dots, Math.ceil((count ?? 0) / 500));
-  const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
-  return (
-    <div className="flex items-center gap-[3px] mt-1">
-      {Array.from({ length: dots }).map((_, i) => (
-        <div
-          key={i}
-          className="h-[4px] w-[4px] rounded-full"
-          style={{ background: i < active ? color : "rgba(255,255,255,0.08)" }}
-        />
-      ))}
-    </div>
-  );
+
+function formatPercent(value: number): string {
+  return `${value.toFixed(1)}%`;
 }
-function MiniSignalWave({ tone }: { tone: MetricTone }) {
-  const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
+
+// ─── Background Grid Pattern ──────────────────────────────────────────────
+function GridPattern() {
   return (
-    <svg width="44" height="16" viewBox="0 0 44 16" fill="none" aria-hidden="true" className="opacity-50 mt-1">
-      <path
-        d="M0 12 L4 10 L8 12 L12 6 L16 8 L20 4 L24 6 L28 2 L32 4 L36 1 L40 3 L44 0"
-        stroke={color}
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
-function AbstractGrid({ className }: { className?: string }) {
-  return (
-    <div className={`absolute inset-0 pointer-events-none overflow-hidden ${className ?? ""}`} aria-hidden="true">
-      <div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)
-          `,
-          backgroundSize: "18px 18px",
-        }}
-      />
+    <div className="absolute inset-0 pointer-events-none select-none opacity-[0.03]" style={{ zIndex: 0 }}>
+      <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="pressure-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M0 40V.5H40" fill="none" stroke="white" strokeWidth="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#pressure-grid)" />
+      </svg>
     </div>
   );
 }
 
-// ─── Empty state ────────────────────────────────────────────────────────────
-function EmptyPressureState({ country, message }: { country: CountryConfig; message: string }) {
-  const exportCmd =
-    country.slug === "uae"
-      ? "python tools\\export_uae_module5_frontend_data.py"
-      : "python tools\\export_ksa_module5_frontend_data.py";
-  return (
-    <div className="flex flex-col items-center justify-center px-4 py-24 text-center">
-      <div
-        className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border"
-        style={{ background: T.amBg, borderColor: T.amBdr }}
-      >
-        <Database className="h-6 w-6" style={{ color: T.am }} />
-      </div>
-      <h1 className="text-xl font-bold" style={{ color: T.t1 }}>
-        {country.label} Inventory Pressure not available
-      </h1>
-      <p className="mt-2 max-w-md text-[13px] leading-relaxed" style={{ color: T.t3 }}>
-        {message}
-      </p>
-      <div
-        className="mt-6 rounded-xl border px-5 py-4 text-left w-full max-w-md"
-        style={{ background: T.cardBg, borderColor: T.border }}
-      >
-        <p className="text-xs font-medium" style={{ color: T.t2 }}>
-          Generate local exports:
-        </p>
-        <code
-          className="mt-2 block rounded-lg p-3 text-xs"
-          style={{ background: "#000", color: T.emHi, fontFamily: "'DM Mono', monospace" }}
-        >
-          {exportCmd}
-        </code>
-      </div>
-    </div>
-  );
-}
+// ─── Components ─────────────────────────────────────────────────────────────
 
-// ─── KPI metric card ────────────────────────────────────────────────────────
-function MetricCard({
-  label,
-  value,
-  description,
-  tone = "neutral",
-  visual,
-}: {
-  label: string;
-  value: string;
-  description: string;
-  tone?: MetricTone;
-  visual?: "bars" | "dots" | "signal";
-}) {
-  const accentBorder =
-    tone === "emerald" ? T.emBdr : tone === "amber" ? T.amBdr : tone === "rose" ? T.rdBdr : "transparent";
-  const accentColor =
-    tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t4;
-  const numVal = parseInt(value.replace(/,/g, ""), 10) || 0;
-
-  return (
-    <div
-      className="relative rounded-2xl border p-5 transition-shadow hover:shadow-lg hover:shadow-black/20"
-      style={{
-        background: T.cardBg,
-        borderColor: T.border,
-        borderTopColor: accentBorder,
-        borderTopWidth: "2px",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.04)",
-      }}
-    >
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: accentColor }}>
-        {label}
-      </p>
-      <p
-        className="mt-2 font-bold tabular-nums leading-none"
-        style={{ color: T.t1, fontSize: "clamp(22px, 2.4vw, 34px)", letterSpacing: "-0.03em" }}
-      >
-        {value}
-      </p>
-      <div className="mt-1 mb-2">
-        {visual === "bars" && <MiniBarRail count={numVal} tone={tone} />}
-        {visual === "dots" && <MiniDotRow count={numVal} tone={tone} />}
-        {visual === "signal" && <MiniSignalWave tone={tone} />}
-      </div>
-      <p className="text-[12px] leading-relaxed" style={{ color: T.t3 }}>
-        {description}
-      </p>
-    </div>
-  );
-}
-
-// ─── Featured Pressure Pulse ────────────────────────────────────────────────
-function PressurePulse({
-  totalPressureMarkets,
-  priceDropCount,
-  staleCount,
-}: {
-  totalPressureMarkets: number;
-  priceDropCount: number;
-  staleCount: number;
-}) {
-  const insights = [
-    `${formatNumber(totalPressureMarkets)} markets with visible inventory pressure signals`,
-    `${formatNumber(priceDropCount)} records with directional price‑movement activity`,
-    `${formatNumber(staleCount)} records with aged inventory or slow‑moving supply indicators`,
-  ];
-
-  return (
-    <div
-      className="relative overflow-hidden rounded-2xl border"
-      style={{
-        background: `radial-gradient(circle at 20% 70%, rgba(245,158,11,0.04) 0%, transparent 40%), ${T.cardBg}`,
-        borderColor: T.border,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)",
-      }}
-    >
-      <AbstractGrid className="opacity-30" />
-      <div className="relative p-6 sm:p-7">
-        <div className="flex items-start gap-4">
-          <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
-            style={{ background: T.amBg, borderColor: T.amBdr }}
-          >
-            <Zap className="h-5 w-5" style={{ color: T.am }} />
-          </div>
-          <div>
-            <h2 className="text-[20px] font-bold tracking-tight" style={{ color: T.t1 }}>
-              Pressure Pulse
-            </h2>
-            <p className="mt-1 text-[13px]" style={{ color: T.t3 }}>
-              Directional pressure indicators from public listing activity.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          <div className="space-y-3">
-            {insights.map((insight, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span
-                  className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
-                  style={{ background: i === 0 ? T.am : i === 1 ? T.rd : T.t3 }}
-                />
-                <p className="text-[13px] leading-relaxed" style={{ color: T.t2 }}>
-                  {insight}
-                </p>
-              </div>
-            ))}
-          </div>
-          <div className="hidden sm:flex items-end gap-[3px] h-[80px] opacity-50" aria-hidden="true">
-            {Array.from({ length: 14 }).map((_, i) => {
-              const h =
-                i % 3 === 0
-                  ? 0.4 + (priceDropCount % 10) / 25
-                  : i % 3 === 1
-                    ? 0.3 + (staleCount % 10) / 35
-                    : 0.35 + (totalPressureMarkets % 10) / 30;
-              return (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t-[2px]"
-                  style={{
-                    height: `${Math.min(100, h * 100)}%`,
-                    background:
-                      i % 3 === 0
-                        ? `linear-gradient(to top, ${T.rd}30, ${T.rd}08)`
-                        : i % 3 === 1
-                          ? `linear-gradient(to top, ${T.am}30, ${T.am}08)`
-                          : `linear-gradient(to top, ${T.t3}20, transparent)`,
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Pressure Lane Card ─────────────────────────────────────────────────────
-function PressureLaneCard({
-  icon: Icon,
+function SnapshotCard({
   title,
   description,
-  statLabel,
-  statValue,
-  ctaHref,
-  ctaText,
-  tone = "amber",
+  value,
+  icon,
+  accentColor,
+  href,
+  ctaLabel,
+  disabled,
 }: {
-  icon: ElementType;
   title: string;
   description: string;
-  statLabel: string;
-  statValue: string;
-  ctaHref?: string;
-  ctaText: string;
-  tone?: "amber" | "rose" | "neutral";
+  value?: string | number;
+  icon: React.ReactNode;
+  accentColor: string;
+  href: string;
+  ctaLabel?: string;
+  disabled?: boolean;
 }) {
-  const accentColor = tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
-  const iconBg = tone === "amber" ? T.amBg : tone === "rose" ? T.rdBg : "rgba(255,255,255,0.04)";
-  const iconBdr = tone === "amber" ? T.amBdr : tone === "rose" ? T.rdBdr : T.border;
-  const iconClr = tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t2;
-
   return (
-    <div
-      className="flex flex-col rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/20"
+    <Link
+      href={disabled ? "#" : href}
+      className={`group relative flex flex-col h-full rounded-[16px] border p-5 transition-all duration-300 ${
+        disabled ? "opacity-60 cursor-not-allowed" : "hover:-translate-y-1 hover:shadow-lg"
+      }`}
       style={{
-        background: T.cardBg,
-        borderColor: T.border,
-        borderLeftWidth: "2px",
-        borderLeftColor: accentColor,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.04)",
+        background: "rgba(255, 255, 255, 0.015)",
+        borderColor: C.borderSub,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+        backdropFilter: "blur(12px)",
       }}
     >
-      <div className="flex-1 p-6">
-        <div className="flex items-start gap-4 mb-5">
+      {!disabled && (
+        <>
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
-            style={{ background: iconBg, borderColor: iconBdr }}
+            className="absolute top-0 left-0 right-0 h-[1.5px] opacity-0 group-hover:opacity-60 transition-all duration-300"
+            style={{ background: accentColor, boxShadow: `0 0 10px ${accentColor}` }}
+          />
+          <div
+            className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"
+            style={{ background: accentColor }}
+          />
+        </>
+      )}
+
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="flex items-start justify-between gap-3.5 mb-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-inner transition-colors duration-300"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+              borderColor: "rgba(255,255,255,0.1)",
+              color: disabled ? C.t4 : accentColor,
+            }}
           >
-            <Icon className="h-5 w-5" style={{ color: iconClr }} />
+            {icon}
           </div>
-          <div className="min-w-0">
-            <h3 className="text-base font-semibold" style={{ color: T.t1 }}>
-              {title}
-            </h3>
-            <p className="mt-1 text-[13px] leading-relaxed" style={{ color: T.t3 }}>
-              {description}
-            </p>
-          </div>
+          {value !== undefined && (
+            <span className="text-[18px] font-black tabular-nums tracking-tight text-white mt-1">
+              {value}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex-1 min-w-0 mb-3">
+          <h3 className="text-[15px] font-bold tracking-tight text-white flex items-center gap-2 mb-1">
+            {title}
+            {disabled && (
+              <span className="text-[9px] uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded shadow-inner">
+                Limited
+              </span>
+            )}
+          </h3>
+          <p className="text-[13px] leading-relaxed font-medium" style={{ color: C.t3 }}>
+            {description}
+          </p>
         </div>
 
-        <div
-          className="flex items-center justify-between rounded-xl border px-4 py-3 mb-5"
-          style={{ background: T.wellBg, borderColor: T.border }}
+        <div 
+          className="mt-auto flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-transform group-hover:translate-x-0.5" 
+          style={{ color: disabled ? C.t4 : accentColor }}
         >
-          <span className="text-[11px] font-medium" style={{ color: T.t4 }}>
-            {statLabel}
-          </span>
-          <span className="text-lg font-bold tabular-nums" style={{ color: T.t1, letterSpacing: "-0.025em" }}>
-            {statValue}
-          </span>
-        </div>
-
-        {/* Mini preview strip */}
-        <div className="flex items-end gap-[2px] h-6 opacity-35" aria-hidden="true">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex-1 rounded-t-[2px]"
-              style={{
-                height: `${14 + (i % 4) * 6}px`,
-                background: accentColor,
-              }}
-            />
-          ))}
+          {disabled ? "Unavailable" : ctaLabel ?? "Review Area"}
+          <ArrowRight className="h-3 w-3" />
         </div>
       </div>
-
-      <div className="border-t px-6 py-3.5" style={{ borderColor: T.borderFt }}>
-        {ctaHref ? (
-          <Link
-            href={ctaHref}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-opacity hover:opacity-75"
-            style={{ color: tone === "neutral" ? T.t2 : accentColor }}
-          >
-            {ctaText}
-            <ArrowRight className="h-3 w-3" />
-          </Link>
-        ) : (
-          <span className="text-[13px] font-medium cursor-not-allowed" style={{ color: T.t4 }}>
-            {ctaText}
-          </span>
-        )}
-      </div>
-    </div>
+    </Link>
   );
 }
 
-// ─── Pressure Watchlist Card ────────────────────────────────────────────────
-function PressureWatchCard({ card }: { card: PressureCard }) {
-  const pressureLevel =
-    card.pressureLabel?.toLowerCase() ?? "";
-  const isHigh =
-    pressureLevel.includes("high") ||
-    pressureLevel.includes("elevated") ||
-    pressureLevel.includes("critical");
-  const isMedium = pressureLevel.includes("moderate") || pressureLevel.includes("medium");
-
-  const accentColor = isHigh ? T.rd : isMedium ? T.am : T.t3;
-  const badgeBg = isHigh ? T.rdBg : isMedium ? T.amBg : "rgba(255,255,255,0.04)";
-  const badgeBdr = isHigh ? T.rdBdr : isMedium ? T.amBdr : T.border;
-  const badgeText = isHigh ? T.rd : isMedium ? T.am : T.t4;
-
+function IntelligencePanel({
+  title,
+  purpose,
+  agentUseText,
+  chips,
+  icon,
+  accentColor,
+  primaryCta,
+}: {
+  title: string;
+  purpose: string;
+  agentUseText: string;
+  chips: string[];
+  icon: React.ReactNode;
+  accentColor: string;
+  primaryCta: { label: string; href: string };
+}) {
   return (
-    <div
-      className="flex items-center gap-4 rounded-xl border px-4 py-3 transition-colors hover:bg-white/[0.03]"
-      style={{ background: T.cardBg, borderColor: T.border }}
+    <article
+      className="relative overflow-hidden rounded-[20px] border shadow-md"
+      style={{
+        background: "linear-gradient(135deg, rgba(24,24,27,0.4) 0%, rgba(9,9,11,0.6) 100%)",
+        borderColor: C.border,
+        backdropFilter: "blur(12px)",
+      }}
     >
       <div
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
-        style={{ background: badgeBg, borderColor: badgeBdr }}
-      >
-        <TrendingDown className="h-4 w-4" style={{ color: accentColor }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold truncate" style={{ color: T.t1 }}>
-          {card.location}
-        </p>
-        <div className="flex flex-wrap gap-2 mt-0.5">
-          {card.marketType && (
-            <span className="text-[11px]" style={{ color: T.t4 }}>
-              {card.marketType}
-            </span>
-          )}
-          {card.pressureLabel && (
-            <span
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
-              style={{ background: badgeBg, color: badgeText, border: `1px solid ${badgeBdr}` }}
-            >
-              {card.pressureLabel}
-            </span>
-          )}
+        className="absolute top-0 left-0 w-1.5 h-full opacity-80"
+        style={{ background: accentColor }}
+      />
+      <div
+        className="absolute top-0 left-0 w-64 h-64 rounded-full blur-[80px] pointer-events-none opacity-10"
+        style={{ background: accentColor }}
+      />
+
+      <div className="relative z-10 p-5 sm:p-7 flex flex-col md:flex-row md:items-center gap-5 md:gap-8">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="p-2 rounded-lg bg-white/5 border border-white/10" style={{ color: accentColor }}>
+              {icon}
+            </div>
+            <h2 className="text-[18px] sm:text-[22px] font-extrabold tracking-tight text-white">
+              {title}
+            </h2>
+          </div>
+
+          <p className="text-[13.5px] leading-relaxed font-medium mb-3 pl-1" style={{ color: C.t2 }}>
+            {purpose}
+          </p>
+          
+          <div className="flex flex-wrap gap-2 mb-3.5 pl-1">
+            {chips.map((chip) => (
+              <span 
+                key={chip} 
+                className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md shadow-sm" 
+                style={{ 
+                  color: accentColor, 
+                  background: "rgba(255,255,255,0.03)", 
+                  border: "1px solid rgba(255,255,255,0.06)" 
+                }}
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+          
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-black/20 border border-white/5 shadow-inner">
+            <div className="h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" style={{ background: accentColor, boxShadow: `0 0 8px ${accentColor}` }} />
+            <p className="text-[13px] leading-relaxed font-medium" style={{ color: C.t3 }}>
+              <span className="text-white font-bold mr-1.5">Agent Workflow:</span>
+              {agentUseText}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2.5 md:min-w-[180px] shrink-0 mt-2 md:mt-0">
+          <Link
+            href={primaryCta.href}
+            className="flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-[13px] font-bold text-white transition-all hover:opacity-90 hover:-translate-y-px shadow-sm"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}
+          >
+            {primaryCta.label}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </div>
-      <div className="flex items-center gap-4 text-right shrink-0">
-        {card.activeListings !== null && (
-          <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
-              Listings
-            </p>
-            <p className="text-sm font-bold tabular-nums" style={{ color: T.t1 }}>
-              {formatNumber(card.activeListings)}
-            </p>
-          </div>
-        )}
-        {card.pressureScore !== null && (
-          <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
-              Score
-            </p>
-            <p className="text-sm font-bold tabular-nums" style={{ color: accentColor }}>
-              {formatNumber(card.pressureScore)}
-            </p>
-          </div>
-        )}
-        {card.priceDropRate !== null && (
-          <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
-              Drop %
-            </p>
-            <p className="text-sm font-bold tabular-nums" style={{ color: T.rd }}>
-              {formatPercent(card.priceDropRate)}
-            </p>
-          </div>
-        )}
-      </div>
+    </article>
+  );
+}
+
+function MetricPill({ 
+  label, 
+  value, 
+  tone = "neutral", 
+  truncate = false 
+}: { 
+  label: string; 
+  value: string | number; 
+  tone?: "neutral" | "rd" | "am" | "cy";
+  truncate?: boolean;
+}) {
+  const colors = {
+    neutral: { text: C.t1, bg: "rgba(255,255,255,0.03)", border: C.borderSub },
+    rd: { text: C.rdHi, bg: "rgba(244,63,94,0.1)", border: "rgba(244,63,94,0.2)" },
+    am: { text: C.amHi, bg: "rgba(251,191,36,0.1)", border: "rgba(251,191,36,0.2)" },
+    cy: { text: C.cyHi, bg: "rgba(34,211,238,0.1)", border: "rgba(34,211,238,0.2)" },
+  };
+  const c = colors[tone];
+
+  return (
+    <div className="flex flex-col gap-0.5 rounded-lg px-2.5 py-1.5 border" style={{ background: c.bg, borderColor: c.border }}>
+      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: C.t4 }}>{label}</span>
+      <span 
+        className={`text-[12px] font-bold tabular-nums ${truncate ? "max-w-[110px] truncate" : ""}`} 
+        style={{ color: c.text }} 
+        title={typeof value === 'string' ? value : undefined}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
-// ─── Data confidence footer ─────────────────────────────────────────────────
-function DataConfidenceFooter({
-  exportedAt,
-  sourceCount,
-}: {
-  exportedAt?: string | null;
-  sourceCount?: number;
-}) {
-  if (!exportedAt && !sourceCount) return null;
-  const formattedTime = exportedAt
-    ? new Date(exportedAt).toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : null;
+function PressureAreaCard({ card, idx, isUae, routeBase }: { card: Module5Record; idx: number; isUae: boolean; routeBase: string }) {
+  const city = formatDisplayLabel(getStringField(card, ["city"]));
+  const community = formatDisplayLabel(getStringField(card, ["community_name", "community"]));
+  const buildingName = formatDisplayLabel(getStringField(card, ["building_name", "building"]));
+  const district = formatDisplayLabel(getStringField(card, ["district_name", "district"]));
+  const fallbackTitle = formatDisplayLabel(getStringField(card, ["card_title", "location_label", "area_name", "name"]) || "Area");
+
+  let title = fallbackTitle;
+  let context = "";
+  let typeLabel = "Area";
+
+  if (isUae) {
+    if (buildingName) {
+      typeLabel = "Building";
+      title = buildingName;
+      context = [city, community].filter(Boolean).join(" · ");
+    } else if (community) {
+      typeLabel = "Community";
+      title = community;
+      context = city;
+    }
+  } else {
+    if (district) {
+      typeLabel = "District";
+      title = district;
+      context = city;
+    } else {
+      typeLabel = "District";
+    }
+  }
+
+  const rank = idx + 1;
+
+  // Metrics extraction
+  const pressureScore = getNumberField(card, ["inventory_pressure_score"]);
+  const activeSupply = getNumberField(card, ["active_listings"]);
+  const avgDropPct = getNumberField(card, ["avg_drop_pct"]);
+  const priceDropRate = getNumberField(card, ["price_drop_rate_pct"]);
+  const refreshPressure = getNumberField(card, ["refresh_inflated_rate_pct", "refresh_rate_pct"]);
+  const ownerDirect = getNumberField(card, ["owner_direct_rate_pct"]);
+  const topAgency = getStringField(card, ["top_agency_name"]);
+
+  // Action / Reason Line
+  const reason = getStringField(card, [
+    "recommended_action",
+    "pressure_action",
+    "pressure_reason",
+    "interpretation_note",
+    "dashboard_use_case",
+    "product_note"
+  ]) || "Visible public listing activity suggests this area should be monitored.";
+
+  const reviewHref = isUae && typeLabel === "Building" ? `${routeBase}/buildings` : `${routeBase}/communities`;
+  const reviewLabel = isUae && typeLabel === "Building" ? "Review in Buildings" : "Review in Communities";
+
   return (
-    <div
-      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-5 py-3 text-[11px]"
-      style={{ background: "rgba(255,255,255,0.015)", borderColor: T.borderFt, color: T.t4 }}
+    <article
+      className="group relative flex flex-col rounded-[20px] border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      style={{
+        background: "rgba(255, 255, 255, 0.015)",
+        borderColor: C.borderSub,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.02)",
+        backdropFilter: "blur(12px)",
+      }}
     >
-      {formattedTime && (
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: T.em }} />
-          Synced {formattedTime}
+      <div 
+        className="absolute top-0 left-0 right-0 h-[1.5px] opacity-0 group-hover:opacity-50 transition-all duration-300" 
+        style={{ background: C.amHi, boxShadow: `0 0 10px ${C.amHi}` }} 
+      />
+
+      <div className="p-5 sm:p-6 flex flex-col flex-1">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <span 
+            className="inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest leading-none shadow-sm"
+            style={{
+              color: C.t2,
+              background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+              borderColor: "rgba(255,255,255,0.15)",
+            }}
+          >
+            {typeLabel}
+          </span>
+          <span
+            className="rounded px-1.5 py-[3px] text-[9px] font-extrabold uppercase tracking-widest"
+            style={{ color: C.amHi, background: "rgba(245,158,11,0.1)", border: `1px solid rgba(245,158,11,0.2)` }}
+          >
+            #{rank}
+          </span>
         </div>
-      )}
-      {sourceCount !== undefined && (
-        <div className="flex items-center gap-1.5">
-          <Database className="h-3 w-3" style={{ color: T.t4 }} />
-          {sourceCount} data exports loaded
+
+        <h3 className="line-clamp-2 text-[18px] font-extrabold text-white tracking-tight mb-1">
+          {title}
+        </h3>
+        {context && (
+          <p className="text-[12px] font-bold mb-4" style={{ color: C.t4 }}>
+            {context}
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          {pressureScore !== undefined && <MetricPill label="Pressure Score" value={pressureScore.toFixed(1)} tone="am" />}
+          {activeSupply !== undefined && <MetricPill label="Active Supply" value={formatNumber(activeSupply)} />}
+          {avgDropPct !== undefined && <MetricPill label="Avg Drop" value={formatPercent(avgDropPct)} tone="rd" />}
+          {priceDropRate !== undefined && avgDropPct === undefined && <MetricPill label="Price Drop Rate" value={formatPercent(priceDropRate)} tone="rd" />}
+          {refreshPressure !== undefined && <MetricPill label="Refresh Pressure" value={formatPercent(refreshPressure)} tone="am" />}
+          {ownerDirect !== undefined && <MetricPill label="Owner/Direct" value={formatPercent(ownerDirect)} tone="cy" />}
+          {topAgency && <MetricPill label="Top Agency" value={topAgency} truncate />}
         </div>
-      )}
-      <div className="ml-auto flex items-center gap-1.5">
-        <ShieldCheck className="h-3 w-3" style={{ color: T.t4 }} />
-        Dashboard‑safe pressure view
+
+        <div className="rounded-xl p-3 mb-5 border shadow-inner" style={{ background: "rgba(0,0,0,0.2)", borderColor: C.borderSub }}>
+          <p className="text-[12.5px] leading-relaxed font-medium" style={{ color: C.t2 }}>
+            {reason}
+          </p>
+        </div>
+
+        <div className="mt-auto pt-4 border-t" style={{ borderColor: C.borderSub }}>
+          <Link
+            href={reviewHref}
+            className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider transition-transform group-hover:translate-x-0.5" 
+            style={{ color: C.amHi }}
+          >
+            {reviewLabel}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -642,208 +463,330 @@ function DataConfidenceFooter({
 export default function InventoryPressurePage({
   country,
   data,
-}: InventoryPressurePageProps) {
-  if (data.status !== "ready" || !data.manifest) {
-    return <EmptyPressureState country={country} message={data.message} />;
-  }
-
+}: {
+  country: CountryConfig;
+  data: Module5DataResult;
+}) {
   const isUae = country.slug === "uae";
+  const isBuildingsDisabled = !!country.disabledSections?.["buildings"];
 
-  const payload =
-    isUae ? data.inventoryPressure : data.inventoryPressureLarge;
-
-  if (!payload || payload.status !== "ready" || payload.items.length === 0) {
-    return (
-      <EmptyPressureState
-        country={country}
-        message={`${country.label} Inventory Pressure export loaded, but no usable pressure records were available in the local frontend sample.`}
-      />
-    );
+  // 1. Source Fallback
+  let rawCards = (data.inventoryPressureLarge?.items ?? []) as Module5Record[];
+  if (rawCards.length === 0) {
+    rawCards = (data.inventoryPressure?.items ?? []) as Module5Record[];
   }
 
-  const cards: PressureCard[] = payload.items.map((record, index) =>
-    normalizePressureCard(country, record, index)
-  );
-  const visibleCards = cards.slice(0, 6);
+  const pressureSignalCards = (data.inventoryPressure?.items ?? []) as Module5Record[];
 
-  // ── Aggregate metrics ────────────────────────────────────────────────────
-  const totalPressureMarkets = payload.total_rows_available;
-  const priceDropCount = cards.filter(
-    (c) => c.priceDropRate !== null && c.priceDropRate > 0
-  ).length;
-  const staleCount = cards.filter(
-    (c) => c.staleRate !== null && c.staleRate > 0
-  ).length;
-  const highPressureCount = cards.filter((c) => {
-    const label = `${c.pressureLabel ?? ""} ${c.pressureReason ?? ""}`.toLowerCase();
-    return label.includes("high") || label.includes("elevated") || label.includes("critical");
-  }).length;
+  // 2. Dedupe & Filter
+  const validCards: Module5Record[] = [];
+  const seenKeys = new Set<string>();
 
-  const metricPressureMarkets = formatNumber(totalPressureMarkets);
-  const metricPriceMovement = formatNumber(priceDropCount);
-  const metricStaleSupply = formatNumber(staleCount);
-  const metricWatchlist = formatNumber(highPressureCount);
+  for (const card of rawCards) {
+    const city = getStringField(card, ["city"]);
+    const community = getStringField(card, ["community_name", "community"]);
+    const buildingName = getStringField(card, ["building_name", "building"]);
+    const district = getStringField(card, ["district_name", "district"]);
+    const fallbackTitle = getStringField(card, ["card_title", "location_label", "area_name", "name"]);
 
-  const exportTime = data.manifest.exported_at;
-  const sourceCount = Object.keys(data.manifest.exports).length;
-  const locationTerm = isUae ? "communities" : "cities/districts";
+    let mainTitle = "";
+    let dedupeKey = "";
+
+    if (isUae) {
+      dedupeKey = [city, community, buildingName].filter(Boolean).join("-").toLowerCase();
+      mainTitle = buildingName || community || fallbackTitle || "";
+    } else {
+      dedupeKey = [city, district].filter(Boolean).join("-").toLowerCase();
+      mainTitle = district || fallbackTitle || "";
+    }
+
+    const cleanTitle = formatDisplayLabel(mainTitle).toLowerCase();
+    
+    // Filter out generic placeholders
+    if (!cleanTitle || cleanTitle === "market area" || cleanTitle === "area") {
+      continue;
+    }
+
+    if (!dedupeKey) {
+      const typeLabel = getStringField(card, ["card_subtype", "property_type", "location_type", "type", "category"]) || "default";
+      dedupeKey = `${cleanTitle}-${typeLabel.toLowerCase()}`;
+    }
+
+    if (!seenKeys.has(dedupeKey)) {
+      seenKeys.add(dedupeKey);
+      validCards.push(card);
+    }
+  }
+
+  // 3. Sort logic
+  const sortedCards = [...validCards].sort((a, b) => {
+    const scoreA = getNumberField(a, ["inventory_pressure_score"]) ?? 0;
+    const scoreB = getNumberField(b, ["inventory_pressure_score"]) ?? 0;
+
+    if (scoreB !== scoreA) return scoreB - scoreA;
+
+    const listingsA = getNumberField(a, ["active_listings"]) ?? 0;
+    const listingsB = getNumberField(b, ["active_listings"]) ?? 0;
+
+    return listingsB - listingsA;
+  });
+
+  // Metrics
+  const metricTotalPressureAreas = validCards.length;
+  const metricTotalPressureSignals = pressureSignalCards.length > 0 ? pressureSignalCards.length : rawCards.length;
+
+  const visibleCards = sortedCards.slice(0, 12); // Limit to top 12
 
   return (
-    <div className="space-y-6">
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div
-            className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
-            style={{ color: T.am, background: T.amBg, borderColor: T.amBdr }}
-          >
-            <Gauge className="h-3 w-3" />
-            {country.label} Inventory Pressure
-          </div>
-          <h1
-            className="text-3xl font-bold tracking-tight sm:text-4xl"
-            style={{ color: T.t1, letterSpacing: "-0.03em" }}
-          >
-            Inventory Pressure
-          </h1>
-          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed" style={{ color: T.t2 }}>
-            Track where public listing supply, aged activity, and price movement are building pressure.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <span
-            className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
-            style={{ color: T.t2, background: T.wellBg, borderColor: T.border }}
-          >
-            {country.label}
-          </span>
-          <span
-            className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
-            style={{ fontFamily: "'DM Mono', monospace", color: T.t3, background: T.wellBg, borderColor: T.border }}
-          >
-            {country.currency}
-          </span>
-          <span
-            className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium"
-            style={{ color: T.emHi, background: T.emBg, borderColor: T.emBdr }}
-          >
-            <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: T.em }} />
-            Live
-          </span>
-        </div>
-      </div>
-
-      {/* ── KPI row ─────────────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Pressure Markets"
-          value={metricPressureMarkets}
-          description={`Active ${locationTerm} with visible inventory pressure signals.`}
-          tone="amber"
-          visual="bars"
-        />
-        <MetricCard
-          label="Price Movement"
-          value={metricPriceMovement}
-          description="Records with directional price‑movement activity."
-          tone="rose"
-          visual="dots"
-        />
-        <MetricCard
-          label="Aged Supply"
-          value={metricStaleSupply}
-          description="Records with aged or slow‑moving inventory signals."
-          tone="amber"
-          visual="signal"
-        />
-        <MetricCard
-          label="Watchlist Items"
-          value={metricWatchlist}
-          description="Markets with high or elevated pressure designation."
-          tone={highPressureCount === 0 ? "neutral" : "rose"}
-          visual="bars"
-        />
-      </div>
-
-      {/* ── Featured Pressure Pulse ─────────────────────────────────────── */}
-      <PressurePulse
-        totalPressureMarkets={totalPressureMarkets}
-        priceDropCount={priceDropCount}
-        staleCount={staleCount}
-      />
-
-      {/* ── Pressure Lanes ──────────────────────────────────────────────── */}
-      <div className="grid gap-5 md:grid-cols-3">
-        <PressureLaneCard
-          icon={Building2}
-          title="Inventory Build‑up"
-          description={`Active public listing volume and agency concentration in visible pressure ${locationTerm}.`}
-          statLabel="Pressure markets"
-          statValue={metricPressureMarkets}
-          ctaHref={`${country.routeBase}/market-intelligence`}
-          ctaText="View market intelligence"
-          tone="amber"
-        />
-        <PressureLaneCard
-          icon={TrendingDown}
-          title="Price Movement"
-          description="Markets where price reductions are visible in public listing activity."
-          statLabel="Records with drops"
-          statValue={metricPriceMovement}
-          ctaHref={`${country.routeBase}/price-drops`}
-          ctaText="View price drops"
-          tone="rose"
-        />
-        <PressureLaneCard
-          icon={Activity}
-          title="Aged / Refresh Pressure"
-          description="Markets with elevated refresh behaviour or aged supply signals."
-          statLabel="Aged indicators"
-          statValue={metricStaleSupply}
-          ctaHref={`${country.routeBase}/listing-age`}
-          ctaText="View listing age"
-          tone="amber"
-        />
-      </div>
-
-      {/* ── Pressure Watchlist ──────────────────────────────────────────── */}
-      {visibleCards.length > 0 && (
-        <div
-          className="rounded-2xl border p-6"
-          style={{ background: T.cardBg, borderColor: T.border, boxShadow: "0 2px 10px rgba(0,0,0,0.22)" }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-bold" style={{ color: T.t1 }}>
-                Pressure Watchlist
-              </h3>
-              <p className="mt-1 text-[13px]" style={{ color: T.t3 }}>
-                Top {visibleCards.length} {isUae ? "communities/buildings" : "cities/districts"} with visible pressure signals.
-              </p>
-            </div>
+    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+      
+      {/* ── 1. Hero Section ─────────────────────────────────────────────── */}
+      <section
+        className="relative rounded-[28px] border overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, rgba(24,24,27,0.7) 0%, rgba(9,9,11,0.9) 100%)",
+          borderColor: "rgba(255,255,255,0.06)",
+          boxShadow: "0 24px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        <GridPattern />
+        
+        {/* Ambient hero glows */}
+        <div className="absolute top-0 left-1/3 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-1/2" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-red-500/10 rounded-full blur-[100px] pointer-events-none translate-y-1/2" />
+        
+        <div className="relative z-10 p-8 sm:p-12 lg:p-16">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
             <span
-              className="rounded-full border px-3 py-1 text-[11px] font-medium"
-              style={{ color: T.t4, background: T.wellBg, borderColor: T.border }}
+              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] rounded-full px-4 py-1.5 shadow-sm"
+              style={{ color: C.amHi, background: "rgba(251,191,36,0.1)", border: `1px solid rgba(251,191,36,0.2)` }}
             >
-              {formatNumber(totalPressureMarkets)} total
+              <Gauge className="h-3.5 w-3.5" />
+              Supply Pressure
             </span>
           </div>
-          <div className="space-y-2">
-            {visibleCards.map((card) => (
-              <PressureWatchCard key={card.id} card={card} />
+
+          <h1 className="text-[38px] sm:text-[48px] lg:text-[56px] font-extrabold leading-[1.1] tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-100 to-zinc-400 drop-shadow-sm">
+            Where Supply Is Building Pressure.
+          </h1>
+          
+          <p className="max-w-2xl text-[16px] sm:text-[18px] leading-[1.6] font-medium" style={{ color: C.t2 }}>
+            Track public listing supply, price movement, and aged inventory signals across markets, communities, and buildings.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center gap-3.5">
+            <Link
+              href="#pressure-areas"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3.5 text-[14px] font-bold text-black transition-all hover:scale-[1.02]"
+              style={{ 
+                background: "linear-gradient(180deg, #fcd34d 0%, #fbbf24 100%)", 
+                boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4), 0 8px 24px rgba(245,158,11,0.25)" 
+              }}
+            >
+              Review Pressure Areas
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            
+            <Link
+              href={`${country.routeBase}/activity-feed`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Recent Market Movement
+            </Link>
+
+            <Link
+              href={`${country.routeBase}/communities`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Communities to Monitor
+            </Link>
+
+            <Link
+              href={isBuildingsDisabled ? "#" : `${country.routeBase}/buildings`}
+              className={`inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all ${isBuildingsDisabled ? "opacity-50 cursor-not-allowed" : "hover:bg-white/[0.08]"}`}
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Buildings to Monitor
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 2. Today's Focus (Summary Cards) ────────────────────────────── */}
+      <section>
+        <div className="mb-4 flex items-center gap-3 px-1">
+          <Activity className="h-5 w-5" style={{ color: C.amHi }} />
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white">
+            Today's Pressure Focus
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SnapshotCard
+            title="Pressure Areas"
+            value={formatNumber(metricTotalPressureAreas)}
+            description="Track areas with dense visible supply."
+            icon={<MapPinned className="h-5 w-5" />}
+            accentColor={C.amHi}
+            href="#pressure-areas"
+            ctaLabel="View Areas"
+          />
+          <SnapshotCard
+            title="Pressure Signals"
+            value={formatNumber(metricTotalPressureSignals)}
+            description="Monitor active public listing pressure signals."
+            icon={<Gauge className="h-5 w-5" />}
+            accentColor={C.emHi}
+            href="#pressure-areas"
+            ctaLabel="Review Signals"
+          />
+          <SnapshotCard
+            title="Price Movement"
+            description="Review areas with active repricing signals."
+            icon={<TrendingDown className="h-5 w-5" />}
+            accentColor={C.rdHi}
+            href="#pressure-areas"
+            ctaLabel="Check Repricing"
+          />
+          <SnapshotCard
+            title="Aged Inventory"
+            description="Monitor older listings with accumulating pressure."
+            icon={<Clock className="h-5 w-5" />}
+            accentColor={C.cyHi}
+            href="#pressure-areas"
+            ctaLabel="Find Aged Supply"
+          />
+        </div>
+      </section>
+
+      {/* ── 3. Supply Pressure Intelligence Panels ──────────────────────── */}
+      <section className="space-y-4">
+        <div className="mb-5 flex items-center gap-3 px-1 pt-2">
+          <Layers className="h-5 w-5" style={{ color: C.t3 }} />
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white">
+            Supply Pressure Intelligence
+          </h2>
+        </div>
+
+        <IntelligencePanel
+          title="Crowded Supply"
+          purpose="Find markets, communities, and buildings where active public listing volume suggests supply crowding."
+          agentUseText="Use this to identify areas where sellers may face high competition or need better positioning."
+          chips={["Crowded supply", "High volume", "Active listings"]}
+          icon={<AlertTriangle className="h-5 w-5" />}
+          accentColor={C.amHi}
+          primaryCta={{ label: "View Crowded Areas", href: "#pressure-areas" }}
+        />
+
+        <IntelligencePanel
+          title="Repricing Pressure"
+          purpose="Highlight areas where public price movement and reductions suggest emerging pricing pressure."
+          agentUseText="Use this to spot motivated sellers, downward price trends, and negotiation opportunities."
+          chips={["Price movement", "Repricing", "Motivated sellers"]}
+          icon={<TrendingDown className="h-5 w-5" />}
+          accentColor={C.rdHi}
+          primaryCta={{ label: "Check Repricing Pressure", href: "#pressure-areas" }}
+        />
+
+        <IntelligencePanel
+          title="Aged Inventory"
+          purpose="Identify areas where older, slow-moving public listings may require closer attention or repricing."
+          agentUseText="Use this to find aged inventory that might present a farming opportunity or need a fresh approach."
+          chips={["Aged inventory", "Slow-moving", "Time on market"]}
+          icon={<Clock className="h-5 w-5" />}
+          accentColor={C.cyHi}
+          primaryCta={{ label: "Find Aged Supply", href: "#pressure-areas" }}
+        />
+      </section>
+
+      {/* ── 4. Main Pressure Areas Grid ─────────────────────────────────── */}
+      <section id="pressure-areas" className="scroll-mt-10 pt-4">
+        <div className="mb-5 flex items-center justify-between px-1">
+          <div className="flex items-center gap-3">
+            <Gauge className="h-5 w-5" style={{ color: C.amHi }} />
+            <h2 className="text-[16px] sm:text-[18px] font-bold tracking-tight text-white">
+              Ranked Pressure Areas
+            </h2>
+          </div>
+          <span 
+            className="hidden sm:inline-flex rounded-full border px-3 py-1 text-[11px] font-bold"
+            style={{ color: C.t3, background: "rgba(255,255,255,0.02)", borderColor: C.border }}
+          >
+            {formatNumber(metricTotalPressureAreas)} Tracked Areas
+          </span>
+        </div>
+
+        {visibleCards.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {visibleCards.map((card, idx) => (
+              <PressureAreaCard 
+                key={buildPressureCardKey(card, idx, isUae)} 
+                idx={idx} 
+                card={card} 
+                isUae={isUae} 
+                routeBase={country.routeBase} 
+              />
             ))}
           </div>
-          {cards.length > visibleCards.length && (
-            <p className="mt-3 text-center text-[12px]" style={{ color: T.t4 }}>
-              First {visibleCards.length} of {formatNumber(cards.length)} exported
+        ) : rawCards.length > 0 ? (
+          <div className="rounded-[20px] border p-12 text-center" style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}>
+            <p className="text-[15px] font-bold text-white">Pressure signals available — area labels incomplete</p>
+            <p className="mt-2 max-w-lg mx-auto text-[13px] font-medium" style={{ color: C.t4 }}>
+              This workspace snapshot contains pressure signals, but the area labels are not complete enough to display reliable location cards. Review the source export before using this section for outreach.
             </p>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="rounded-[20px] border p-12 text-center" style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}>
+            <p className="text-[15px] font-bold text-white">No pressure areas available</p>
+            <p className="mt-2 text-[13px] font-medium" style={{ color: C.t4 }}>
+              No pressure areas are available in this workspace snapshot.
+            </p>
+          </div>
+        )}
 
-      {/* ── Data confidence footer ───────────────────────────────────────── */}
-      <DataConfidenceFooter exportedAt={exportTime} sourceCount={sourceCount} />
+        {validCards.length > visibleCards.length && (
+          <p className="mt-6 text-center text-[13px] font-bold" style={{ color: C.t4 }}>
+            Showing top {visibleCards.length} of {formatNumber(validCards.length)} monitored areas
+          </p>
+        )}
+      </section>
+
+      {/* ── 5. Trust Strip ──────────────────────────────────────────────── */}
+      <section className="pt-4">
+        <div
+          className="flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-4 rounded-[16px] border px-6 py-4 shadow-sm"
+          style={{ 
+            background: "rgba(255,255,255,0.015)", 
+            borderColor: C.borderSub,
+            backdropFilter: "blur(10px)"
+          }}
+        >
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t2 }}>
+              <Globe2 className="h-3.5 w-3.5 opacity-70" style={{ color: C.t3 }} />
+              Public listing intelligence
+            </div>
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t1 }}>
+              <CheckCircle2 className="h-4 w-4 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" style={{ color: C.emHi }} />
+              Verify source before action
+            </div>
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t2 }}>
+              <ShieldCheck className="h-3.5 w-3.5 opacity-70" style={{ color: C.t3 }} />
+              Pressure is based on visible public listing activity
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2.5 text-[12px] font-bold tracking-wide" style={{ color: C.t3 }}>
+            <span className="uppercase tracking-widest text-[9px] text-zinc-300 bg-white/5 border border-white/10 px-2 py-1 rounded-md shadow-inner">
+              {country.currency}
+            </span>
+            {country.label} Workspace
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }

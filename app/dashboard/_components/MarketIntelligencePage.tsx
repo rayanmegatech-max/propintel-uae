@@ -276,7 +276,7 @@ function MarketPulse({
     insights.push(`${formatNumber(totalActiveMarkets)} locations with visible public listing signals ready for review`);
   }
   if (highPressureCount > 0) {
-    insights.push(`${formatNumber(highPressureCount)} markets showing directional inventory pressure indicators`);
+    insights.push(`${formatNumber(highPressureCount)} markets showing directional Supply Pressure indicators`);
   }
   if (activityEvents > 0) {
     insights.push(`${formatNumber(activityEvents)} recent activity events captured in this export`);
@@ -642,7 +642,7 @@ export default function MarketIntelligencePage({
           visual="dots"
         />
         <MetricCard
-          label="Inventory Pressure"
+          label="Supply Pressure"
           value={metricPressure}
           description="Markets where listing behavior suggests rising pressure."
           tone="amber"
@@ -683,7 +683,7 @@ export default function MarketIntelligencePage({
         />
         <IntelligenceLane
           icon={Gauge}
-          title="Inventory Pressure"
+          title="Supply Pressure"
           description="Markets with visible listing pressure, price drop activity, and opportunity density signals."
           statLabel="Pressure signals"
           statValue={metricPressure}

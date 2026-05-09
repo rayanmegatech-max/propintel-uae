@@ -801,7 +801,7 @@ export default function CommunitiesPage({ country, data }: CommunitiesPageProps)
         <MetricCard
           label="Pressure Signals"
           value={metricPressureSignals}
-          description="Records with inventory pressure scoring."
+          description="Records with Supply Pressure scoring."
           tone="amber"
           visual="dots"
         />
@@ -831,7 +831,7 @@ export default function CommunitiesPage({ country, data }: CommunitiesPageProps)
         />
         <LocationLaneCard
           icon={TrendingDown}
-          title="Inventory Pressure"
+          title="Supply Pressure"
           description="Pressure signals including price-drop rates, refresh activity, and opportunity density by location."
           statLabel="Pressure records"
           statValue={metricPressureSignals}

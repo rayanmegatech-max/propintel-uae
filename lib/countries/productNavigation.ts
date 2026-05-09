@@ -49,7 +49,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
     description:
       "Combined market intelligence view covering activity, pressure, buildings, and communities.",
     primaryUse:
-      "Track overall market movement and inventory pressure across macro and micro locations.",
+      "Track overall market movement and Supply Pressure across macro and micro locations.",
     navGroup: "MARKET",
   },
   {
@@ -122,7 +122,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
   },
   {
     slug: "inventory-pressure",
-    label: "Inventory Pressure",
+    label: "Supply Pressure",
     shortLabel: "Pressure",
     eyebrow: "Pressure Radar",
     description:

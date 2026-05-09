@@ -52,14 +52,14 @@ const RECON_METRICS: {
   { label: "Hot Leads",      value: "43K", sub: "Priority opportunities",  variant: "em"      },
   { label: "Price Drops",    value: "19K", sub: "Recent repricing signals", variant: "neutral" },
   { label: "Owner / Direct", value: "36K", sub: "Direct-style contacts",    variant: "neutral" },
-  { label: "Stale + Drops",  value: "13K", sub: "Aged inventory pressure",  variant: "am"      },
+  { label: "Stale + Drops",  value: "13K", sub: "Aged Supply Pressure",  variant: "am"      },
 ];
 
 const PRODUCT_LAYERS: { label: string; icon: React.ElementType }[] = [
   { label: "Owner / Direct",     icon: UserCheck   },
   { label: "Price Drops",        icon: TrendingDown },
   { label: "Listing Truth",      icon: ShieldCheck  },
-  { label: "Inventory Pressure", icon: Activity     },
+  { label: "Supply Pressure", icon: Activity     },
   { label: "Market Dominance",   icon: BarChart3    },
   { label: "Agency Footprint",   icon: Factory      },
 ];
