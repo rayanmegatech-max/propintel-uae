@@ -1,893 +1,951 @@
 // app/dashboard/_components/CommunitiesPage.tsx
+"use client";
+
 import Link from "next/link";
-import type { ElementType } from "react";
 import {
+  Activity,
   ArrowRight,
   Building2,
-  Database,
-  Eye,
-  MapPin,
+  CheckCircle2,
+  Globe2,
+  Layers,
+  MapPinned,
   ShieldCheck,
   TrendingDown,
+  Users,
 } from "lucide-react";
-import { formatNumber, formatPercent } from "@/lib/recon/formatters";
+import { formatNumber } from "@/lib/recon/formatters";
 import type { CountryConfig } from "@/lib/countries/countryConfig";
 import type { Module5DataResult, Module5Record } from "@/lib/data/module5";
 
-// ─── Design tokens (unified with other Module 5 pages) ────────────────────────
-const T = {
-  cardBg:  "#0c0c0e",
-  wellBg:  "#18181b",
-  border:  "rgba(255,255,255,0.07)",
-  borderFt:"rgba(255,255,255,0.04)",
-  t1: "#f4f4f5",
-  t2: "#a1a1aa",
-  t3: "#52525b",
-  t4: "#3f3f46",
-  em:    "#10b981",
-  emHi:  "#34d399",
-  emBg:  "rgba(16,185,129,0.08)",
-  emBdr: "rgba(16,185,129,0.2)",
-  am:    "#fbbf24",
-  amBg:  "rgba(245,158,11,0.06)",
-  amBdr: "rgba(245,158,11,0.14)",
-  rd:    "#fb7185",
-  rdBg:  "rgba(244,63,94,0.05)",
-  rdBdr: "rgba(244,63,94,0.12)",
+// ─── Design tokens ──────────────────────────────────────────────────────────
+const C = {
+  t1: "#ffffff",
+  t2: "#e4e4e7",
+  t3: "#a1a1aa",
+  t4: "#71717a",
+  em: "#10b981",
+  emHi: "#34d399",
+  cy: "#06b6d4",
+  cyHi: "#22d3ee",
+  am: "#fbbf24",
+  amHi: "#fcd34d",
+  rd: "#fb7185",
+  rdHi: "#f43f5e",
+  border: "rgba(255,255,255,0.06)",
+  borderSub: "rgba(255,255,255,0.04)",
 } as const;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-type CommunitiesPageProps = {
-  country: CountryConfig;
-  data: Module5DataResult;
-};
-
-type LocationCard = {
-  id: string;
-  rank: number | null;
-  location: string;
-  name: string;
-  city: string | null;
-  community: string | null;
-  district: string | null;
-  activeListings: number | null;
-  agencies: number | null;
-  avgPrice: number | null;
-  topAgency: string | null;
-  topAgencyShare: number | null;
-  concentration: string | null;
-  dominanceScore: number | null;
-  pressureScore: number | null;
-  pressureLabel: string | null;
-  intelligenceLabel: string | null;
-  confidence: string | null;
-};
-
-type MetricTone = "emerald" | "amber" | "rose" | "neutral";
-
-// ─── Data helpers (preserved from original) ───────────────────────────────────
-function asString(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-function asNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
+// ─── Type Helpers ─────────────────────────────────────────────────────────
+function getStringField(record: Module5Record, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const val = record[key];
+    if (typeof val === "string" && val.trim() !== "") {
+      return val.trim();
+    }
   }
-  return null;
+  return undefined;
 }
-function formatLabel(value: string | null): string | null {
-  if (!value) return null;
+
+function getNumberField(record: Module5Record, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const val = record[key];
+    if (typeof val === "number") {
+      return val;
+    }
+    if (typeof val === "string") {
+      const parsed = parseFloat(val);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return undefined;
+}
+
+// ─── Formatters ───────────────────────────────────────────────────────────
+function formatDisplayLabel(value: string | undefined): string {
+  if (!value) return "";
   return value
-    .replace(/_/g, " ")
-    .replace(/\s+/g, " ")
     .trim()
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-function joinParts(parts: Array<string | null | undefined>): string {
-  return parts.filter(Boolean).join(" · ");
-}
-
-function normalizeLocationCard(
-  country: CountryConfig,
-  record: Module5Record,
-  index: number
-): LocationCard {
-  const city = asString(record.city);
-  const community = asString(record.community);
-  const district =
-    asString(record.district_display_name) ?? asString(record.district);
-
-  // UAE uses community; KSA uses district
-  const name =
-    country.slug === "ksa"
-      ? district || city || "KSA district"
-      : community || city || "UAE community";
-
-  return {
-    id:
-      asString(record.market_key) ||
-      asString(record.canonical_market_key) ||
-      `${country.slug}-location-${index}`,
-    rank: asNumber(record.dashboard_rank),
-    location: joinParts([city, community ?? district]),
-    name,
-    city,
-    community,
-    district,
-    activeListings:
-      asNumber(record.active_listings) ?? asNumber(record.total_listings),
-    agencies:
-      asNumber(record.agencies) ??
-      asNumber(record.unique_agencies) ??
-      asNumber(record.total_agencies),
-    avgPrice: asNumber(record.avg_price),
-    topAgency: asString(record.top_agency_name),
-    topAgencyShare: asNumber(record.top_agency_share_pct),
-    concentration:
-      formatLabel(asString(record.concentration_label)) ||
-      formatLabel(asString(record.concentration_bucket)),
-    dominanceScore: asNumber(record.dominance_score),
-    pressureScore:
-      asNumber(record.inventory_pressure_score) ?? asNumber(record.pressure_score),
-    pressureLabel:
-      formatLabel(asString(record.pressure_label)) ||
-      formatLabel(asString(record.pressure_bucket)),
-    intelligenceLabel:
-      asString(record.intelligence_label) ||
-      formatLabel(asString(record.dashboard_card_type)) ||
-      formatLabel(asString(record.dashboard_use_case)),
-    confidence: formatLabel(asString(record.confidence_tier)),
-  };
+    .replace(/\|+/g, " · ")
+    .replace(/\s+/g, " ")
+    .replace(/\s·\s·\s/g, " · ")
+    .trim();
 }
 
-// ─── Mini visual primitives (consistent with other pages) ─────────────────────
-function MiniBarRail({ count, tone }: { count?: number; tone: MetricTone }) {
-  const segments = 12;
-  const filled = Math.min(segments, Math.ceil((count ?? 0) / 1000));
-  const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
-  const bg = "rgba(255,255,255,0.08)";
-  return (
-    <div className="flex items-end gap-[2px] h-5 mt-1">
-      {Array.from({ length: segments }).map((_, i) => (
-        <div
-          key={i}
-          className="flex-1 rounded-[1px]"
-          style={{
-            height: `${8 + (i + 1) * 1.2}px`,
-            background: i < filled ? color : bg,
-            opacity: i < filled ? 0.7 : 0.25,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-function MiniDotRow({ count, tone }: { count?: number; tone: MetricTone }) {
-  const dots = 10;
-  const active = Math.min(dots, Math.ceil((count ?? 0) / 500));
-  const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
-  return (
-    <div className="flex items-center gap-[3px] mt-1">
-      {Array.from({ length: dots }).map((_, i) => (
-        <div
-          key={i}
-          className="h-[4px] w-[4px] rounded-full"
-          style={{ background: i < active ? color : "rgba(255,255,255,0.08)" }}
-        />
-      ))}
-    </div>
-  );
-}
-function MiniSignalWave({ tone }: { tone: MetricTone }) {
-  const color = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
-  return (
-    <svg width="44" height="16" viewBox="0 0 44 16" fill="none" aria-hidden="true" className="opacity-50 mt-1">
-      <path
-        d="M0 12 L4 10 L8 12 L12 6 L16 8 L20 4 L24 6 L28 2 L32 4 L36 1 L40 3 L44 0"
-        stroke={color}
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
-function AbstractGrid({ className }: { className?: string }) {
-  return (
-    <div className={`absolute inset-0 pointer-events-none overflow-hidden ${className ?? ""}`} aria-hidden="true">
-      <div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)`,
-          backgroundSize: "18px 18px",
-        }}
-      />
-    </div>
-  );
+function formatPercent(value: number): string {
+  return `${value.toFixed(1)}%`;
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
-function EmptyState({ country, message }: { country: CountryConfig; message: string }) {
-  const exportCmd =
-    country.slug === "uae"
-      ? "python tools\\export_uae_module5_frontend_data.py"
-      : "python tools\\export_ksa_module5_frontend_data.py";
-  return (
-    <div className="flex flex-col items-center justify-center px-4 py-24 text-center">
-      <div
-        className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border"
-        style={{ background: T.amBg, borderColor: T.amBdr }}
-      >
-        <Database className="h-6 w-6" style={{ color: T.am }} />
-      </div>
-      <h1 className="text-xl font-bold" style={{ color: T.t1 }}>
-        {country.label} {country.slug === "ksa" ? "District" : "Community"} Intelligence not available
-      </h1>
-      <p className="mt-2 max-w-md text-[13px] leading-relaxed" style={{ color: T.t3 }}>
-        {message}
-      </p>
-      <div
-        className="mt-6 rounded-xl border px-5 py-4 text-left w-full max-w-md"
-        style={{ background: T.cardBg, borderColor: T.border }}
-      >
-        <p className="text-xs font-medium" style={{ color: T.t2 }}>
-          Generate local exports:
-        </p>
-        <code
-          className="mt-2 block rounded-lg p-3 text-xs"
-          style={{ background: "#000", color: T.emHi, fontFamily: "'DM Mono', monospace" }}
-        >
-          {exportCmd}
-        </code>
-      </div>
-    </div>
-  );
+function humanizeToken(value: string | undefined): string {
+  if (!value) return "";
+  const cleaned = value.replace(/[_|\-]/g, " ").replace(/\s+/g, " ").trim();
+  const words = cleaned.toLowerCase().split(" ");
+  const special = ["aed", "sar", "uae", "ksa", "hhi"];
+  return words
+    .map((w) => (special.includes(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(" ");
 }
 
-// ─── KPI metric card (elevated surface, absolute top accent bar) ──────────────
-function MetricCard({
-  label,
-  value,
-  description,
-  tone = "neutral",
-  visual,
-}: {
-  label: string;
-  value: string;
-  description: string;
-  tone?: MetricTone;
-  visual?: "bars" | "dots" | "signal";
-}) {
-  const accentColor = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t4;
-  const numVal = parseInt(value.replace(/,/g, ""), 10) || 0;
-
-  return (
-    <div
-      className="relative rounded-2xl border p-5 transition-shadow hover:shadow-lg hover:shadow-black/20"
-      style={{
-        background: T.cardBg,
-        borderColor: T.border,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05)",
-      }}
-    >
-      <span className="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl" style={{ background: accentColor }} />
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: accentColor }}>
-        {label}
-      </p>
-      <p
-        className="mt-2 font-bold tabular-nums leading-none"
-        style={{ color: T.t1, fontSize: "clamp(22px, 2.4vw, 34px)", letterSpacing: "-0.03em" }}
-      >
-        {value}
-      </p>
-      <div className="mt-1 mb-2">
-        {visual === "bars" && <MiniBarRail count={numVal} tone={tone} />}
-        {visual === "dots" && <MiniDotRow count={numVal} tone={tone} />}
-        {visual === "signal" && <MiniSignalWave tone={tone} />}
-      </div>
-      <p className="text-[12px] leading-relaxed" style={{ color: T.t3 }}>
-        {description}
-      </p>
-    </div>
-  );
+function formatCategoryLabel(value: string | undefined): string {
+  if (!value) return "All Categories";
+  if (value.toLowerCase() === "all") return "All Categories";
+  return humanizeToken(value);
 }
 
-// ─── Location Visibility Pulse featured card ──────────────────────────────────
-function LocationVisibilityPulse({
-  totalRows,
-  withPressure,
-  withDominance,
-}: {
-  totalRows: number;
-  withPressure: number;
-  withDominance: number;
-}) {
-  const insights = [
-    `${formatNumber(totalRows)} location records in this export`,
-    `${formatNumber(withPressure)} records with pressure signals`,
-    `${formatNumber(withDominance)} records with dominance or concentration context`,
+function buildLocationDedupeKey(record: Module5Record, isUae: boolean): string {
+  const marketKey = getStringField(record, ["market_key"]);
+  if (marketKey) return marketKey.toLowerCase();
+
+  const city = formatDisplayLabel(getStringField(record, ["city"]));
+  const loc = isUae
+    ? formatDisplayLabel(getStringField(record, ["community"]))
+    : formatDisplayLabel(getStringField(record, ["district"]));
+
+  const cat = formatDisplayLabel(getStringField(record, ["source_category", "market_level", "market_size_bucket"]));
+
+  return [city, loc, cat].filter(Boolean).join("-").toLowerCase();
+}
+
+function buildLocationDisplayKey(record: Module5Record, isUae: boolean): string {
+  const city = getStringField(record, ["city"]) || "";
+  const loc = isUae
+    ? getStringField(record, ["community"]) || ""
+    : getStringField(record, ["district"]) || "";
+  
+  return [city, loc].filter(Boolean).join(" ").toLowerCase().trim().replace(/\|+/g, " ").replace(/\s+/g, " ");
+}
+
+function getLocationSpecificityScore(record: Module5Record): number {
+  const category = getStringField(record, ["source_category", "market_level", "dashboard_level", "market_size_bucket"])?.toLowerCase() ?? "";
+  if (!category || category === "all") return 0;
+  if (category.includes("residential") || category.includes("commercial") || category.includes("rent") || category.includes("buy") || category.includes("short")) return 2;
+  return 1;
+}
+
+function isWeakActionText(value: string | undefined): boolean {
+  if (!value) return true;
+  const lower = value.toLowerCase();
+  const weakPhrases = [
+    "monitor community for future activity",
+    "monitor district for future activity",
+    "monitor location for future activity",
+    "use as market context",
+    "not a priority action list",
+    "canonical",
+    "dashboard intelligence",
+    "raw variants",
+    "v1.3"
   ];
+  return weakPhrases.some(phrase => lower.includes(phrase));
+}
 
+// ─── Background Grid Pattern ──────────────────────────────────────────────
+function GridPattern() {
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl border"
-      style={{
-        background: `radial-gradient(circle at 30% 60%, rgba(245,158,11,0.04) 0%, transparent 40%), ${T.cardBg}`,
-        borderColor: T.border,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)",
-      }}
-    >
-      <AbstractGrid className="opacity-30" />
-      <div className="relative p-6 sm:p-7">
-        <div className="flex items-start gap-4">
-          <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
-            style={{ background: T.amBg, borderColor: T.amBdr }}
-          >
-            <Eye className="h-5 w-5" style={{ color: T.am }} />
-          </div>
-          <div>
-            <h2 className="text-[20px] font-bold tracking-tight" style={{ color: T.t1 }}>
-              Location Visibility Pulse
-            </h2>
-            <p className="mt-1 text-[13px]" style={{ color: T.t3 }}>
-              Public listing coverage and concentration at community/district level.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          <div className="space-y-3">
-            {insights.map((insight, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span
-                  className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
-                  style={{ background: i === 0 ? T.am : i === 1 ? T.rd : T.t3 }}
-                />
-                <p className="text-[13px] leading-relaxed" style={{ color: T.t2 }}>
-                  {insight}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Abstract location density visual */}
-          <div className="hidden sm:flex items-end gap-[3px] h-[80px] opacity-50" aria-hidden="true">
-            {Array.from({ length: 14 }).map((_, i) => {
-              const h =
-                i % 3 === 0
-                  ? 0.5 + (withPressure % 10) / 20
-                  : i % 3 === 1
-                    ? 0.3 + (withDominance % 10) / 30
-                    : 0.35 + (totalRows % 10) / 35;
-              return (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t-[2px]"
-                  style={{
-                    height: `${Math.min(100, h * 100)}%`,
-                    background:
-                      i % 3 === 0
-                        ? `linear-gradient(to top, ${T.rd}30, ${T.rd}08)`
-                        : i % 3 === 1
-                          ? `linear-gradient(to top, ${T.t3}20, transparent)`
-                          : `linear-gradient(to top, ${T.am}30, ${T.am}08)`,
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-      </div>
+    <div className="absolute inset-0 pointer-events-none select-none opacity-[0.03]" style={{ zIndex: 0 }}>
+      <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="loc-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M0 40V.5H40" fill="none" stroke="white" strokeWidth="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#loc-grid)" />
+      </svg>
     </div>
   );
 }
 
-// ─── Location Lane Card (absolute left bar) ───────────────────────────────────
-function LocationLaneCard({
-  icon: Icon,
+// ─── Components ─────────────────────────────────────────────────────────────
+
+function SnapshotCard({
   title,
   description,
-  statLabel,
-  statValue,
-  ctaHref,
-  ctaText,
-  tone = "neutral",
+  value,
+  icon,
+  accentColor,
+  href,
+  ctaLabel,
+  disabled,
 }: {
-  icon: ElementType;
   title: string;
   description: string;
-  statLabel: string;
-  statValue: string;
-  ctaHref?: string;
-  ctaText: string;
-  tone?: MetricTone;
+  value?: string | number;
+  icon: React.ReactNode;
+  accentColor: string;
+  href: string;
+  ctaLabel?: string;
+  disabled?: boolean;
 }) {
-  const accentColor = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t3;
-  const iconBg =
-    tone === "emerald" ? T.emBg : tone === "amber" ? T.amBg : tone === "rose" ? T.rdBg : "rgba(255,255,255,0.04)";
-  const iconBdr =
-    tone === "emerald" ? T.emBdr : tone === "amber" ? T.amBdr : tone === "rose" ? T.rdBdr : T.border;
-  const iconClr = tone === "emerald" ? T.em : tone === "amber" ? T.am : tone === "rose" ? T.rd : T.t2;
-
   return (
-    <div
-      className="relative flex flex-col rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/20"
+    <Link
+      href={disabled ? "#" : href}
+      className={`group relative flex flex-col h-full rounded-[16px] border p-5 transition-all duration-300 ${
+        disabled ? "opacity-60 cursor-not-allowed" : "hover:-translate-y-1 hover:shadow-lg"
+      }`}
       style={{
-        background: T.cardBg,
-        borderColor: T.border,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.04)",
+        background: "rgba(255, 255, 255, 0.015)",
+        borderColor: C.borderSub,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+        backdropFilter: "blur(12px)",
       }}
     >
-      <span className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl" style={{ background: accentColor }} />
-      <div className="flex-1 p-6">
-        <div className="flex items-start gap-4 mb-5">
+      {!disabled && (
+        <>
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border"
-            style={{ background: iconBg, borderColor: iconBdr }}
+            className="absolute top-0 left-0 right-0 h-[1.5px] opacity-0 group-hover:opacity-60 transition-all duration-300"
+            style={{ background: accentColor, boxShadow: `0 0 10px ${accentColor}` }}
+          />
+          <div
+            className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"
+            style={{ background: accentColor }}
+          />
+        </>
+      )}
+
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="flex items-start justify-between gap-3.5 mb-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-inner transition-colors duration-300"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+              borderColor: "rgba(255,255,255,0.1)",
+              color: disabled ? C.t4 : accentColor,
+            }}
           >
-            <Icon className="h-5 w-5" style={{ color: iconClr }} />
+            {icon}
           </div>
-          <div className="min-w-0">
-            <h3 className="text-base font-semibold" style={{ color: T.t1 }}>
-              {title}
-            </h3>
-            <p className="mt-1 text-[13px] leading-relaxed" style={{ color: T.t3 }}>
-              {description}
-            </p>
-          </div>
+          {value !== undefined && (
+            <span className="text-[18px] font-black tabular-nums tracking-tight text-white mt-1">
+              {value}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex-1 min-w-0 mb-3">
+          <h3 className="text-[15px] font-bold tracking-tight text-white flex items-center gap-2 mb-1">
+            {title}
+            {disabled && (
+              <span className="text-[9px] uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded shadow-inner">
+                Limited
+              </span>
+            )}
+          </h3>
+          <p className="text-[13px] leading-relaxed font-medium" style={{ color: C.t3 }}>
+            {description}
+          </p>
         </div>
 
-        <div
-          className="flex items-center justify-between rounded-xl border px-4 py-3 mb-5"
-          style={{ background: T.wellBg, borderColor: T.border }}
+        <div 
+          className="mt-auto flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-transform group-hover:translate-x-0.5" 
+          style={{ color: disabled ? C.t4 : accentColor }}
         >
-          <span className="text-[11px] font-medium" style={{ color: T.t4 }}>
-            {statLabel}
-          </span>
-          <span className="text-lg font-bold tabular-nums" style={{ color: T.t1, letterSpacing: "-0.025em" }}>
-            {statValue}
-          </span>
-        </div>
-
-        <div className="flex items-end gap-[2px] h-6 opacity-35" aria-hidden="true">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex-1 rounded-t-[2px]"
-              style={{ height: `${14 + (i % 4) * 6}px`, background: accentColor }}
-            />
-          ))}
+          {disabled ? "Unavailable" : ctaLabel ?? "Open Workspace"}
+          <ArrowRight className="h-3 w-3" />
         </div>
       </div>
-
-      <div className="border-t px-6 py-3.5" style={{ borderColor: T.borderFt }}>
-        {ctaHref ? (
-          <Link
-            href={ctaHref}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-opacity hover:opacity-75"
-            style={{ color: tone === "neutral" ? T.t2 : accentColor }}
-          >
-            {ctaText}
-            <ArrowRight className="h-3 w-3" />
-          </Link>
-        ) : (
-          <span className="text-[13px] font-medium cursor-not-allowed" style={{ color: T.t4 }}>
-            {ctaText}
-          </span>
-        )}
-      </div>
-    </div>
+    </Link>
   );
 }
 
-// ─── Location Watchlist Row ───────────────────────────────────────────────────
-function LocationWatchCard({ card }: { card: LocationCard }) {
-  const pressureLevel = (card.pressureLabel ?? "").toLowerCase();
-  const isHigh = pressureLevel.includes("high") || pressureLevel.includes("elevated") || pressureLevel.includes("critical");
-  const isModerate = pressureLevel.includes("moderate") || pressureLevel.includes("medium");
-
-  const accentColor = isHigh ? T.rd : isModerate ? T.am : T.t3;
-  const badgeBg = isHigh ? T.rdBg : isModerate ? T.amBg : "rgba(255,255,255,0.04)";
-  const badgeBdr = isHigh ? T.rdBdr : isModerate ? T.amBdr : T.border;
-  const badgeText = isHigh ? T.rd : isModerate ? T.am : T.t4;
-
-  const locationHint = joinParts([card.city, card.community ?? card.district]);
-
+function IntelligencePanel({
+  title,
+  purpose,
+  agentUseText,
+  chips,
+  icon,
+  accentColor,
+  primaryCta,
+}: {
+  title: string;
+  purpose: string;
+  agentUseText: string;
+  chips: string[];
+  icon: React.ReactNode;
+  accentColor: string;
+  primaryCta: { label: string; href: string };
+}) {
   return (
-    <div
-      className="flex items-center gap-4 rounded-xl border px-4 py-3 transition-colors hover:bg-white/[0.03]"
-      style={{ background: T.cardBg, borderColor: T.border }}
+    <article
+      className="relative overflow-hidden rounded-[20px] border shadow-md"
+      style={{
+        background: "linear-gradient(135deg, rgba(24,24,27,0.4) 0%, rgba(9,9,11,0.6) 100%)",
+        borderColor: C.border,
+        backdropFilter: "blur(12px)",
+      }}
     >
       <div
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
-        style={{ background: badgeBg, borderColor: badgeBdr }}
-      >
-        <MapPin className="h-4 w-4" style={{ color: accentColor }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-semibold truncate" style={{ color: T.t1 }}>
-          {card.name}
-        </p>
-        <div className="flex flex-wrap gap-2 mt-0.5">
-          {locationHint && (
-            <span className="text-[11px]" style={{ color: T.t4 }}>
-              {locationHint}
-            </span>
-          )}
-          {card.intelligenceLabel && (
-            <span className="text-[11px]" style={{ color: T.t4 }}>
-              {card.intelligenceLabel}
-            </span>
-          )}
-          {card.pressureLabel && (
-            <span
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
-              style={{ background: badgeBg, color: badgeText, border: `1px solid ${badgeBdr}` }}
-            >
-              {card.pressureLabel}
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-4 text-right shrink-0">
-        {card.activeListings !== null && (
-          <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
-              Listings
-            </p>
-            <p className="text-sm font-bold tabular-nums" style={{ color: T.t1 }}>
-              {formatNumber(card.activeListings)}
-            </p>
-          </div>
-        )}
-        {card.pressureScore !== null && (
-          <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
-              Pressure
-            </p>
-            <p className="text-sm font-bold tabular-nums" style={{ color: accentColor }}>
-              {formatNumber(card.pressureScore)}
-            </p>
-          </div>
-        )}
-        {card.topAgencyShare !== null && (
-          <div className="hidden sm:block">
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: T.t4 }}>
-              Top Share
-            </p>
-            <p className="text-sm font-bold tabular-nums" style={{ color: T.t1 }}>
-              {formatPercent(card.topAgencyShare)}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Limited coverage state (if KSA has no district data) ────────────────────
-function LimitedCoverageKSA({ country }: { country: CountryConfig }) {
-  return (
-    <div className="rounded-2xl border p-6" style={{ background: T.cardBg, borderColor: T.border, boxShadow: "0 2px 10px rgba(0,0,0,0.22)" }}>
-      <div className="flex items-start gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" style={{ background: T.amBg, borderColor: T.amBdr }}>
-          <ShieldCheck className="h-5 w-5" style={{ color: T.am }} />
-        </div>
-        <div>
-          <h3 className="text-base font-semibold" style={{ color: T.t1 }}>
-            District intelligence coverage is limited for KSA
-          </h3>
-          <p className="mt-2 text-[13px] leading-relaxed" style={{ color: T.t3 }}>
-            KSA district-level data is not yet available in the current Module 5 export schema.
-            You can explore city-level intelligence or review market-wide activity.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href={`${country.routeBase}/market-intelligence`}
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-opacity hover:opacity-75"
-              style={{ color: T.am }}
-            >
-              View Market Intelligence
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-            <Link
-              href={`${country.routeBase}/communities`}
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-opacity hover:opacity-75"
-              style={{ color: T.t3 }}
-            >
-              View Cities
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Data confidence footer ───────────────────────────────────────────────────
-function DataConfidenceFooter({ exportedAt, sourceCount }: { exportedAt?: string | null; sourceCount?: number }) {
-  if (!exportedAt && !sourceCount) return null;
-  const formattedTime = exportedAt
-    ? new Date(exportedAt).toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : null;
-  return (
-    <div
-      className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-5 py-3 text-[11px]"
-      style={{ background: "rgba(255,255,255,0.015)", borderColor: T.borderFt, color: T.t4 }}
-    >
-      {formattedTime && (
-        <div className="flex items-center gap-1.5">
-          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: T.em }} />
-          Synced {formattedTime}
-        </div>
-      )}
-      {sourceCount !== undefined && (
-        <div className="flex items-center gap-1.5">
-          <Database className="h-3 w-3" style={{ color: T.t4 }} />
-          {sourceCount} data exports loaded
-        </div>
-      )}
-      <div className="ml-auto flex items-center gap-1.5">
-        <ShieldCheck className="h-3 w-3" style={{ color: T.t4 }} />
-        Dashboard‑safe location view
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
-export default function CommunitiesPage({ country, data }: CommunitiesPageProps) {
-  if (data.status !== "ready" || !data.manifest) {
-    return <EmptyState country={country} message={data.message} />;
-  }
-
-  const isUae = country.slug === "uae";
-  // UAE uses communityIntelligence; KSA uses districtIntelligence (or cityIntelligence if district absent)
-  const payload = isUae
-    ? data.communityIntelligence
-    : data.districtIntelligence ?? data.cityIntelligence;
-
-  const isLimitedKSA = country.slug === "ksa" && (!payload || payload.status !== "ready" || payload.items.length === 0);
-
-  if (country.slug === "ksa" && isLimitedKSA) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div
-              className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
-              style={{ color: T.am, background: T.amBg, borderColor: T.amBdr }}
-            >
-              <Building2 className="h-3 w-3" />
-              {country.label} Districts
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: T.t1, letterSpacing: "-0.03em" }}>
-              {isUae ? "Community Intelligence" : "City / District Intelligence"}
-            </h1>
-            <p className="mt-2 max-w-2xl text-[14px] leading-relaxed" style={{ color: T.t2 }}>
-              District‑level intelligence is staged for KSA. Current data covers cities and districts.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <span
-              className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
-              style={{ color: T.t2, background: T.wellBg, borderColor: T.border }}
-            >
-              {country.label}
-            </span>
-            <span
-              className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
-              style={{ fontFamily: "'DM Mono', monospace", color: T.t3, background: T.wellBg, borderColor: T.border }}
-            >
-              {country.currency}
-            </span>
-            <span
-              className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium"
-              style={{ color: T.emHi, background: T.emBg, borderColor: T.emBdr }}
-            >
-              <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: T.em }} />
-              Live
-            </span>
-          </div>
-        </div>
-        <LimitedCoverageKSA country={country} />
-        <DataConfidenceFooter exportedAt={data.manifest.exported_at} sourceCount={Object.keys(data.manifest.exports).length} />
-      </div>
-    );
-  }
-
-  if (!payload || payload.status !== "ready" || payload.items.length === 0) {
-    return (
-      <EmptyState
-        country={country}
-        message={`${country.label} ${isUae ? "Community" : "District"} Intelligence export loaded, but no usable records were available.`}
+        className="absolute top-0 left-0 w-1.5 h-full opacity-80"
+        style={{ background: accentColor }}
       />
-    );
-  }
+      <div
+        className="absolute top-0 left-0 w-64 h-64 rounded-full blur-[80px] pointer-events-none opacity-10"
+        style={{ background: accentColor }}
+      />
 
-  const cards: LocationCard[] = payload.items.map((record, index) =>
-    normalizeLocationCard(country, record, index)
-  );
-  const visibleCards = cards.slice(0, 6);
-
-  // ── Aggregate metrics ──────────────────────────────────────────────────────
-  const totalRows = payload.total_rows_available;
-  const totalListings = cards.reduce((sum, c) => sum + (c.activeListings ?? 0), 0);
-  const withPressure = cards.filter((c) => c.pressureScore !== null).length;
-  const withDominance = cards.filter((c) => c.dominanceScore !== null || c.concentration !== null).length;
-  const withTopAgency = cards.filter((c) => c.topAgency).length;
-
-  const metricTotalLocations = formatNumber(totalRows);
-  const metricActiveListings = formatNumber(totalListings);
-  const metricPressureSignals = formatNumber(withPressure);
-  const metricAgencyPresence = formatNumber(withTopAgency);
-
-  const exportTime = data.manifest.exported_at;
-  const sourceCount = Object.keys(data.manifest.exports).length;
-  const locationTerm = isUae ? "communities" : "districts";
-
-  return (
-    <div className="space-y-6">
-      {/* ── Compact hero ───────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div
-            className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
-            style={{ color: T.am, background: T.amBg, borderColor: T.amBdr }}
-          >
-            <Building2 className="h-3 w-3" />
-            {country.label} {isUae ? "Communities" : "Districts"}
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: T.t1, letterSpacing: "-0.03em" }}>
-            {isUae ? "Community Intelligence" : "City / District Intelligence"}
-          </h1>
-          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed" style={{ color: T.t2 }}>
-            Review location‑level public listing visibility, inventory concentration, and market activity signals.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <span
-            className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
-            style={{ color: T.t2, background: T.wellBg, borderColor: T.border }}
-          >
-            {country.label}
-          </span>
-          <span
-            className="rounded-full border px-3 py-1.5 text-[11px] font-medium"
-            style={{ fontFamily: "'DM Mono', monospace", color: T.t3, background: T.wellBg, borderColor: T.border }}
-          >
-            {country.currency}
-          </span>
-          <span
-            className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium"
-            style={{ color: T.emHi, background: T.emBg, borderColor: T.emBdr }}
-          >
-            <span className="inline-block h-[5px] w-[5px] rounded-full" style={{ background: T.em }} />
-            Live
-          </span>
-        </div>
-      </div>
-
-      {/* ── KPI row ─────────────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label={isUae ? "Visible Communities" : "Visible Districts"}
-          value={metricTotalLocations}
-          description={`Location records available in ${locationTerm}.`}
-          tone="neutral"
-          visual="bars"
-        />
-        <MetricCard
-          label="Active Listings"
-          value={metricActiveListings}
-          description="Total active listings across visible sample."
-          tone="emerald"
-          visual="bars"
-        />
-        <MetricCard
-          label="Pressure Signals"
-          value={metricPressureSignals}
-          description="Records with Supply Pressure scoring."
-          tone="amber"
-          visual="dots"
-        />
-        <MetricCard
-          label="Agency Presence"
-          value={metricAgencyPresence}
-          description="Records with an identified top agency."
-          tone="neutral"
-          visual="signal"
-        />
-      </div>
-
-      {/* ── Location Visibility Pulse featured section ──────────────────── */}
-      <LocationVisibilityPulse totalRows={totalRows} withPressure={withPressure} withDominance={withDominance} />
-
-      {/* ── Location intelligence lanes ─────────────────────────────────── */}
-      <div className="grid gap-5 md:grid-cols-3">
-        <LocationLaneCard
-          icon={MapPin}
-          title="Location Visibility"
-          description="Public listing volume, agency presence, and concentration signals by location."
-          statLabel={isUae ? "Communities" : "Districts"}
-          statValue={metricTotalLocations}
-          ctaHref={`${country.routeBase}/communities`}
-          ctaText={isUae ? "View communities" : "View districts"}
-          tone="neutral"
-        />
-        <LocationLaneCard
-          icon={TrendingDown}
-          title="Supply Pressure"
-          description="Pressure signals including price-drop rates, refresh activity, and opportunity density by location."
-          statLabel="Pressure records"
-          statValue={metricPressureSignals}
-          ctaHref={`${country.routeBase}/inventory-pressure`}
-          ctaText="View pressure"
-          tone="amber"
-        />
-        <LocationLaneCard
-          icon={Eye}
-          title="Market Activity"
-          description="Top agency footprint, listing-share concentration, and activity signals."
-          statLabel="Agency signals"
-          statValue={metricAgencyPresence}
-          ctaHref={`${country.routeBase}/agency-profiles`}
-          ctaText="View agencies"
-          tone="emerald"
-        />
-      </div>
-
-      {/* ── Location Watchlist ──────────────────────────────────────────── */}
-      {visibleCards.length > 0 && (
-        <div
-          className="rounded-2xl border p-6"
-          style={{ background: T.cardBg, borderColor: T.border, boxShadow: "0 2px 10px rgba(0,0,0,0.22)" }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-bold" style={{ color: T.t1 }}>
-                Location Watchlist
-              </h3>
-              <p className="mt-1 text-[13px]" style={{ color: T.t3 }}>
-                Top {visibleCards.length} {isUae ? "communities" : "districts"} with visible listing activity.
-              </p>
+      <div className="relative z-10 p-5 sm:p-7 flex flex-col md:flex-row md:items-center gap-5 md:gap-8">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="p-2 rounded-lg bg-white/5 border border-white/10" style={{ color: accentColor }}>
+              {icon}
             </div>
-            <span
-              className="rounded-full border px-3 py-1 text-[11px] font-medium"
-              style={{ color: T.t4, background: T.wellBg, borderColor: T.border }}
-            >
-              {metricTotalLocations} total
-            </span>
+            <h2 className="text-[18px] sm:text-[22px] font-extrabold tracking-tight text-white">
+              {title}
+            </h2>
           </div>
-          <div className="space-y-2">
-            {visibleCards.map((card) => (
-              <LocationWatchCard key={card.id} card={card} />
+
+          <p className="text-[13.5px] leading-relaxed font-medium mb-3 pl-1" style={{ color: C.t2 }}>
+            {purpose}
+          </p>
+          
+          <div className="flex flex-wrap gap-2 mb-3.5 pl-1">
+            {chips.map((chip) => (
+              <span 
+                key={chip} 
+                className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md shadow-sm" 
+                style={{ 
+                  color: accentColor, 
+                  background: "rgba(255,255,255,0.03)", 
+                  border: "1px solid rgba(255,255,255,0.06)" 
+                }}
+              >
+                {chip}
+              </span>
             ))}
           </div>
-          {cards.length > visibleCards.length && (
-            <p className="mt-3 text-center text-[12px]" style={{ color: T.t4 }}>
-              First {visibleCards.length} of {formatNumber(cards.length)} exported
+          
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-black/20 border border-white/5 shadow-inner">
+            <div className="h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" style={{ background: accentColor, boxShadow: `0 0 8px ${accentColor}` }} />
+            <p className="text-[13px] leading-relaxed font-medium" style={{ color: C.t3 }}>
+              <span className="text-white font-bold mr-1.5">Agent Workflow:</span>
+              {agentUseText}
             </p>
-          )}
+          </div>
         </div>
-      )}
 
-      {/* ── Data confidence footer ──────────────────────────────────────── */}
-      <DataConfidenceFooter exportedAt={exportTime} sourceCount={sourceCount} />
+        <div className="flex flex-col gap-2.5 md:min-w-[180px] shrink-0 mt-2 md:mt-0">
+          <Link
+            href={primaryCta.href}
+            className="flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-[13px] font-bold text-white transition-all hover:opacity-90 hover:-translate-y-px shadow-sm"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}
+          >
+            {primaryCta.label}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function MetricPill({ 
+  label, 
+  value, 
+  tone = "neutral", 
+  truncate = false 
+}: { 
+  label: string; 
+  value: string | number; 
+  tone?: "neutral" | "rd" | "am" | "cy" | "em";
+  truncate?: boolean;
+}) {
+  const colors = {
+    neutral: { text: C.t1, bg: "rgba(255,255,255,0.03)", border: C.borderSub },
+    rd: { text: C.rdHi, bg: "rgba(244,63,94,0.1)", border: "rgba(244,63,94,0.2)" },
+    am: { text: C.amHi, bg: "rgba(251,191,36,0.1)", border: "rgba(251,191,36,0.2)" },
+    cy: { text: C.cyHi, bg: "rgba(34,211,238,0.1)", border: "rgba(34,211,238,0.2)" },
+    em: { text: C.emHi, bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.2)" },
+  };
+  const c = colors[tone];
+
+  return (
+    <div className="flex flex-col gap-0.5 rounded-lg px-2.5 py-1.5 border" style={{ background: c.bg, borderColor: c.border }}>
+      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: C.t4 }}>{label}</span>
+      <span 
+        className={`text-[12px] font-bold tabular-nums ${truncate ? "max-w-[110px] truncate" : ""}`} 
+        style={{ color: c.text }} 
+        title={typeof value === 'string' ? value : undefined}
+      >
+        {value}
+      </span>
     </div>
   );
+}
+
+function LocationCard({ card, idx, routeBase, isUae }: { card: Module5Record; idx: number; routeBase: string; isUae: boolean }) {
+  const city = formatDisplayLabel(getStringField(card, ["city"]));
+  const loc = formatDisplayLabel(getStringField(card, ["community", "district"]));
+  
+  const title = [city, loc].filter(Boolean).join(" · ") || "Location";
+
+  const sourceCategoryRaw = getStringField(card, ["source_category", "market_level", "market_size_bucket"]);
+  const categoryLabel = formatCategoryLabel(sourceCategoryRaw);
+
+  const rank = idx + 1;
+
+  // Key fields
+  const activeSupply = getNumberField(card, ["active_listings"]);
+  const agencies = getNumberField(card, ["agencies", "unique_agencies"]);
+  
+  const topAgency = getStringField(card, ["top_agency_name"]);
+  const topAgencyShare = getNumberField(card, ["top_agency_share_pct"]);
+  const topXShare = getNumberField(card, ["top3_agency_share_pct", "top_5_agency_share_pct"]);
+  
+  const pressureScore = getNumberField(card, ["inventory_pressure_score", "dominance_score"]);
+  const pressureLabel = humanizeToken(getStringField(card, ["pressure_label", "pressure_bucket"]));
+  const concentrationLabel = humanizeToken(getStringField(card, ["concentration_label", "concentration_bucket"]));
+  
+  const priceDropRate = getNumberField(card, ["price_drop_rate_pct"]);
+  const refreshRate = getNumberField(card, ["refresh_inflated_rate_pct", "refresh_rate_pct"]);
+  const ownerDirectRate = getNumberField(card, ["owner_direct_rate_pct"]);
+
+  // Metric Pills Logic (Max 5)
+  const availableMetrics: Record<string, { label: string; value: string | number; tone?: "neutral"|"rd"|"am"|"cy"|"em" }> = {};
+  
+  if (activeSupply !== undefined) availableMetrics["supply"] = { label: "Active Supply", value: formatNumber(activeSupply), tone: "neutral" };
+  if (agencies !== undefined) availableMetrics["presences"] = { label: "Presences", value: formatNumber(agencies), tone: "neutral" };
+  
+  if (pressureLabel) availableMetrics["pressure"] = { label: "Pressure", value: pressureLabel, tone: "am" };
+  else if (pressureScore !== undefined) availableMetrics["pressure"] = { label: "Pressure", value: pressureScore.toFixed(1), tone: "am" };
+  
+  if (priceDropRate !== undefined) availableMetrics["drop"] = { label: "Price Drop", value: formatPercent(priceDropRate), tone: "rd" };
+  if (refreshRate !== undefined) availableMetrics["refresh"] = { label: "Refresh", value: formatPercent(refreshRate), tone: "cy" };
+  if (ownerDirectRate !== undefined) availableMetrics["ownerDirect"] = { label: "Owner/Direct", value: formatPercent(ownerDirectRate), tone: "em" };
+  
+  if (topAgencyShare !== undefined) availableMetrics["topShare"] = { label: "Top Share", value: formatPercent(topAgencyShare), tone: "am" };
+  if (topXShare !== undefined) availableMetrics["topGroupShare"] = { label: isUae ? "Top 3 Share" : "Top 5 Share", value: formatPercent(topXShare), tone: "cy" };
+  if (concentrationLabel) availableMetrics["concentration"] = { label: "Concentration", value: concentrationLabel, tone: "cy" };
+
+  const preferredKeys = ["supply", "presences", "pressure", "topShare", "topGroupShare", "drop", "refresh", "ownerDirect", "concentration"];
+  const pillsToRender = [];
+  
+  for (const k of preferredKeys) {
+    if (availableMetrics[k]) {
+      pillsToRender.push(availableMetrics[k]);
+      if (pillsToRender.length >= 5) break;
+    }
+  }
+
+  // Location Read Line
+  let locationReadLine = "";
+  if (activeSupply !== undefined && agencies !== undefined) {
+    locationReadLine = `${title} has ${formatNumber(activeSupply)} active listings across ${formatNumber(agencies)} agency presences.`;
+  } else if (activeSupply !== undefined) {
+    locationReadLine = `${title} has ${formatNumber(activeSupply)} active listings.`;
+  } else if (agencies !== undefined) {
+    locationReadLine = `${title} shows ${formatNumber(agencies)} agency presences in the current public listing snapshot.`;
+  } else {
+    locationReadLine = "Use this location as public listing context before comparing supply or competition.";
+  }
+
+  // Action Box
+  let actionText = getStringField(card, ["recommended_action", "pressure_action", "interpretation_note", "product_note"]);
+  
+  if (isWeakActionText(actionText)) {
+    if (topAgencyShare !== undefined && topAgencyShare >= 40) {
+      actionText = "One visible agency has a high share of supply here. Review competitor footprint before farming this location.";
+    } else if (activeSupply !== undefined && activeSupply >= 500 && agencies !== undefined && agencies >= 20) {
+      actionText = "This location has heavy visible supply and many agency presences. Use it as a competitive farming watchlist.";
+    } else if (pressureScore !== undefined && pressureScore >= 40) {
+      actionText = "This location shows elevated pressure signals. Review supply and movement before outreach or pricing decisions.";
+    } else if (refreshRate !== undefined && refreshRate > 20) {
+      actionText = "High refresh activity means portal freshness may be inflated. Use listing-truth context before acting.";
+    } else if (priceDropRate !== undefined && priceDropRate > 0) {
+      actionText = "Price movement is present in this location. Review repricing patterns before outreach.";
+    } else if (topXShare !== undefined && topXShare >= 50) {
+      actionText = "The top visible agencies represent a large share of supply. Review concentration before entering this location.";
+    } else {
+      actionText = "Use this location as public listing context before comparing supply, competition, or outreach strategy.";
+    }
+  }
+
+  return (
+    <article
+      className="group relative flex flex-col rounded-[20px] border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      style={{
+        background: "rgba(255, 255, 255, 0.015)",
+        borderColor: C.borderSub,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.02)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      <div 
+        className="absolute top-0 left-0 right-0 h-[1.5px] opacity-0 group-hover:opacity-50 transition-all duration-300" 
+        style={{ background: C.cyHi, boxShadow: `0 0 10px ${C.cyHi}` }} 
+      />
+
+      <div className="p-5 sm:p-6 flex flex-col flex-1">
+        
+        {/* Top Row: Rank & Type */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <span
+            className="rounded px-1.5 py-[3px] text-[9px] font-extrabold uppercase tracking-widest"
+            style={{ color: C.cyHi, background: "rgba(34,211,238,0.1)", border: `1px solid rgba(34,211,238,0.2)` }}
+          >
+            #{rank}
+          </span>
+          <span 
+            className="inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest leading-none shadow-sm"
+            style={{
+              color: C.t2,
+              background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+              borderColor: "rgba(255,255,255,0.15)",
+            }}
+          >
+            {categoryLabel}
+          </span>
+        </div>
+
+        <h3 className="text-[18px] font-extrabold text-white tracking-tight mb-4">
+          {title}
+        </h3>
+        
+        {/* Metric Pills Row */}
+        {pillsToRender.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {pillsToRender.map((p, i) => (
+              <MetricPill key={i} label={p.label} value={p.value} tone={p.tone} />
+            ))}
+          </div>
+        )}
+
+        {/* Top Visible Agency Row */}
+        {topAgency && (
+          <div className="rounded-lg border p-3 mb-4" style={{ background: "rgba(255,255,255,0.02)", borderColor: C.borderSub }}>
+            <span className="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: C.cyHi }}>
+              Top visible agency
+            </span>
+            <span 
+              className="block text-[13px] font-bold leading-relaxed text-white line-clamp-2"
+              title={topAgencyShare !== undefined ? `${topAgency} · ${formatPercent(topAgencyShare)} visible share` : topAgency}
+            >
+              {topAgencyShare !== undefined ? `${topAgency} · ${formatPercent(topAgencyShare)} visible share` : topAgency}
+            </span>
+          </div>
+        )}
+        
+        {locationReadLine && (
+          <p className="text-[13px] leading-relaxed font-medium mb-3" style={{ color: C.t3 }}>
+            {locationReadLine}
+          </p>
+        )}
+
+        {/* Action Box */}
+        <div className="mt-auto mb-5 rounded-xl border p-3.5" style={{ background: "rgba(0,0,0,0.18)", borderColor: C.borderSub }}>
+          <span className="block text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: C.cyHi }}>
+            Why this matters
+          </span>
+          <p className="text-[12.5px] leading-relaxed font-medium" style={{ color: C.t2 }}>
+            {actionText}
+          </p>
+        </div>
+
+        {/* Footer Row (CTA) */}
+        <div className="pt-4 border-t flex items-center justify-between" style={{ borderColor: C.borderSub }}>
+          <Link
+            href={`${routeBase}/inventory-pressure`}
+            className="text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80" 
+            style={{ color: C.t4 }}
+          >
+            Supply Pressure
+          </Link>
+          <Link
+            href={`${routeBase}/market-radar`}
+            className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80" 
+            style={{ color: C.cyHi }}
+          >
+            Review Market Context
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+      </div>
+    </article>
+  );
+}
+
+// ─── Main Page ──────────────────────────────────────────────────────────────
+export default function CommunitiesPage({
+  country,
+  data,
+}: {
+  country: CountryConfig;
+  data: Module5DataResult;
+}) {
+  const isUae = country.slug === "uae";
+  
+  // Source Selection
+  const rawLocations = (data.communityIntelligence?.items?.length
+    ? data.communityIntelligence.items
+    : data.districtIntelligence?.items?.length
+      ? data.districtIntelligence.items
+      : data.inventoryPressure?.items?.length
+        ? data.inventoryPressure.items
+        : data.inventoryPressureLarge?.items ?? []) as Module5Record[];
+
+  // Deduplicate and filter
+  const validCards: Module5Record[] = [];
+  const seenKeys = new Set<string>();
+
+  for (const card of rawLocations) {
+    const city = getStringField(card, ["city"]);
+    const loc = getStringField(card, ["community", "district"]);
+
+    if (!city || !loc) continue;
+
+    let dedupeKey = buildLocationDedupeKey(card, isUae);
+    if (!dedupeKey) {
+      dedupeKey = `loc-${validCards.length}`;
+    }
+
+    if (!seenKeys.has(dedupeKey)) {
+      seenKeys.add(dedupeKey);
+      validCards.push(card);
+    }
+  }
+
+  // Sort logic
+  const sortedCards = [...validCards].sort((a, b) => {
+    const scoreA = getNumberField(a, ["inventory_pressure_score", "dominance_score"]) ?? 0;
+    const scoreB = getNumberField(b, ["inventory_pressure_score", "dominance_score"]) ?? 0;
+    if (scoreB !== scoreA) return scoreB - scoreA;
+
+    const shareA = getNumberField(a, ["top_agency_share_pct"]) ?? 0;
+    const shareB = getNumberField(b, ["top_agency_share_pct"]) ?? 0;
+    if (shareB !== shareA) return shareB - shareA;
+    
+    const supplyA = getNumberField(a, ["active_listings"]) ?? 0;
+    const supplyB = getNumberField(b, ["active_listings"]) ?? 0;
+    if (supplyB !== supplyA) return supplyB - supplyA;
+
+    const rankA = getNumberField(a, ["dashboard_rank"]) ?? 0;
+    const rankB = getNumberField(b, ["dashboard_rank"]) ?? 0;
+    return rankB - rankA; // Tie-breaker
+  });
+
+  // Visual Display Dedupe (Prevents seeing identical locations with different categories/keys)
+  const displayCandidateCards = [...sortedCards].sort((a, b) => {
+    const keyA = buildLocationDisplayKey(a, isUae);
+    const keyB = buildLocationDisplayKey(b, isUae);
+
+    if (keyA === keyB) {
+      const specificityA = getLocationSpecificityScore(a);
+      const specificityB = getLocationSpecificityScore(b);
+      if (specificityB !== specificityA) return specificityB - specificityA;
+
+      const scoreA = getNumberField(a, ["inventory_pressure_score", "dominance_score"]) ?? 0;
+      const scoreB = getNumberField(b, ["inventory_pressure_score", "dominance_score"]) ?? 0;
+      if (scoreB !== scoreA) return scoreB - scoreA;
+
+      const supplyA = getNumberField(a, ["active_listings"]) ?? 0;
+      const supplyB = getNumberField(b, ["active_listings"]) ?? 0;
+      if (supplyB !== supplyA) return supplyB - supplyA;
+    }
+
+    return 0;
+  });
+
+  const displayDedupedCards: Module5Record[] = [];
+  const seenDisplayKeys = new Set<string>();
+
+  for (const card of displayCandidateCards) {
+    const displayKey = buildLocationDisplayKey(card, isUae);
+    
+    if (!displayKey) {
+      displayDedupedCards.push(card);
+    } else if (!seenDisplayKeys.has(displayKey)) {
+      seenDisplayKeys.add(displayKey);
+      displayDedupedCards.push(card);
+    }
+  }
+
+  // Overview Metrics
+  const trackedLocationsCount = displayDedupedCards.length;
+  
+  const activeSupplyCount = displayDedupedCards.reduce((acc, card) => {
+    return acc + (getNumberField(card, ["active_listings"]) ?? 0);
+  }, 0);
+
+  const agencyPresencesCount = displayDedupedCards.reduce((acc, card) => {
+    return acc + (getNumberField(card, ["agencies", "unique_agencies"]) ?? 0);
+  }, 0);
+
+  const pressureMovementCount = displayDedupedCards.filter(card => {
+    const pressure = getNumberField(card, ["inventory_pressure_score"]);
+    const drop = getNumberField(card, ["price_drop_rate_pct"]);
+    const refresh = getNumberField(card, ["refresh_inflated_rate_pct", "refresh_rate_pct"]);
+    const ownerDirect = getNumberField(card, ["owner_direct_rate_pct"]);
+    const recon = getNumberField(card, ["recon_rate_pct"]);
+    return (pressure && pressure > 0) || (drop && drop > 0) || (refresh && refresh > 0) || (ownerDirect && ownerDirect > 0) || (recon && recon > 0);
+  }).length;
+  
+  // Display limit applied to visually deduped cards
+  const visibleCards = displayDedupedCards.slice(0, 15);
+
+  const titleText = isUae ? "Which Communities Deserve Attention?" : "Which Districts Deserve Attention?";
+  const sectionTitle = isUae ? "Ranked Communities" : "Ranked Districts";
+
+  return (
+    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+      
+      {/* ── 1. Hero Section ─────────────────────────────────────────────── */}
+      <section
+        className="relative rounded-[28px] border overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, rgba(24,24,27,0.7) 0%, rgba(9,9,11,0.9) 100%)",
+          borderColor: "rgba(255,255,255,0.06)",
+          boxShadow: "0 24px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        <GridPattern />
+        
+        {/* Ambient hero glows */}
+        <div className="absolute top-0 left-1/3 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-1/2" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none translate-y-1/2" />
+        
+        <div className="relative z-10 p-8 sm:p-12 lg:p-16">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <span
+              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] rounded-full px-4 py-1.5 shadow-sm"
+              style={{ color: C.cyHi, background: "rgba(34,211,238,0.1)", border: `1px solid rgba(34,211,238,0.2)` }}
+            >
+              <MapPinned className="h-3.5 w-3.5" />
+              Location Intelligence
+            </span>
+          </div>
+
+          <h1 className="text-[38px] sm:text-[48px] lg:text-[56px] font-extrabold leading-[1.1] tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-100 to-zinc-400 drop-shadow-sm">
+            {titleText}
+          </h1>
+          
+          <p className="max-w-2xl text-[16px] sm:text-[18px] leading-[1.6] font-medium" style={{ color: C.t2 }}>
+            Review active supply, visible agency concentration, pressure signals, and movement indicators to choose where to monitor, farm, or compare next.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center gap-3.5">
+            <Link
+              href="#location-list"
+              className="group inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3.5 text-[14px] font-bold text-black transition-all hover:scale-[1.02]"
+              style={{ 
+                background: "linear-gradient(180deg, #22d3ee 0%, #06b6d4 100%)", 
+                boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4), 0 8px 24px rgba(6,182,212,0.25)" 
+              }}
+            >
+              Review Locations
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            
+            <Link
+              href={`${country.routeBase}/inventory-pressure`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Supply Pressure
+            </Link>
+
+            <Link
+              href={`${country.routeBase}/market-dominance`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Market Dominance
+            </Link>
+
+            <Link
+              href={`${country.routeBase}/agency-profiles`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Agency Profiles
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 2. Location Overview Cards ─────────────────────────────────────── */}
+      <section>
+        <div className="mb-4 flex items-center gap-3 px-1">
+          <Activity className="h-5 w-5" style={{ color: C.cyHi }} />
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white">
+            Locations Overview
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SnapshotCard
+            title="Locations Tracked"
+            value={formatNumber(trackedLocationsCount)}
+            description="Unique locations evaluated."
+            icon={<MapPinned className="h-5 w-5" />}
+            accentColor={C.cyHi}
+            href="#location-list"
+            ctaLabel="View Locations"
+          />
+          <SnapshotCard
+            title="Active Supply"
+            value={formatNumber(activeSupplyCount)}
+            description="Combined active listings analyzed."
+            icon={<Building2 className="h-5 w-5" />}
+            accentColor={C.emHi}
+            href="#location-list"
+            ctaLabel="Review Supply"
+          />
+          <SnapshotCard
+            title="Agency Presences"
+            value={formatNumber(agencyPresencesCount)}
+            description="Agency footprints across locations."
+            icon={<Users className="h-5 w-5" />}
+            accentColor={C.rdHi}
+            href="#location-list"
+            ctaLabel="Check Competition"
+          />
+          <SnapshotCard
+            title="Pressure / Movement"
+            value={formatNumber(pressureMovementCount)}
+            description="Locations with active signals."
+            icon={<TrendingDown className="h-5 w-5" />}
+            accentColor={C.amHi}
+            href="#location-list"
+            ctaLabel="Find Movement"
+          />
+        </div>
+      </section>
+
+      {/* ── 3. Insight Panels ─────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="mb-5 flex items-center gap-3 px-1 pt-2">
+          <Layers className="h-5 w-5" style={{ color: C.t3 }} />
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white">
+            Location Intelligence
+          </h2>
+        </div>
+
+        <IntelligencePanel
+          title="Territory Focus"
+          purpose="Identify communities or districts where agents may focus farming and monitoring efforts."
+          agentUseText="Use this to prioritize locations with optimal supply and manageable competition for your outreach."
+          chips={["Farming context", "Territory focus", "Location monitoring"]}
+          icon={<MapPinned className="h-5 w-5" />}
+          accentColor={C.cyHi}
+          primaryCta={{ label: "View Territories", href: "#location-list" }}
+        />
+
+        <IntelligencePanel
+          title="Supply & Pressure"
+          purpose="Compare active supply, price movement, refresh inflation, and pressure scores across areas."
+          agentUseText="Use this to spot locations experiencing high pricing pressure or stagnant inventory."
+          chips={["Active supply", "Pressure signals", "Price drops"]}
+          icon={<Activity className="h-5 w-5" />}
+          accentColor={C.amHi}
+          primaryCta={{ label: "Check Supply", href: "#location-list" }}
+        />
+
+        <IntelligencePanel
+          title="Competitive Presence"
+          purpose="Understand visible top-agency concentration and fragmented or dominated markets."
+          agentUseText="Use this to review the competitive landscape before committing resources to a new location."
+          chips={["Agency presences", "Top visible agency", "Market concentration"]}
+          icon={<Users className="h-5 w-5" />}
+          accentColor={C.rdHi}
+          primaryCta={{ label: "Review Competition", href: "#location-list" }}
+        />
+      </section>
+
+      {/* ── 4. Main Location List ─────────────────────────────────── */}
+      <section id="location-list" className="scroll-mt-10 pt-4">
+        <div className="mb-5 flex items-center justify-between px-1">
+          <div className="flex items-center gap-3">
+            <MapPinned className="h-5 w-5" style={{ color: C.cyHi }} />
+            <h2 className="text-[16px] sm:text-[18px] font-bold tracking-tight text-white">
+              {sectionTitle}
+            </h2>
+          </div>
+          <span 
+            className="hidden sm:inline-flex rounded-full border px-3 py-1 text-[11px] font-bold"
+            style={{ color: C.t3, background: "rgba(255,255,255,0.02)", borderColor: C.border }}
+          >
+            {formatNumber(displayDedupedCards.length)} Locations
+          </span>
+        </div>
+
+        {visibleCards.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {visibleCards.map((card, idx) => (
+              <LocationCard 
+                key={buildLocationReactKey(card, idx, isUae)} 
+                idx={idx} 
+                card={card} 
+                routeBase={country.routeBase} 
+                isUae={isUae}
+              />
+            ))}
+          </div>
+        ) : rawLocations.length > 0 ? (
+          <div className="rounded-[20px] border p-12 text-center" style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}>
+            <p className="text-[15px] font-bold text-white">Location signals available — names incomplete</p>
+            <p className="mt-2 max-w-lg mx-auto text-[13px] font-medium" style={{ color: C.t4 }}>
+              This workspace snapshot contains location signals, but the location labels are not complete enough to display reliable cards.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-[20px] border p-12 text-center" style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}>
+            <p className="text-[15px] font-bold text-white">No location intelligence available</p>
+            <p className="mt-2 text-[13px] font-medium" style={{ color: C.t4 }}>
+              No community or district intelligence is available in this workspace snapshot.
+            </p>
+          </div>
+        )}
+
+        {displayDedupedCards.length > visibleCards.length && (
+          <p className="mt-6 text-center text-[13px] font-bold" style={{ color: C.t4 }}>
+            Showing top {visibleCards.length} of {formatNumber(displayDedupedCards.length)} analyzed locations
+          </p>
+        )}
+      </section>
+
+      {/* ── 5. Trust Strip ──────────────────────────────────────────────── */}
+      <section className="pt-4">
+        <div
+          className="flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-4 rounded-[16px] border px-6 py-4 shadow-sm"
+          style={{ 
+            background: "rgba(255,255,255,0.015)", 
+            borderColor: C.borderSub,
+            backdropFilter: "blur(10px)"
+          }}
+        >
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t2 }}>
+              <Globe2 className="h-3.5 w-3.5 opacity-70" style={{ color: C.t3 }} />
+              Public listing intelligence
+            </div>
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t1 }}>
+              <CheckCircle2 className="h-4 w-4 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" style={{ color: C.emHi }} />
+              Verify source before action
+            </div>
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t2 }}>
+              <ShieldCheck className="h-3.5 w-3.5 opacity-70" style={{ color: C.t3 }} />
+              Intelligence is based on visible public listing activity
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2.5 text-[12px] font-bold tracking-wide" style={{ color: C.t3 }}>
+            <span className="uppercase tracking-widest text-[9px] text-zinc-300 bg-white/5 border border-white/10 px-2 py-1 rounded-md shadow-inner">
+              {country.currency}
+            </span>
+            {country.label} Workspace
+          </div>
+        </div>
+      </section>
+
+    </div>
+  );
+}
+
+function buildLocationReactKey(record: Module5Record, idx: number, isUae: boolean): string {
+  const baseKey = buildLocationDedupeKey(record, isUae);
+  return `${baseKey || "loc"}-${idx}`;
 }
