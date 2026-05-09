@@ -1,4 +1,5 @@
 // app/dashboard/_components/ReconPageHero.tsx
+import { Radar } from "lucide-react";
 
 type ReconPageHeroProps = {
   countryLabel: string;
@@ -7,8 +8,8 @@ type ReconPageHeroProps = {
   exportedAt: string;
   title: string;
   description: string;
-  primaryTableText: string;
-  marketScopeText: string;
+  primaryTableText: string; // Kept for prop compatibility, unused in UI
+  marketScopeText: string;  // Kept for prop compatibility, unused in UI
 };
 
 function compactDate(dateStr: string): string {
@@ -34,14 +35,10 @@ function timeSince(dateStr: string): string {
 }
 
 const C = {
-  t1: "#f4f4f5",
+  t1: "#ffffff",
   t2: "#a1a1aa",
-  t3: "#52525b",
-  t4: "#3f3f46",
+  t3: "#71717a",
   emHi: "#34d399",
-  emBg: "rgba(16,185,129,0.06)",
-  emBdr: "rgba(16,185,129,0.18)",
-  border: "rgba(255,255,255,0.07)",
 } as const;
 
 export default function ReconPageHero({
@@ -54,59 +51,61 @@ export default function ReconPageHero({
   const ago = timeSince(exportedAt);
 
   return (
-    <header className="relative">
-      {/* Subtle gradient accent */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent 0%, rgba(52,211,153,0.35) 30%, rgba(52,211,153,0.12) 70%, transparent 100%)",
-        }}
-      />
+    <header 
+      className="relative overflow-hidden rounded-[24px] border p-8 sm:p-10"
+      style={{
+        background: "linear-gradient(180deg, rgba(24,24,27,0.6) 0%, rgba(9,9,11,0.8) 100%)",
+        borderColor: "rgba(255,255,255,0.06)",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)",
+        backdropFilter: "blur(20px)",
+      }}
+    >
+      {/* Background ambient lighting */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-1/2" />
+      
+      {/* Grid Pattern */}
+      <div className="absolute inset-0 pointer-events-none select-none opacity-[0.03]">
+        <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="hero-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M0 40V.5H40" fill="none" stroke="white" strokeWidth="1" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#hero-grid)" />
+        </svg>
+      </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         {/* Left: title cluster */}
         <div className="min-w-0 flex-1">
-          <div className="mb-1.5 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2.5">
             <span
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-[3px] text-[9px] font-black uppercase tracking-[0.16em]"
+              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em]"
               style={{
                 color: C.emHi,
-                background: C.emBg,
-                border: `1px solid ${C.emBdr}`,
+                background: "rgba(16,185,129,0.1)",
+                border: "1px solid rgba(16,185,129,0.2)",
               }}
             >
-              <span
-                className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{
-                  background: C.emHi,
-                  boxShadow: "0 0 6px rgba(52,211,153,0.6)",
-                }}
-              />
-              {countryCode} Recon
+              <Radar className="h-3 w-3" />
+              {countryCode} Workspace
             </span>
             <span
-              className="rounded-md px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.12em]"
+              className="rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em]"
               style={{
-                color: C.t4,
+                color: C.t2,
                 background: "rgba(255,255,255,0.03)",
-                border: `1px solid ${C.border}`,
+                border: "1px solid rgba(255,255,255,0.06)",
               }}
             >
               {currency}
             </span>
           </div>
 
-          <h1
-            className="text-[20px] font-bold tracking-tight sm:text-[24px]"
-            style={{ color: C.t1, letterSpacing: "-0.025em" }}
-          >
+          <h1 className="text-[32px] sm:text-[42px] font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-100 to-zinc-500 mb-2">
             {title}
           </h1>
-          <p
-            className="mt-0.5 max-w-2xl text-[13px] leading-relaxed"
-            style={{ color: C.t3 }}
-          >
+          <p className="max-w-2xl text-[14px] sm:text-[16px] leading-relaxed font-medium" style={{ color: C.t2 }}>
             {description}
           </p>
         </div>
@@ -114,27 +113,28 @@ export default function ReconPageHero({
         {/* Right: freshness */}
         <div className="flex items-center gap-3 sm:self-end">
           <div
-            className="flex items-center gap-2 rounded-lg px-3 py-1.5"
+            className="flex items-center gap-2.5 rounded-xl px-4 py-2.5 shadow-sm"
             style={{
-              background: "rgba(255,255,255,0.025)",
-              border: `1px solid ${C.border}`,
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              backdropFilter: "blur(10px)"
             }}
           >
             <span
-              className="inline-block h-[5px] w-[5px] rounded-full"
+              className="inline-block h-2 w-2 rounded-full animate-pulse"
               style={{
                 background: "#10b981",
-                boxShadow: "0 0 8px rgba(16,185,129,0.5)",
+                boxShadow: "0 0 10px rgba(16,185,129,0.6)",
               }}
             />
-            <span className="text-[11px] font-medium" style={{ color: C.t2 }}>
-              {compactDate(exportedAt)}
-            </span>
-            {ago && (
-              <span className="text-[10px]" style={{ color: C.t4 }}>
-                {ago}
+            <div className="flex flex-col">
+              <span className="text-[12px] font-bold tracking-wide" style={{ color: C.t1 }}>
+                Live Signals
               </span>
-            )}
+              <span className="text-[10px] font-medium mt-0.5" style={{ color: C.t3 }}>
+                Updated {compactDate(exportedAt)} {ago && `(${ago})`}
+              </span>
+            </div>
           </div>
         </div>
       </div>

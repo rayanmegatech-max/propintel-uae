@@ -1,6 +1,5 @@
 // app/dashboard/_components/ReconStatusStrip.tsx
-
-import { Database, Layers3, Radio, Shield } from "lucide-react";
+import { Database, Layers3, Radio, ShieldCheck } from "lucide-react";
 
 type ReconStatusStripProps = {
   countryLabel: string;
@@ -11,11 +10,10 @@ type ReconStatusStripProps = {
 };
 
 const C = {
+  t1: "#ffffff",
   t2: "#a1a1aa",
-  t3: "#52525b",
-  t4: "#3f3f46",
-  t5: "#3f3f46",
-  border: "rgba(255,255,255,0.05)",
+  t3: "#71717a",
+  border: "rgba(255,255,255,0.06)",
   emHi: "#34d399",
 } as const;
 
@@ -23,79 +21,48 @@ export default function ReconStatusStrip({
   countryLabel,
   tabCount,
   summaryRows,
-  exportLimit,
   activeDataMode,
 }: ReconStatusStripProps) {
-  const sourceLabel =
-    activeDataMode === "Local JSON" ? "Local export" : activeDataMode;
+  const sourceLabel = activeDataMode === "Local JSON" ? "Product-ready export" : activeDataMode;
 
   return (
     <div
-      className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg px-3.5 py-2"
+      className="flex flex-col sm:flex-row flex-wrap sm:items-center gap-x-6 gap-y-3 rounded-xl px-5 py-3.5 shadow-sm"
       style={{
-        background: "rgba(255,255,255,0.02)",
+        background: "linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(9,9,11,0.2) 100%)",
         border: `1px solid ${C.border}`,
+        backdropFilter: "blur(10px)"
       }}
     >
       {/* Market */}
-      <div className="flex items-center gap-1.5">
-        <Layers3 className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Market
-        </span>
-        <span className="text-[10px] font-semibold" style={{ color: C.t3 }}>
-          {countryLabel}
+      <div className="flex items-center gap-2">
+        <Layers3 className="h-4 w-4 shrink-0 opacity-70" style={{ color: C.t3 }} />
+        <span className="text-[11px] font-medium" style={{ color: C.t2 }}>Market</span>
+        <span className="text-[11px] font-bold" style={{ color: C.t1 }}>{countryLabel}</span>
+      </div>
+
+      {/* Signal Views */}
+      <div className="flex items-center gap-2">
+        <Radio className="h-4 w-4 shrink-0 opacity-70" style={{ color: C.t3 }} />
+        <span className="text-[11px] font-medium" style={{ color: C.t2 }}>Signal Views</span>
+        <span className="text-[11px] font-bold tabular-nums" style={{ color: C.t1 }}>
+          {tabCount} active
         </span>
       </div>
 
-      {/* Lanes */}
-      <div className="flex items-center gap-1.5">
-        <Radio className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Lanes
-        </span>
-        <span
-          className="text-[10px] font-semibold tabular-nums"
-          style={{ color: C.t3 }}
-        >
-          {tabCount}
-        </span>
-      </div>
-
-      {/* Rows available */}
-      <div className="flex items-center gap-1.5">
-        <Database className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Summary rows
-        </span>
-        <span
-          className="text-[10px] font-semibold tabular-nums"
-          style={{ color: C.t2 }}
-        >
+      {/* Analyzed Listings */}
+      <div className="flex items-center gap-2">
+        <Database className="h-4 w-4 shrink-0 opacity-70" style={{ color: C.t3 }} />
+        <span className="text-[11px] font-medium" style={{ color: C.t2 }}>Analyzed Listings</span>
+        <span className="text-[11px] font-bold tabular-nums" style={{ color: C.t1 }}>
           {summaryRows.toLocaleString("en-US")}
         </span>
       </div>
 
-      {/* Sample loaded */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Sample limit
-        </span>
-        <span
-          className="text-[10px] font-semibold tabular-nums"
-          style={{ color: C.t3 }}
-        >
-          {exportLimit.toLocaleString("en-US")}
-        </span>
-      </div>
-
       {/* Source */}
-      <div className="flex items-center gap-1.5">
-        <Shield className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Source
-        </span>
-        <span className="text-[10px] font-semibold" style={{ color: C.emHi }}>
+      <div className="flex items-center gap-2 sm:ml-auto">
+        <ShieldCheck className="h-4.5 w-4.5 shrink-0 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" style={{ color: C.emHi }} />
+        <span className="text-[11px] font-bold" style={{ color: C.emHi }}>
           {sourceLabel}
         </span>
       </div>

@@ -121,8 +121,8 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
         countryCode="KSA"
         currency="SAR"
         exportedAt={data.manifest.exported_at}
-        title="KSA Recon Hub"
-        description="Daily cockpit — multi-signal leads, owner/direct candidates, and URL-based opportunities."
+        title="KSA Deal Radar"
+        description="Review ranked listing opportunities from public source signals."
         primaryTableText=""
         marketScopeText=""
       />

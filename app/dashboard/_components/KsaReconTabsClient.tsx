@@ -18,12 +18,11 @@ import type {
 } from "@/lib/data/ksaRecon";
 
 const C = {
-  cardBg: "#111113",
-  border: "rgba(255,255,255,0.07)",
+  border: "rgba(255,255,255,0.06)",
   borderFt: "rgba(255,255,255,0.04)",
-  t1: "#f4f4f5",
-  t3: "#52525b",
-  t4: "#3f3f46",
+  t1: "#ffffff",
+  t3: "#71717a",
+  t4: "#52525b",
   emHi: "#34d399",
 } as const;
 
@@ -48,7 +47,7 @@ const TAB_CONFIG: Array<{
 }> = [
   {
     key: "hotLeads",
-    label: "Hot Leads",
+    label: "Best Deals",
     description: "Ranked opportunity list",
   },
   {
@@ -106,7 +105,7 @@ function getPayload(
 }
 
 function activeTabLabel(key: KsaReconTabKey): string {
-  return TAB_CONFIG.find((t) => t.key === key)?.label ?? "Recon";
+  return TAB_CONFIG.find((t) => t.key === key)?.label ?? "Deal Radar";
 }
 
 export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
@@ -122,7 +121,6 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
     count: getPayload(data, tab.key)?.total_rows_available,
   }));
 
-  // KSA-specific fallback chain: hotLeads → multiSignal → contactable
   const activePayload =
     getPayload(data, activeTab) ??
     data.lists.hotLeads ??
@@ -158,23 +156,23 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* ── 1. Featured lead ───────────────────────────────────── */}
       {featuredItem && (
         <section>
-          <div className="mb-2.5 flex items-center gap-2.5">
+          <div className="mb-3 flex items-center gap-2.5 px-1">
             <div
               className="h-4 w-[3px] rounded-full shrink-0"
               style={{ background: C.emHi }}
             />
             <h2
-              className="text-[14px] font-semibold"
-              style={{ color: C.t1, letterSpacing: "-0.01em" }}
+              className="text-[14px] font-bold uppercase tracking-wider"
+              style={{ color: C.t1 }}
             >
               Review first
             </h2>
-            <span className="text-[11px]" style={{ color: C.t4 }}>
-              · {activeTabLabel(activeTab)} lane
+            <span className="text-[12px] font-medium" style={{ color: C.t4 }}>
+              · {activeTabLabel(activeTab)} view
             </span>
           </div>
           <ReconOpportunityCard opportunity={featuredItem} variant="featured" />
@@ -183,10 +181,10 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
 
       {/* ── 2. Command bar ─────────────────────────────────────── */}
       <section
-        className="rounded-xl border"
-        style={{ background: C.cardBg, borderColor: C.border }}
+        className="rounded-[20px] border shadow-md"
+        style={{ background: "rgba(24,24,27,0.4)", borderColor: C.border, backdropFilter: "blur(12px)" }}
       >
-        <div className="p-3 pb-0">
+        <div className="p-4 pb-0">
           <ReconTabSelector
             tabs={tabs}
             activeTab={activeTab}
@@ -195,7 +193,7 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
         </div>
 
         <div
-          className="border-t px-4 py-3"
+          className="border-t px-5 py-4 mt-3"
           style={{ borderColor: C.borderFt }}
         >
           <ReconFiltersBar
@@ -210,7 +208,7 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
 
       {/* ── 3. Remaining list ──────────────────────────────────── */}
       {remainingItems.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {remainingItems.map((opportunity) => (
             <ReconOpportunityCard
               key={opportunity.id}
@@ -221,14 +219,14 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
         </div>
       ) : !featuredItem ? (
         <div
-          className="rounded-xl border p-10 text-center"
-          style={{ background: C.cardBg, borderColor: C.border }}
+          className="rounded-[20px] border p-12 text-center shadow-inner"
+          style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}
         >
-          <p className="text-[13px] font-medium" style={{ color: C.t3 }}>
+          <p className="text-[15px] font-bold" style={{ color: C.t1 }}>
             No opportunities match the current filters.
           </p>
-          <p className="mt-1.5 text-[11px]" style={{ color: C.t4 }}>
-            Try adjusting your filters or selecting a different lane.
+          <p className="mt-2 text-[13px] font-medium" style={{ color: C.t3 }}>
+            Try clearing your search or selecting a different Signal View.
           </p>
         </div>
       ) : null}

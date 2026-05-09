@@ -1,48 +1,19 @@
 // app/dashboard/_components/ReconMetricCard.tsx
 "use client";
 
+import { motion } from "framer-motion";
 import type { ReconMetric } from "@/lib/recon/types";
 
 const TONE_COLORS: Record<
   NonNullable<ReconMetric["tone"]>,
-  { accent: string; bg: string; border: string; dot: string }
+  { accent: string; glow: string }
 > = {
-  emerald: {
-    accent: "#34d399",
-    bg: "rgba(16,185,129,0.06)",
-    border: "rgba(16,185,129,0.18)",
-    dot: "#10b981",
-  },
-  cyan: {
-    accent: "#22d3ee",
-    bg: "rgba(34,211,238,0.06)",
-    border: "rgba(34,211,238,0.18)",
-    dot: "#06b6d4",
-  },
-  amber: {
-    accent: "#fbbf24",
-    bg: "rgba(245,158,11,0.06)",
-    border: "rgba(245,158,11,0.18)",
-    dot: "#f59e0b",
-  },
-  red: {
-    accent: "#fb7185",
-    bg: "rgba(244,63,94,0.06)",
-    border: "rgba(244,63,94,0.18)",
-    dot: "#f43f5e",
-  },
-  slate: {
-    accent: "#94a3b8",
-    bg: "rgba(148,163,184,0.04)",
-    border: "rgba(255,255,255,0.08)",
-    dot: "#64748b",
-  },
-  teal: {
-    accent: "#2dd4bf",
-    bg: "rgba(20,184,166,0.06)",
-    border: "rgba(20,184,166,0.18)",
-    dot: "#14b8a6",
-  },
+  emerald: { accent: "#34d399", glow: "rgba(16,185,129,0.15)" },
+  cyan:    { accent: "#22d3ee", glow: "rgba(34,211,238,0.15)" },
+  amber:   { accent: "#fbbf24", glow: "rgba(245,158,11,0.15)" },
+  red:     { accent: "#fb7185", glow: "rgba(244,63,94,0.15)" },
+  slate:   { accent: "#94a3b8", glow: "rgba(148,163,184,0.15)" },
+  teal:    { accent: "#2dd4bf", glow: "rgba(20,184,166,0.15)" },
 };
 
 export default function ReconMetricCard({ metric }: { metric: ReconMetric }) {
@@ -50,29 +21,41 @@ export default function ReconMetricCard({ metric }: { metric: ReconMetric }) {
   const colors = TONE_COLORS[tone];
 
   return (
-    <div
-      className="group relative overflow-hidden rounded-xl transition-all duration-150 hover:-translate-y-0.5"
+    <motion.div
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.2 }}
+      className="group relative overflow-hidden rounded-[16px] border transition-colors duration-300"
       style={{
-        background: "#111113",
-        border: `1px solid rgba(255,255,255,0.07)`,
-        borderTopColor: colors.border,
-        borderTopWidth: "2px",
-        boxShadow:
-          "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04)",
+        background: "rgba(255, 255, 255, 0.015)",
+        borderColor: "rgba(255,255,255,0.05)",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.02)",
+        backdropFilter: "blur(12px)",
       }}
     >
-      <div className="px-4 py-4 sm:px-5 sm:py-5">
+      {/* Top Border Highlight */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-[2px] opacity-40 group-hover:opacity-100 transition-opacity duration-300" 
+        style={{ background: colors.accent, boxShadow: `0 0 12px ${colors.accent}` }} 
+      />
+
+      {/* Ambient hover glow */}
+      <div 
+        className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{ background: colors.glow }}
+      />
+
+      <div className="relative z-10 px-5 py-5 sm:px-6 sm:py-6">
         {/* Label row */}
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <span
-            className="inline-block h-1.5 w-1.5 rounded-full"
+            className="inline-block h-2 w-2 rounded-full"
             style={{
-              background: colors.dot,
-              boxShadow: `0 0 6px ${colors.dot}80`,
+              background: colors.accent,
+              boxShadow: `0 0 8px ${colors.accent}`,
             }}
           />
           <span
-            className="text-[10px] font-semibold uppercase tracking-[0.1em]"
+            className="text-[11px] font-bold uppercase tracking-[0.12em]"
             style={{ color: colors.accent }}
           >
             {metric.label}
@@ -81,20 +64,20 @@ export default function ReconMetricCard({ metric }: { metric: ReconMetric }) {
 
         {/* Value */}
         <p
-          className="text-[28px] font-bold tabular-nums leading-none tracking-tight sm:text-[32px]"
-          style={{ color: "#f4f4f5", letterSpacing: "-0.03em" }}
+          className="text-[32px] font-extrabold tabular-nums leading-none tracking-tight sm:text-[36px]"
+          style={{ color: "#ffffff" }}
         >
           {metric.value}
         </p>
 
         {/* Description */}
         <p
-          className="mt-2 text-[11px] leading-snug"
-          style={{ color: "#52525b" }}
+          className="mt-2.5 text-[12px] font-medium leading-relaxed"
+          style={{ color: "#a1a1aa" }}
         >
           {metric.description}
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }
