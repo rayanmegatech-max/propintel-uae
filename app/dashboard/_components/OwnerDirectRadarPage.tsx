@@ -1,865 +1,1091 @@
 // app/dashboard/_components/OwnerDirectRadarPage.tsx
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import {
+  Activity,
   ArrowRight,
-  Database,
-  ExternalLink,
-  Globe,
-  Layers3,
+  ArrowUpRight,
+  CheckCircle2,
+  Globe2,
+  Layers,
+  Mail,
   Phone,
-  Shield,
   ShieldCheck,
-  Users,
+  UserCheck,
 } from "lucide-react";
-import ReconMetricCard from "./ReconMetricCard";
-import ReconOpportunityCard from "./ReconOpportunityCard";
-import ReconFiltersBar from "./ReconFiltersBar";
 import { formatNumber } from "@/lib/recon/formatters";
 import { normalizeReconList } from "@/lib/recon/normalize";
-import {
-  DEFAULT_RECON_FILTERS,
-  applyReconFilters,
-  buildReconFilterOptions,
-  hasActiveReconFilters,
-  type ReconFilterState,
-} from "@/lib/recon/filter";
 import type { CountryConfig } from "@/lib/countries/countryConfig";
-import type {
-  KsaReconDataResult,
-  KsaReconListPayload,
-} from "@/lib/data/ksaRecon";
-import type {
-  UaeReconDataResult,
-  UaeReconListPayload,
-} from "@/lib/data/uaeRecon";
-import type {
-  ReconMetric,
-  NormalizedReconOpportunity,
-} from "@/lib/recon/types";
+import type { KsaReconDataResult } from "@/lib/data/ksaRecon";
+import type { UaeReconDataResult } from "@/lib/data/uaeRecon";
+import type { NormalizedReconOpportunity } from "@/lib/recon/types";
 
-// ─── Design tokens ───────────────────────────────────────────────────────────
-// Cyan accent throughout — distinct from Recon Hub's emerald
+// ─── Render cap ────────────────────────────────────────────────────────────────
+const OWNER_DIRECT_RENDER_LIMIT = 150;
+
+// ─── Design tokens ──────────────────────────────────────────────────────────
 const C = {
-  cardBg: "#111113",
-  cardBgLift: "#131315",   // slightly lifted surface for KPI section
-  wellBg: "#18181b",
-  deepBg: "#0d0d0f",
-  insetBg: "#0f0f11",       // inset/secondary surface for breakdown row
-  border: "rgba(255,255,255,0.07)",
-  borderFt: "rgba(255,255,255,0.04)",
-  borderSub: "rgba(255,255,255,0.055)",
-  borderInner: "rgba(255,255,255,0.035)", // subtle inner dividers
-  t1: "#f4f4f5",
-  t2: "#a1a1aa",
-  t3: "#71717a",
-  t4: "#52525b",
-  t5: "#3f3f46",
-  cy: "#06b6d4",
-  cyHi: "#22d3ee",
-  cyBg: "rgba(34,211,238,0.06)",
-  cyBdr: "rgba(34,211,238,0.18)",
+  t1: "#ffffff",
+  t2: "#e4e4e7",
+  t3: "#a1a1aa",
+  t4: "#71717a",
   em: "#10b981",
   emHi: "#34d399",
-  emBg: "rgba(16,185,129,0.06)",
+  cy: "#06b6d4",
+  cyHi: "#22d3ee",
   am: "#fbbf24",
-  amBg: "rgba(245,158,11,0.05)",
-  amBdr: "rgba(245,158,11,0.14)",
+  amHi: "#fcd34d",
+  rd: "#fb7185",
+  rdHi: "#f43f5e",
+  border: "rgba(255,255,255,0.06)",
+  borderSub: "rgba(255,255,255,0.04)",
 } as const;
 
-type OwnerDirectRadarPageProps = {
+export type OwnerDirectRadarPageProps = {
   country: CountryConfig;
   data: UaeReconDataResult | KsaReconDataResult;
 };
 
-type ViewMode = "all" | "contactable" | "source-led";
+type DirectView = "all" | "contactable" | "owner-direct" | "source-led";
+type CategoryFilter = "all" | "residential_buy" | "residential_rent" | "commercial_buy" | "commercial_rent" | "short_rental" | "land";
+
+// ─── Type Helpers ─────────────────────────────────────────────────────────
+function getStringField(record: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const val = record[key];
+    if (typeof val === "string" && val.trim() !== "") {
+      return val.trim();
+    }
+  }
+  return undefined;
+}
+
+function getBooleanField(record: Record<string, unknown>, keys: string[]): boolean {
+  for (const key of keys) {
+    const val = record[key];
+    if (val === true || val === 1 || val === "true" || val === "1") return true;
+  }
+  return false;
+}
+
+// ─── Formatters ───────────────────────────────────────────────────────────
+function formatCurrencyCompact(value: number, currency: string): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M ${currency}`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}k ${currency}`;
+  return `${value} ${currency}`;
+}
+
+function formatLocation(value: string | null | undefined): string {
+  if (!value) return "Unknown Location";
+  return value
+    .replace(/\|+/g, " · ")
+    .replace(/\s*-\s*/g, " · ")
+    .replace(/\s*\/\s*/g, " · ")
+    .replace(/\s+/g, " ")
+    .replace(/\s+·\s+/g, " · ")
+    .trim();
+}
+
+function formatPropertyType(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const cleaned = value.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  const lower = cleaned.toLowerCase();
+  if (lower === "residential lands" || lower === "residential land" || lower === "lands" || lower === "land" || lower === "commercial lands" || lower === "commercial land") return "Land";
+  return cleaned.split(" ").map((part) => part.length > 0 ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : part).join(" ");
+}
+
+function formatCategoryLabel(item: NormalizedReconOpportunity): string | undefined {
+  const sc = (item.sourceCategory || "").toLowerCase();
+  const pt = (item.propertyType || "").toLowerCase();
+
+  const hasRes = sc.includes("residential") || pt.includes("residential");
+  const hasCom = sc.includes("commercial") || pt.includes("commercial");
+  const hasBuy = sc.includes("buy") || sc.includes("sale") || pt.includes("buy") || pt.includes("sale");
+  const hasRent = sc.includes("rent") || sc.includes("lease") || pt.includes("rent") || pt.includes("lease");
+
+  if (hasRes && hasCom) return "Mixed Category";
+  if (sc.includes("short") || sc.includes("holiday") || pt.includes("short") || pt.includes("holiday")) return "Short Rental";
+  if (sc.includes("land") || pt.includes("land")) return "Land";
+  if (hasRes && hasBuy) return "Residential Buy";
+  if (hasRes && hasRent) return "Residential Rent";
+  if (hasCom && hasBuy) return "Commercial Buy";
+  if (hasCom && hasRent) return "Commercial Rent";
+  if (hasRes) return "Residential";
+  if (hasCom) return "Commercial";
+
+  if (item.sourceCategory && item.sourceCategory.toLowerCase() !== "all") return item.sourceCategory.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  if (item.propertyType) return formatPropertyType(item.propertyType);
+  return undefined;
+}
+
+function formatOwnerDirectLabel(value: string): string {
+  const cleaned = value.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  const lower = cleaned.toLowerCase();
+
+  if (lower.includes("confirmed")) {
+    return "Higher Confidence";
+  }
+
+  return cleaned.replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
+function getItemCategoryFilter(item: NormalizedReconOpportunity): CategoryFilter {
+  const sc = (item.sourceCategory || "").toLowerCase();
+  const pt = (item.propertyType || "").toLowerCase();
+  if (pt.includes("land") || sc.includes("land")) return "land";
+  if (sc.includes("short") || sc.includes("holiday") || pt.includes("short") || pt.includes("holiday")) return "short_rental";
+  if (sc.includes("commercial") && (sc.includes("buy") || sc.includes("sale"))) return "commercial_buy";
+  if (sc.includes("commercial") && (sc.includes("rent") || sc.includes("lease"))) return "commercial_rent";
+  if (sc.includes("residential") && (sc.includes("buy") || sc.includes("sale"))) return "residential_buy";
+  if (sc.includes("residential") && (sc.includes("rent") || sc.includes("lease"))) return "residential_rent";
+  if (sc.includes("commercial")) return "commercial_rent";
+  if (sc.includes("buy") || sc.includes("sale")) return "residential_buy";
+  if (sc.includes("rent") || sc.includes("lease")) return "residential_rent";
+  return "all";
+}
+
+function cleanTitle(item: NormalizedReconOpportunity): string {
+  const title = item.title || item.subtitle || "";
+  const location = formatLocation(item.locationLabel);
+  const lower = title.toLowerCase();
+  if (
+    lower.includes("owner/direct signal") ||
+    lower.includes("price movement") ||
+    lower.includes("refresh signal") ||
+    lower.includes("signal +") ||
+    lower.includes(" + ") ||
+    lower.includes("price drop") ||
+    lower.includes("stale") ||
+    lower.includes("aged")
+  ) {
+    return location;
+  }
+  return title || location;
+}
 
 // ─── Segment helpers ────────────────────────────────────────────────────────
 function isContactable(item: NormalizedReconOpportunity): boolean {
   return item.hasPhone || item.hasWhatsapp || item.hasEmail;
 }
 
+function isOwnerDirectStyle(item: NormalizedReconOpportunity): boolean {
+  const raw = item.raw;
+  return (
+    getBooleanField(raw, ["is_owner_direct", "has_owner_direct_signal"]) ||
+    !!getStringField(raw, ["owner_direct_bucket", "owner_direct_label"])
+  );
+}
+
 function isSourceLed(item: NormalizedReconOpportunity): boolean {
   return !isContactable(item) && Boolean(item.listingUrl);
 }
 
-// ─── Compact date ───────────────────────────────────────────────────────────
-function compactDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(d);
+function isHigherConfidence(item: NormalizedReconOpportunity): boolean {
+  const raw = item.raw;
+  const tier = getStringField(raw, ["owner_direct_confidence_tier"]);
+  if (tier) {
+    const lower = tier.toLowerCase();
+    return lower.includes("high") || lower.includes("strong");
+  }
+  const bucket = getStringField(raw, ["owner_direct_bucket"]);
+  if (bucket) {
+    const lower = bucket.toLowerCase();
+    return lower.includes("high") || lower.includes("strong") || lower.includes("owner");
+  }
+  return false;
 }
 
-// ─── Section group label ─────────────────────────────────────────────────────
-// Light overline label to visually group and separate top-half sections
-function GroupLabel({ children }: { children: React.ReactNode }) {
+// ─── Dedupe Logic ───────────────────────────────────────────────────────────
+function getDedupeKey(item: NormalizedReconOpportunity): string {
+  if (item.listingUrl) return `url:${item.listingUrl}`;
+  const loc = formatLocation(item.locationLabel);
+  const propType = formatPropertyType(item.propertyType) ?? "";
+  return [item.portal || "", loc, item.agencyName || "", item.price ?? 0, propType].join("-").toLowerCase();
+}
+
+function dedupeItems(items: NormalizedReconOpportunity[]): NormalizedReconOpportunity[] {
+  const map = new Map<string, NormalizedReconOpportunity>();
+  for (const item of items) {
+    const key = getDedupeKey(item);
+    if (!map.has(key)) {
+      map.set(key, item);
+    } else {
+      const existing = map.get(key)!;
+      if (isContactable(item) && !isContactable(existing)) {
+        map.set(key, item);
+      } else if (item.listingUrl && !existing.listingUrl) {
+        map.set(key, item);
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+// ─── Background Grid Pattern ──────────────────────────────────────────────
+function GridPattern() {
   return (
-    <div className="flex items-center gap-2">
-      <span
-        className="text-[9px] font-black uppercase tracking-[0.16em]"
-        style={{ color: C.t5 }}
-      >
-        {children}
-      </span>
-      <div className="h-px flex-1" style={{ background: C.borderFt }} />
+    <div className="absolute inset-0 pointer-events-none select-none opacity-[0.03]" style={{ zIndex: 0 }}>
+      <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="owner-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M0 40V.5H40" fill="none" stroke="white" strokeWidth="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#owner-grid)" />
+      </svg>
     </div>
   );
 }
 
-// ─── Empty state ────────────────────────────────────────────────────────────
-function EmptyOwnerDirectState({
-  country,
-  message,
-}: {
-  country: CountryConfig;
-  message: string;
-}) {
-  return (
-    <div className="space-y-5">
-      <section
-        className="rounded-xl border p-6"
-        style={{
-          background: "rgba(245,158,11,0.04)",
-          borderColor: "rgba(245,158,11,0.15)",
-        }}
-      >
-        <div
-          className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg"
-          style={{
-            background: "rgba(245,158,11,0.08)",
-            border: "1px solid rgba(245,158,11,0.15)",
-          }}
-        >
-          <Database className="h-5 w-5" style={{ color: "#fbbf24" }} />
-        </div>
-        <h1 className="text-lg font-bold" style={{ color: C.t1 }}>
-          {country.label} Owner / Direct export not loaded
-        </h1>
-        <p
-          className="mt-2 max-w-2xl text-[13px] leading-relaxed"
-          style={{ color: "rgba(251,191,36,0.7)" }}
-        >
-          {message}
-        </p>
-        <div
-          className="mt-4 rounded-lg p-3"
-          style={{
-            background: "rgba(0,0,0,0.25)",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          <p className="text-[12px] font-medium" style={{ color: C.t2 }}>
-            Run locally:
-          </p>
-          <code
-            className="mt-1.5 block rounded-md p-2.5 text-[11px]"
-            style={{ background: "rgba(0,0,0,0.3)", color: C.t4 }}
-          >
-            {country.slug === "uae"
-              ? "python tools\\export_uae_recon_frontend_data.py"
-              : "python tools\\export_ksa_recon_frontend_data.py"}
-          </code>
-        </div>
-      </section>
-    </div>
-  );
-}
+// ─── Components ─────────────────────────────────────────────────────────────
 
-// ─── View mode selector ─────────────────────────────────────────────────────
-function ViewModeSelector({
-  mode,
-  onModeChange,
-  counts,
-}: {
-  mode: ViewMode;
-  onModeChange: (mode: ViewMode) => void;
-  counts: { all: number; contactable: number; sourceLed: number };
-}) {
-  const modes: Array<{ key: ViewMode; label: string; count: number }> = [
-    { key: "all", label: "All signals", count: counts.all },
-    { key: "contactable", label: "Contactable", count: counts.contactable },
-    { key: "source-led", label: "Source-led", count: counts.sourceLed },
-  ];
-
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {modes.map((m) => {
-        const isActive = m.key === mode;
-        return (
-          <button
-            key={m.key}
-            type="button"
-            onClick={() => onModeChange(m.key)}
-            className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-[7px] text-[12px] font-semibold transition-all duration-150"
-            style={{
-              color: isActive ? C.cyHi : C.t3,
-              background: isActive ? C.cyBg : "rgba(255,255,255,0.025)",
-              border: `1px solid ${isActive ? C.cyBdr : C.borderFt}`,
-              boxShadow: isActive
-                ? "0 0 12px rgba(34,211,238,0.06)"
-                : "none",
-            }}
-            aria-pressed={isActive}
-          >
-            {isActive && (
-              <span
-                className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{
-                  background: C.cyHi,
-                  boxShadow: "0 0 4px rgba(34,211,238,0.5)",
-                }}
-              />
-            )}
-            {m.label}
-            <span
-              className="rounded px-1.5 py-[1px] text-[10px] font-bold tabular-nums"
-              style={{
-                color: isActive ? C.cyHi : C.t5,
-                background: isActive
-                  ? "rgba(34,211,238,0.1)"
-                  : "rgba(255,255,255,0.04)",
-              }}
-            >
-              {m.count.toLocaleString("en-US")}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Safe caveat strip ──────────────────────────────────────────────────────
-function SafeCaveatStrip() {
-  return (
-    <div
-      className="flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5"
-      style={{ background: C.amBg, borderColor: C.amBdr }}
-    >
-      <ShieldCheck
-        className="mt-px h-3.5 w-3.5 shrink-0"
-        style={{ color: C.am }}
-      />
-      <p className="text-[11px] leading-relaxed" style={{ color: C.t3 }}>
-        This page shows{" "}
-        <span className="font-semibold" style={{ color: C.t2 }}>
-          owner/direct-style public listing signals
-        </span>
-        , not guaranteed private-owner leads. Verify before outreach.
-      </p>
-    </div>
-  );
-}
-
-// ─── Data freshness strip ───────────────────────────────────────────────────
-function DataStrip({
-  sourceTable,
-  exportedRows,
-  totalRows,
-  exportedAt,
-}: {
-  sourceTable: string;
-  exportedRows: number;
-  totalRows: number;
-  exportedAt: string;
-}) {
-  return (
-    <div
-      className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg px-3.5 py-2"
-      style={{
-        background: "rgba(255,255,255,0.02)",
-        border: `1px solid ${C.borderFt}`,
-      }}
-    >
-      <div className="flex items-center gap-1.5">
-        <Database className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Source
-        </span>
-        <span className="text-[10px] font-semibold" style={{ color: C.t3 }}>
-          {sourceTable}
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <Layers3 className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Total rows
-        </span>
-        <span
-          className="text-[10px] font-semibold tabular-nums"
-          style={{ color: C.t2 }}
-        >
-          {totalRows.toLocaleString("en-US")}
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Sample loaded
-        </span>
-        <span
-          className="text-[10px] font-semibold tabular-nums"
-          style={{ color: C.t3 }}
-        >
-          {exportedRows.toLocaleString("en-US")}
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <Shield className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Exported
-        </span>
-        <span className="text-[10px] font-semibold" style={{ color: C.cyHi }}>
-          {compactDate(exportedAt)}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Qualification breakdown row ─────────────────────────────────────────────
-// A single inset surface with three horizontal stat items separated by dividers.
-// Visually distinct from the KPI card row above it.
-function QualificationBreakdown({
-  contactableCount,
-  sourceLedCount,
-  agencyCount,
-}: {
-  contactableCount: number;
-  sourceLedCount: number;
-  agencyCount: number;
-}) {
-  const items = [
-    {
-      icon: Phone,
-      iconColor: C.emHi,
-      label: "Contact-ready",
-      value: contactableCount,
-      note: "Phone, WhatsApp, or email signal in sample",
-    },
-    {
-      icon: Globe,
-      iconColor: C.cyHi,
-      label: "Source-led",
-      value: sourceLedCount,
-      note: "URL path only — verify before outreach",
-    },
-    {
-      icon: Users,
-      iconColor: C.am,
-      label: "Agencies",
-      value: agencyCount,
-      note: "Distinct agencies in sample",
-    },
-  ] as const;
-
-  return (
-    <div
-      className="overflow-hidden rounded-xl border"
-      style={{
-        background: C.insetBg,
-        borderColor: C.borderSub,
-        boxShadow: "inset 0 1px 0 rgba(0,0,0,0.15)",
-      }}
-    >
-      <div className="grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0"
-        style={{ "--tw-divide-opacity": "1" } as React.CSSProperties}
-      >
-        {items.map(({ icon: Icon, iconColor, label, value, note }) => (
-          <div
-            key={label}
-            className="flex items-center gap-3 px-4 py-3 sm:gap-4 sm:py-4"
-            style={{
-              borderColor: C.borderInner,
-            }}
-          >
-            {/* Icon */}
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-              style={{
-                background: "rgba(255,255,255,0.035)",
-                border: `1px solid ${C.borderFt}`,
-              }}
-            >
-              <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} />
-            </div>
-
-            {/* Text */}
-            <div className="min-w-0">
-              <p
-                className="text-[10px] font-semibold uppercase tracking-[0.07em]"
-                style={{ color: iconColor }}
-              >
-                {label}
-              </p>
-              <p
-                className="mt-0.5 text-[20px] font-bold tabular-nums leading-none"
-                style={{ color: C.t1, letterSpacing: "-0.02em" }}
-              >
-                {value.toLocaleString("en-US")}
-              </p>
-              <p
-                className="mt-1 text-[10px] leading-snug"
-                style={{ color: C.t5 }}
-              >
-                {note}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Section divider ────────────────────────────────────────────────────────
-function SectionDivider({
-  icon: Icon,
-  label,
-  count,
-  accent,
+function SnapshotCard({
+  title,
   description,
+  value,
+  icon,
+  accentColor,
+  href,
+  ctaLabel,
 }: {
-  icon: typeof Phone;
-  label: string;
-  count: number;
-  accent: string;
+  title: string;
   description: string;
+  value?: string | number;
+  icon: React.ReactNode;
+  accentColor: string;
+  href: string;
+  ctaLabel?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 pt-2">
-      <div className="flex items-center gap-2">
-        <div
-          className="h-4 w-[3px] shrink-0 rounded-full"
-          style={{ background: accent }}
-        />
-        <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
-        <h2
-          className="text-[13px] font-semibold"
-          style={{ color: C.t1, letterSpacing: "-0.01em" }}
-        >
-          {label}
-        </h2>
-        <span
-          className="rounded px-1.5 py-[1px] text-[10px] font-bold tabular-nums"
-          style={{
-            color: accent,
-            background: "rgba(255,255,255,0.04)",
-            border: `1px solid ${C.borderFt}`,
-          }}
-        >
-          {count}
-        </span>
-      </div>
-      <span className="text-[10px]" style={{ color: C.t5 }}>
-        {description}
-      </span>
+    <Link
+      href={href}
+      className="group relative flex flex-col h-full rounded-[16px] border p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      style={{
+        background: "rgba(255, 255, 255, 0.015)",
+        borderColor: C.borderSub,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
       <div
-        className="hidden h-px flex-1 sm:block"
-        style={{ background: C.borderFt }}
+        className="absolute top-0 left-0 right-0 h-[1.5px] opacity-0 group-hover:opacity-60 transition-all duration-300"
+        style={{ background: accentColor, boxShadow: `0 0 10px ${accentColor}` }}
       />
-    </div>
+      <div
+        className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"
+        style={{ background: accentColor }}
+      />
+
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="flex items-start justify-between gap-3.5 mb-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-inner transition-colors duration-300"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+              borderColor: "rgba(255,255,255,0.1)",
+              color: accentColor,
+            }}
+          >
+            {icon}
+          </div>
+          {value !== undefined && (
+            <span className="text-[18px] font-black tabular-nums tracking-tight text-white mt-1">
+              {value}
+            </span>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 mb-3">
+          <h3 className="text-[15px] font-bold tracking-tight text-white flex items-center gap-2 mb-1">
+            {title}
+          </h3>
+          <p className="text-[13px] leading-relaxed font-medium" style={{ color: C.t3 }}>
+            {description}
+          </p>
+        </div>
+
+        <div
+          className="mt-auto flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-transform group-hover:translate-x-0.5"
+          style={{ color: accentColor }}
+        >
+          {ctaLabel ?? "Open Workspace"}
+          <ArrowRight className="h-3 w-3" />
+        </div>
+      </div>
+    </Link>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// INNER CONTENT — all hooks at the top, no conditional returns before them
-// ═══════════════════════════════════════════════════════════════════════════
-function OwnerDirectContent({
-  country,
-  payload,
+function IntelligencePanel({
+  title,
+  purpose,
+  agentUseText,
+  chips,
+  icon,
+  accentColor,
+  primaryAction,
 }: {
-  country: CountryConfig;
-  payload: UaeReconListPayload | KsaReconListPayload;
+  title: string;
+  purpose: string;
+  agentUseText: string;
+  chips: string[];
+  icon: React.ReactNode;
+  accentColor: string;
+  primaryAction: { label: string; onClick: () => void };
 }) {
-  const [viewMode, setViewMode] = useState<ViewMode>("all");
-  const [filters, setFilters] = useState<ReconFilterState>({
-    ...DEFAULT_RECON_FILTERS,
-  });
-
-  // ── Normalize once ────────────────────────────────────────
-  const normalizedAll = useMemo(
-    () => normalizeReconList(payload.items, country.slug, payload.source_table),
-    [payload, country.slug]
-  );
-
-  const filterOptions = useMemo(
-    () => buildReconFilterOptions(normalizedAll),
-    [normalizedAll]
-  );
-
-  const filteredAll = useMemo(
-    () => applyReconFilters(normalizedAll, filters),
-    [normalizedAll, filters]
-  );
-
-  const contactableItems = useMemo(
-    () => filteredAll.filter(isContactable),
-    [filteredAll]
-  );
-  const sourceItems = useMemo(
-    () => filteredAll.filter(isSourceLed),
-    [filteredAll]
-  );
-
-  const activeItems =
-    viewMode === "contactable"
-      ? contactableItems
-      : viewMode === "source-led"
-        ? sourceItems
-        : filteredAll;
-
-  // ── Unfiltered statistics (from full normalized list) ─────
-  const totalRows = payload.total_rows_available;
-  const exportedRows = payload.exported_rows;
-  const contactableCount = normalizedAll.filter(isContactable).length;
-  // urlReadyCount = ALL items with listingUrl (incl. contactable ones) — for overview KPI
-  const urlReadyCount = normalizedAll.filter((i) => i.listingUrl).length;
-  // sourceLedCount = items that are URL-only (no contact) — for breakdown card
-  const sourceLedCount = normalizedAll.filter(isSourceLed).length;
-  const agencyCount = new Set(
-    normalizedAll
-      .map((i) => i.agencyName)
-      .filter((v): v is string => Boolean(v))
-  ).size;
-
-  // ── KPI metrics — overview-level numbers ─────────────────
-  // "URL-ready" replaces the old "Source-led" KPI to avoid conflict
-  // with the breakdown row's "Source-led" card (which is URL-only).
-  const metrics: ReconMetric[] = [
-    {
-      label: "Owner/direct signals",
-      value: formatNumber(totalRows),
-      description: "Total rows in source table",
-      tone: "cyan",
-    },
-    {
-      label: "Sample loaded",
-      value: formatNumber(exportedRows),
-      description: "Rows in this frontend preview",
-      tone: "slate",
-    },
-    {
-      label: "Contactable",
-      value: formatNumber(contactableCount),
-      description: "Sample rows with phone, WhatsApp, or email",
-      tone: "emerald",
-    },
-    {
-      label: "URL-ready",
-      value: formatNumber(urlReadyCount),
-      description: "Rows in sample with source URL path",
-      tone: "teal",
-    },
-  ];
-
-  const featuredItem = activeItems[0] ?? null;
-  const remainingItems = activeItems.slice(1);
-  const hasFilters = hasActiveReconFilters(filters);
-
   return (
-    <div className="space-y-5">
-      {/* ── 1. Page header ────────────────────────────────────── */}
-      <header className="relative">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px"
-          style={{
-            background:
-              "linear-gradient(90deg, transparent 0%, rgba(34,211,238,0.3) 30%, rgba(34,211,238,0.1) 70%, transparent 100%)",
-          }}
-        />
+    <article
+      className="relative overflow-hidden rounded-[20px] border shadow-md"
+      style={{
+        background: "linear-gradient(135deg, rgba(24,24,27,0.4) 0%, rgba(9,9,11,0.6) 100%)",
+        borderColor: C.border,
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      <div className="absolute top-0 left-0 w-1.5 h-full opacity-80" style={{ background: accentColor }} />
+      <div className="absolute top-0 left-0 w-64 h-64 rounded-full blur-[80px] pointer-events-none opacity-10" style={{ background: accentColor }} />
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="mb-1.5 flex items-center gap-2">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-[3px] text-[9px] font-black uppercase tracking-[0.16em]"
-                style={{
-                  color: C.cyHi,
-                  background: C.cyBg,
-                  border: `1px solid ${C.cyBdr}`,
-                }}
-              >
-                <span
-                  className="inline-block h-1.5 w-1.5 rounded-full"
-                  style={{
-                    background: C.cyHi,
-                    boxShadow: "0 0 6px rgba(34,211,238,0.6)",
-                  }}
-                />
-                {country.label} Owner / Direct
-              </span>
-              <span
-                className="rounded-md px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.12em]"
-                style={{
-                  color: C.t5,
-                  background: "rgba(255,255,255,0.03)",
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                {country.currency}
-              </span>
+      <div className="relative z-10 p-5 sm:p-7 flex flex-col md:flex-row md:items-center gap-5 md:gap-8">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="p-2 rounded-lg bg-white/5 border border-white/10" style={{ color: accentColor }}>
+              {icon}
             </div>
-
-            <h1
-              className="text-[20px] font-bold tracking-tight sm:text-[24px]"
-              style={{ color: C.t1, letterSpacing: "-0.025em" }}
-            >
-              Owner / Direct Signal Review
-            </h1>
-            <p
-              className="mt-0.5 max-w-2xl text-[13px] leading-relaxed"
-              style={{ color: C.t4 }}
-            >
-              Qualify owner/direct-style signals — review contactable leads and
-              source-led opportunities before outreach.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 sm:self-end">
-            <Link
-              href={`${country.routeBase}/recon`}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-white/[0.04]"
-              style={{ color: C.t3, border: `1px solid ${C.borderFt}` }}
-            >
-              Recon Hub
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-            <Link
-              href={country.routeBase}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-white/[0.04]"
-              style={{ color: C.t4, border: `1px solid ${C.borderFt}` }}
-            >
-              {country.label}
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* ── 2. Safe caveat ────────────────────────────────────── */}
-      <SafeCaveatStrip />
-
-      {/* ── 3. Data freshness strip ───────────────────────────── */}
-      <DataStrip
-        sourceTable={payload.source_table}
-        exportedRows={exportedRows}
-        totalRows={totalRows}
-        exportedAt={payload.exported_at}
-      />
-
-      {/* ── 4. KPI overview row ───────────────────────────────── */}
-      <div className="space-y-2">
-        <GroupLabel>Overview</GroupLabel>
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-          {metrics.map((metric) => (
-            <ReconMetricCard key={metric.label} metric={metric} />
-          ))}
-        </div>
-      </div>
-
-      {/* ── 5. Qualification breakdown ────────────────────────── */}
-      {/* Visually distinct from KPI row: single inset surface, horizontal layout */}
-      <div className="space-y-2">
-        <GroupLabel>Qualification breakdown</GroupLabel>
-        <QualificationBreakdown
-          contactableCount={contactableCount}
-          sourceLedCount={sourceLedCount}
-          agencyCount={agencyCount}
-        />
-      </div>
-
-      {/* ── 6. Signal qualification + filters ─────────────────── */}
-      <section
-        className="rounded-xl border"
-        style={{ background: C.cardBg, borderColor: C.border }}
-      >
-        <div className="p-3 pb-0">
-          <div className="space-y-2">
-            {/* Header row */}
-            <div className="flex items-center gap-2">
-              <span
-                className="text-[9px] font-black uppercase tracking-[0.16em]"
-                style={{ color: C.t5 }}
-              >
-                Signal qualification
-              </span>
-              <div
-                className="h-px flex-1"
-                style={{ background: C.borderFt }}
-              />
-            </div>
-
-            {/* Helper line explaining what each mode means */}
-            <p className="text-[10px] leading-snug" style={{ color: C.t5 }}>
-              <span style={{ color: C.t4 }}>Contactable</span>
-              {" "}= phone, WhatsApp, or email signal.{" "}
-              <span style={{ color: C.t4 }}>Source-led</span>
-              {" "}= source URL path without a direct contact signal.
-            </p>
-
-            <ViewModeSelector
-              mode={viewMode}
-              onModeChange={setViewMode}
-              counts={{
-                all: filteredAll.length,
-                contactable: contactableItems.length,
-                sourceLed: sourceItems.length,
-              }}
-            />
-          </div>
-        </div>
-
-        <div
-          className="border-t px-4 py-3"
-          style={{ borderColor: C.borderFt }}
-        >
-          <ReconFiltersBar
-            filters={filters}
-            onFiltersChange={setFilters}
-            options={filterOptions}
-            totalCount={normalizedAll.length}
-            filteredCount={filteredAll.length}
-          />
-        </div>
-      </section>
-
-      {/* ── 7. Featured lead ──────────────────────────────────── */}
-      {featuredItem && (
-        <section>
-          <div className="mb-2.5 flex items-center gap-2.5">
-            <div
-              className="h-4 w-[3px] shrink-0 rounded-full"
-              style={{ background: C.cyHi }}
-            />
-            <h2
-              className="text-[14px] font-semibold"
-              style={{ color: C.t1, letterSpacing: "-0.01em" }}
-            >
-              {viewMode === "contactable"
-                ? "Top contactable signal"
-                : viewMode === "source-led"
-                  ? "Top source-led signal"
-                  : "Top owner/direct-style signal"}
+            <h2 className="text-[18px] sm:text-[22px] font-extrabold tracking-tight text-white">
+              {title}
             </h2>
-            <span className="text-[11px]" style={{ color: C.t5 }}>
-              · Review first
-            </span>
           </div>
-          <ReconOpportunityCard
-            opportunity={featuredItem}
-            variant="featured"
-          />
-        </section>
-      )}
 
-      {/* ── 8. Remaining list ─────────────────────────────────── */}
-      {remainingItems.length > 0 && (
-        <section>
-          <SectionDivider
-            icon={
-              viewMode === "contactable"
-                ? Phone
-                : viewMode === "source-led"
-                  ? ExternalLink
-                  : Layers3
-            }
-            label={
-              viewMode === "contactable"
-                ? "Contactable signals"
-                : viewMode === "source-led"
-                  ? "Source-led signals"
-                  : "All owner/direct-style signals"
-            }
-            count={remainingItems.length}
-            accent={
-              viewMode === "contactable"
-                ? C.emHi
-                : viewMode === "source-led"
-                  ? C.cyHi
-                  : C.t3
-            }
-            description={
-              viewMode === "contactable"
-                ? "Phone, WhatsApp, or email signal"
-                : viewMode === "source-led"
-                  ? "Verify from source before outreach"
-                  : "Ranked by recon score"
-            }
-          />
-          <div className="mt-2 space-y-2">
-            {remainingItems.map((opportunity) => (
-              <ReconOpportunityCard
-                key={opportunity.id}
-                opportunity={opportunity}
-                variant="list"
-              />
+          <p className="text-[13.5px] leading-relaxed font-medium mb-3 pl-1" style={{ color: C.t2 }}>
+            {purpose}
+          </p>
+
+          <div className="flex flex-wrap gap-2 mb-3.5 pl-1">
+            {chips.map((chip) => (
+              <span
+                key={chip}
+                className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md shadow-sm"
+                style={{
+                  color: accentColor,
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                {chip}
+              </span>
             ))}
           </div>
-        </section>
-      )}
 
-      {/* ── Empty state ───────────────────────────────────────── */}
-      {activeItems.length === 0 && (
-        <div
-          className="rounded-xl border p-10 text-center"
-          style={{ background: C.cardBg, borderColor: C.border }}
-        >
-          <p className="text-[13px] font-medium" style={{ color: C.t3 }}>
-            No signals match the current view and filters.
-          </p>
-          <p className="mt-1.5 text-[11px]" style={{ color: C.t5 }}>
-            {hasFilters
-              ? "Try adjusting your filters or switching the qualification view."
-              : "Try selecting a different qualification view."}
-          </p>
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-black/20 border border-white/5 shadow-inner">
+            <div className="h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" style={{ background: accentColor, boxShadow: `0 0 8px ${accentColor}` }} />
+            <p className="text-[13px] leading-relaxed font-medium" style={{ color: C.t3 }}>
+              <span className="text-white font-bold mr-1.5">Agent Workflow:</span>
+              {agentUseText}
+            </p>
+          </div>
         </div>
-      )}
 
-      {/* ── 9. Footer nav ─────────────────────────────────────── */}
-      <div className="flex justify-end pt-2">
-        <Link
-          href={`${country.routeBase}/recon`}
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-white/[0.04]"
-          style={{
-            color: C.t4,
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          Compare with Recon Hub
-          <ArrowRight className="h-3 w-3" />
-        </Link>
+        <div className="flex flex-col gap-2.5 md:min-w-[180px] shrink-0 mt-2 md:mt-0">
+          <button
+            onClick={primaryAction.onClick}
+            className="flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-[13px] font-bold text-white transition-all hover:opacity-90 hover:-translate-y-px shadow-sm"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}
+          >
+            {primaryAction.label}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
+    </article>
+  );
+}
+
+function MetricPill({
+  label,
+  value,
+  tone = "neutral",
+  truncate = false,
+}: {
+  label: string;
+  value: string | number;
+  tone?: "neutral" | "rd" | "am" | "cy" | "em";
+  truncate?: boolean;
+}) {
+  const colors = {
+    neutral: { text: C.t1, bg: "rgba(255,255,255,0.03)", border: C.borderSub },
+    rd: { text: C.rdHi, bg: "rgba(244,63,94,0.1)", border: "rgba(244,63,94,0.2)" },
+    am: { text: C.amHi, bg: "rgba(251,191,36,0.1)", border: "rgba(251,191,36,0.2)" },
+    cy: { text: C.cyHi, bg: "rgba(34,211,238,0.1)", border: "rgba(34,211,238,0.2)" },
+    em: { text: C.emHi, bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.2)" },
+  };
+  const c = colors[tone];
+
+  return (
+    <div className="flex flex-col gap-0.5 rounded-lg px-2.5 py-1.5 border" style={{ background: c.bg, borderColor: c.border }}>
+      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: C.t4 }}>{label}</span>
+      <span
+        className={`text-[12px] font-bold tabular-nums ${truncate ? "max-w-[110px] truncate" : ""}`}
+        style={{ color: c.text }}
+        title={typeof value === "string" ? value : undefined}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// EXPORT — guards before hooks, delegates to OwnerDirectContent
-// ═══════════════════════════════════════════════════════════════════════════
+function OwnerDirectCard({
+  item,
+  idx,
+  routeBase,
+  currency,
+}: {
+  item: NormalizedReconOpportunity;
+  idx: number;
+  routeBase: string;
+  currency: string;
+}) {
+  const raw = item.raw;
+  const rank = idx + 1;
+
+  const contactable = isContactable(item);
+  const ownerDirect = isOwnerDirectStyle(item);
+  const sourceLed = isSourceLed(item);
+  const higherConf = isHigherConfidence(item);
+
+  const ownerLabel = getStringField(raw, ["owner_direct_label", "owner_direct_bucket"]);
+  const confTier = getStringField(raw, ["owner_direct_confidence_tier"]);
+
+  // Card read
+  let directRead = "This public listing includes direct-style or contactable signals. Verify the source before outreach.";
+  if (contactable) {
+    directRead = "This public listing includes a visible contact route. Verify the source before outreach.";
+  } else if (sourceLed) {
+    directRead = "This source-led record needs listing verification before outreach.";
+  } else if (ownerDirect) {
+    directRead = "This record shows owner/direct-style public listing evidence. Treat it as a lead candidate, not confirmed ownership.";
+  }
+
+  let actionText = "Agents can prioritize listings with clearer contact or direct-style evidence while avoiding unsupported ownership claims.";
+  if (contactable && ownerDirect) {
+    actionText = "A contactable listing with owner/direct-style signals is worth prioritizing for follow-up verification.";
+  } else if (contactable) {
+    actionText = "Visible contact routes reduce friction in follow-up. Verify advertiser context before outreach.";
+  } else if (sourceLed) {
+    actionText = "Source-led signals need verification through the listing URL before any contact attempt.";
+  }
+
+  const categoryBadge = formatCategoryLabel(item);
+  const displayTitle = cleanTitle(item);
+  const formattedLocation = formatLocation(item.locationLabel);
+
+  const toneColor = contactable ? C.emHi : ownerDirect ? C.cyHi : C.amHi;
+  const badgeLabel = contactable ? "Contactable" : sourceLed ? "Source-Led" : ownerDirect ? "Direct-Style" : "Direct Signal";
+
+  const pillsToRender: Array<{ label: string; value: string | number; tone: "neutral" | "rd" | "am" | "cy" | "em" }> = [];
+
+  if (item.price !== null) {
+    pillsToRender.push({ label: "Advertised", value: formatCurrencyCompact(item.price, currency), tone: "neutral" });
+  }
+
+  if (item.portal) {
+    pillsToRender.push({ label: "Portal", value: item.portal, tone: "neutral" });
+  }
+
+  if (ownerLabel) {
+    pillsToRender.push({ label: "Evidence", value: formatOwnerDirectLabel(ownerLabel), tone: "cy" });
+  }
+
+  if (confTier) {
+    const formattedConfidence = formatOwnerDirectLabel(confTier);
+    const confidenceIsReview = formattedConfidence.toLowerCase() === "review";
+    pillsToRender.push({
+      label: confidenceIsReview ? "Review Status" : "Evidence",
+      value: confidenceIsReview ? "Needs Review" : formattedConfidence,
+      tone: higherConf ? "em" : "neutral",
+    });
+  }
+
+  const displayPropertyType = formatPropertyType(item.propertyType);
+  if (displayPropertyType && pillsToRender.length < 5) {
+    pillsToRender.push({ label: "Type", value: displayPropertyType, tone: "neutral" });
+  }
+
+  const finalPills = pillsToRender.slice(0, 5);
+
+  return (
+    <article
+      className="group relative flex flex-col rounded-[20px] border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, rgba(24,24,27,0.48) 0%, rgba(9,9,11,0.72) 100%)",
+        borderColor: "rgba(255,255,255,0.065)",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.02)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      <div
+        className="absolute top-0 left-0 right-0 h-[1.5px] opacity-0 group-hover:opacity-50 transition-all duration-300 z-10"
+        style={{ background: toneColor, boxShadow: `0 0 10px ${toneColor}` }}
+      />
+      <div className="absolute top-0 right-0 h-32 w-32 rounded-full blur-[70px] opacity-[0.08] pointer-events-none z-0" style={{ background: toneColor }} />
+
+      <div className="p-5 sm:p-6 flex flex-col flex-1 relative z-10">
+        {/* Top Row */}
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <span
+              className="rounded px-1.5 py-[3px] text-[9px] font-extrabold uppercase tracking-widest"
+              style={{ color: toneColor, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.borderSub}` }}
+            >
+              #{rank}
+            </span>
+            <span
+              className="inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest leading-none shadow-sm"
+              style={{
+                color: C.t2,
+                background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+                borderColor: "rgba(255,255,255,0.15)",
+              }}
+            >
+              {badgeLabel}
+            </span>
+          </div>
+          {categoryBadge && (
+            <span
+              className="inline-flex items-center rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest leading-none shadow-sm"
+              style={{ color: C.t3, background: "rgba(255,255,255,0.02)", borderColor: C.borderSub }}
+            >
+              {categoryBadge}
+            </span>
+          )}
+        </div>
+
+        <h3 className="line-clamp-2 text-[16px] font-extrabold text-white tracking-tight mb-1">
+          {displayTitle}
+        </h3>
+
+        {displayTitle !== formattedLocation && formattedLocation && formattedLocation !== "Unknown Location" && (
+          <p className="text-[12px] font-bold mb-4" style={{ color: C.t4 }}>
+            {formattedLocation}
+          </p>
+        )}
+
+        {/* Agency/Agent */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 rounded-lg border p-3 mb-4" style={{ background: "rgba(255,255,255,0.02)", borderColor: C.borderSub }}>
+          <span className="block text-[13px] font-bold leading-relaxed text-white line-clamp-2" title={item.agencyName || "Agency not listed"}>
+            {item.agencyName || "Agency not listed"}
+          </span>
+          <span className="text-[11px] font-bold uppercase tracking-wider shrink-0" style={{ color: C.t4 }}>
+            {item.agentName || "Agent not listed"}
+          </span>
+        </div>
+
+        {/* Contact Indicators */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {item.hasPhone && (
+            <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-bold" style={{ color: C.emHi, background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.2)" }}>
+              <Phone className="h-3 w-3" /> Phone
+            </span>
+          )}
+          {item.hasWhatsapp && (
+            <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-bold" style={{ color: C.emHi, background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.2)" }}>
+              <Phone className="h-3 w-3" /> WhatsApp
+            </span>
+          )}
+          {item.hasEmail && (
+            <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-bold" style={{ color: C.cyHi, background: "rgba(34,211,238,0.08)", borderColor: "rgba(34,211,238,0.2)" }}>
+              <Mail className="h-3 w-3" /> Email
+            </span>
+          )}
+          {item.listingUrl && !contactable && (
+            <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-bold" style={{ color: C.amHi, background: "rgba(251,191,36,0.08)", borderColor: "rgba(251,191,36,0.2)" }}>
+              <Globe2 className="h-3 w-3" /> Source Available
+            </span>
+          )}
+        </div>
+
+        {/* Metric Pills */}
+        {finalPills.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {finalPills.map((p, i) => (
+              <MetricPill key={i} label={p.label} value={p.value} tone={p.tone} />
+            ))}
+          </div>
+        )}
+
+        <p className="text-[13px] leading-relaxed font-medium mb-3" style={{ color: C.t3 }}>
+          {directRead}
+        </p>
+
+        {/* Action Box */}
+        <div className="mt-auto mb-5 rounded-xl border p-3.5" style={{ background: "rgba(0,0,0,0.18)", borderColor: C.borderSub }}>
+          <span className="block text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: toneColor }}>
+            Why this matters
+          </span>
+          <p className="text-[12.5px] leading-relaxed font-medium" style={{ color: C.t2 }}>
+            {actionText}
+          </p>
+        </div>
+
+        {/* Footer CTA */}
+        <div className="pt-4 border-t flex items-center justify-between" style={{ borderColor: C.borderSub }}>
+          {item.listingUrl ? (
+            <a
+              href={item.listingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80"
+              style={{ color: C.t4 }}
+            >
+              Verify Source
+            </a>
+          ) : (
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: C.t4 }}>
+              Source Unavailable
+            </span>
+          )}
+
+          <Link
+            href={`${routeBase}/listing-age`}
+            className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80"
+            style={{ color: toneColor }}
+          >
+            Review Listing Truth
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+// ─── Main Page ──────────────────────────────────────────────────────────────
 export default function OwnerDirectRadarPage({
   country,
   data,
 }: OwnerDirectRadarPageProps) {
-  if (data.status !== "ready" || !data.manifest) {
-    return <EmptyOwnerDirectState country={country} message={data.message} />;
-  }
+  const isUae = country.slug === "uae";
 
-  const ownerDirectPayload = data.lists.ownerDirect;
+  const [activeLane, setActiveLane] = useState<DirectView>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
-  if (!ownerDirectPayload || ownerDirectPayload.items.length === 0) {
+  const allNormalized = useMemo(() => {
+    const seenIds = new Set<string>();
+    const results: NormalizedReconOpportunity[] = [];
+
+    function addItems(items: Record<string, unknown>[] | undefined | null, sourceTable?: string | null) {
+      if (!items || items.length === 0) return;
+      const normalized = normalizeReconList(items, country.slug, sourceTable ?? null);
+      for (const item of normalized) {
+        if (!seenIds.has(item.id)) {
+          seenIds.add(item.id);
+          results.push(item);
+        }
+      }
+    }
+
+    if (isUae) {
+      const uData = data as UaeReconDataResult;
+      addItems(uData.lists.ownerDirect?.items as Record<string, unknown>[] | undefined, uData.lists.ownerDirect?.source_table);
+    } else {
+      const kData = data as KsaReconDataResult;
+      addItems(kData.lists.ownerDirect?.items as Record<string, unknown>[] | undefined, kData.lists.ownerDirect?.source_table);
+      addItems(kData.lists.contactable?.items as Record<string, unknown>[] | undefined, kData.lists.contactable?.source_table);
+    }
+
+    return results;
+  }, [country.slug, data, isUae]);
+
+  const dedupedItems = useMemo(() => dedupeItems(allNormalized), [allNormalized]);
+
+  const filteredItems = useMemo(() => {
+    return dedupedItems.filter((item) => {
+      let laneMatch = false;
+      if (activeLane === "all") laneMatch = true;
+      else if (activeLane === "contactable") laneMatch = isContactable(item);
+      else if (activeLane === "owner-direct") laneMatch = isOwnerDirectStyle(item);
+      else if (activeLane === "source-led") laneMatch = isSourceLed(item);
+
+      let catMatch = false;
+      if (categoryFilter === "all") catMatch = true;
+      else catMatch = getItemCategoryFilter(item) === categoryFilter;
+
+      return laneMatch && catMatch;
+    });
+  }, [dedupedItems, activeLane, categoryFilter]);
+
+  const visibleCards = filteredItems.slice(0, OWNER_DIRECT_RENDER_LIMIT);
+
+  // Overview metrics
+  const totalSignals = dedupedItems.length;
+  const contactableCount = dedupedItems.filter(isContactable).length;
+  const sourceLedCount = dedupedItems.filter(isSourceLed).length;
+  const higherConfCount = dedupedItems.filter(isHigherConfidence).length;
+
+  const categoryOptions: Array<{ value: CategoryFilter; label: string }> = [
+    { value: "all", label: "All Categories" },
+    { value: "residential_buy", label: "Residential Buy" },
+    { value: "residential_rent", label: "Residential Rent" },
+    { value: "commercial_buy", label: "Commercial Buy" },
+    { value: "commercial_rent", label: "Commercial Rent" },
+    { value: "short_rental", label: "Short Rental" },
+    { value: "land", label: "Land" },
+  ];
+
+  // Empty state
+  if (allNormalized.length === 0) {
     return (
-      <EmptyOwnerDirectState
-        country={country}
-        message={`${country.label} Owner / Direct export loaded, but no owner/direct records were available in the local frontend sample.`}
-      />
+      <div className="space-y-8 max-w-7xl mx-auto pb-16">
+        <section
+          className="relative rounded-[28px] border overflow-hidden"
+          style={{
+            background: "linear-gradient(180deg, rgba(24,24,27,0.7) 0%, rgba(9,9,11,0.9) 100%)",
+            borderColor: "rgba(255,255,255,0.06)",
+            boxShadow: "0 24px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+            backdropFilter: "blur(20px)",
+          }}
+        >
+          <GridPattern />
+          <div className="absolute top-0 left-1/3 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-1/2" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none translate-y-1/2" />
+
+          <div className="relative z-10 p-8 sm:p-12 lg:p-16">
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <span
+                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] rounded-full px-4 py-1.5 shadow-sm"
+                style={{ color: C.cyHi, background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}
+              >
+                <UserCheck className="h-3.5 w-3.5" />
+                Owner / Direct Radar
+              </span>
+            </div>
+
+            <h1 className="text-[38px] sm:text-[48px] lg:text-[56px] font-extrabold leading-[1.1] tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-100 to-zinc-400 drop-shadow-sm">
+              No owner/direct signals available
+            </h1>
+
+            <p className="max-w-2xl text-[16px] sm:text-[18px] leading-[1.6] font-medium" style={{ color: C.t2 }}>
+              No public owner/direct-style signals are available in this workspace snapshot.
+            </p>
+
+            <div className="mt-10 flex flex-wrap items-center gap-3.5">
+              <Link
+                href={`${country.routeBase}/activity-feed`}
+                className="group inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3.5 text-[14px] font-bold text-black transition-all hover:scale-[1.02]"
+                style={{
+                  background: "linear-gradient(180deg, #22d3ee 0%, #06b6d4 100%)",
+                  boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4), 0 8px 24px rgba(6,182,212,0.25)",
+                }}
+              >
+                Open Recent Market Movement
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+
+              <Link
+                href={`${country.routeBase}/price-drops`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+                style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+              >
+                Open Price Drops
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
     );
   }
 
-  return <OwnerDirectContent country={country} payload={ownerDirectPayload} />;
+  return (
+    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+      {/* ── 1. Hero Section ─────────────────────────────────────────────── */}
+      <section
+        className="relative rounded-[28px] border overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, rgba(24,24,27,0.7) 0%, rgba(9,9,11,0.9) 100%)",
+          borderColor: "rgba(255,255,255,0.06)",
+          boxShadow: "0 24px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        <GridPattern />
+        <div className="absolute top-0 left-1/3 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-1/2" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none translate-y-1/2" />
+
+        <div className="relative z-10 p-8 sm:p-12 lg:p-16">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <span
+              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] rounded-full px-4 py-1.5 shadow-sm"
+              style={{ color: C.cyHi, background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.2)" }}
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              Owner / Direct Radar
+            </span>
+          </div>
+
+          <h1 className="text-[38px] sm:text-[48px] lg:text-[56px] font-extrabold leading-[1.1] tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-100 to-zinc-400 drop-shadow-sm">
+            Find Direct & Contactable Listings
+          </h1>
+
+          <p className="max-w-2xl text-[16px] sm:text-[18px] leading-[1.6] font-medium" style={{ color: C.t2 }}>
+            Review public direct-style, no-commission, and contactable listing signals before outreach.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center gap-3.5">
+            <button
+              onClick={() => {
+                document.getElementById("owner-direct-list")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="group inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3.5 text-[14px] font-bold text-black transition-all hover:scale-[1.02]"
+              style={{
+                background: "linear-gradient(180deg, #22d3ee 0%, #06b6d4 100%)",
+                boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4), 0 8px 24px rgba(6,182,212,0.25)",
+              }}
+            >
+              Review Direct Signals
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </button>
+
+            <Link
+              href={`${country.routeBase}/price-drops`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Price Drops
+            </Link>
+
+            <Link
+              href={`${country.routeBase}/listing-age`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Listing Truth
+            </Link>
+
+            <Link
+              href={`${country.routeBase}/activity-feed`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Recent Market Movement
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 2. Overview Cards ─────────────────────────────────────── */}
+      <section>
+        <div className="mb-4 flex items-center gap-3 px-1">
+          <Activity className="h-5 w-5" style={{ color: C.cyHi }} />
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white">
+            Signal Overview
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SnapshotCard
+            title="Direct Signals"
+            value={formatNumber(totalSignals)}
+            description="Total owner/direct-style records in this snapshot."
+            icon={<UserCheck className="h-5 w-5" />}
+            accentColor={C.cyHi}
+            href="#owner-direct-list"
+            ctaLabel="View Signals"
+          />
+          <SnapshotCard
+            title="Contactable"
+            value={formatNumber(contactableCount)}
+            description="Records with phone, WhatsApp, or email signals."
+            icon={<Phone className="h-5 w-5" />}
+            accentColor={C.emHi}
+            href="#owner-direct-list"
+            ctaLabel="View Contactable"
+          />
+          <SnapshotCard
+            title="Source-Led"
+            value={formatNumber(sourceLedCount)}
+            description="Source URL available but no direct contact signal."
+            icon={<Globe2 className="h-5 w-5" />}
+            accentColor={C.amHi}
+            href="#owner-direct-list"
+            ctaLabel="Review Sources"
+          />
+          <SnapshotCard
+            title="Higher Confidence"
+            value={formatNumber(higherConfCount)}
+            description="Records with stronger direct-style evidence."
+            icon={<ShieldCheck className="h-5 w-5" />}
+            accentColor={C.t2}
+            href="#owner-direct-list"
+            ctaLabel="Review Evidence"
+          />
+        </div>
+      </section>
+
+      {/* ── 3. Intelligence Panels ────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="mb-5 flex items-center gap-3 px-1 pt-2">
+          <Layers className="h-5 w-5" style={{ color: C.t3 }} />
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white">
+            Direct Signal Intelligence
+          </h2>
+        </div>
+
+        <IntelligencePanel
+          title="Contactable Signals"
+          purpose="Find public listings with visible phone, WhatsApp, or email contact routes for direct follow-up."
+          agentUseText="Use this to prioritize listings where a contact path is already visible, reducing the effort needed to initiate outreach."
+          chips={["Phone", "WhatsApp", "Email", "Contact route"]}
+          icon={<Phone className="h-5 w-5" />}
+          accentColor={C.emHi}
+          primaryAction={{ label: "View Contactable", onClick: () => setActiveLane("contactable") }}
+        />
+
+        <IntelligencePanel
+          title="Owner/Direct-Style Signals"
+          purpose="Review public listings classified with direct, no-commission, or owner-style wording and advertiser context."
+          agentUseText="Use this to find listings that may represent direct advertiser activity, but always verify before claiming ownership status."
+          chips={["Direct signal", "No-commission style", "Advertiser context"]}
+          icon={<UserCheck className="h-5 w-5" />}
+          accentColor={C.cyHi}
+          primaryAction={{ label: "View Direct Signals", onClick: () => setActiveLane("owner-direct") }}
+        />
+
+        <IntelligencePanel
+          title="Source-Led Verification"
+          purpose="Review source URLs where direct or contact evidence needs verification through the original listing."
+          agentUseText="Use this to find listings that need source verification before outreach. Open the listing URL to confirm advertiser context."
+          chips={["Source URL", "Verification needed", "Listing review"]}
+          icon={<Globe2 className="h-5 w-5" />}
+          accentColor={C.amHi}
+          primaryAction={{ label: "Review Sources", onClick: () => setActiveLane("source-led") }}
+        />
+      </section>
+
+      {/* ── Filter Selectors ────────────────────────────────────────────────── */}
+      <section className="flex flex-col gap-3 pt-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {(
+            [
+              { key: "all" as const, label: "All Direct Signals" },
+              { key: "contactable" as const, label: "Contactable" },
+              { key: "owner-direct" as const, label: "Owner/Direct Style" },
+              { key: "source-led" as const, label: "Source-Led" },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => setActiveLane(opt.key)}
+              className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
+              style={{
+                background: activeLane === opt.key ? C.cyHi : "rgba(255,255,255,0.05)",
+                color: activeLane === opt.key ? "#000" : C.t2,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 pb-2 border-b" style={{ borderColor: C.borderSub }}>
+          {categoryOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setCategoryFilter(opt.value)}
+              className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors"
+              style={{
+                background: categoryFilter === opt.value ? "rgba(255,255,255,0.15)" : "transparent",
+                color: categoryFilter === opt.value ? C.t1 : C.t4,
+                border: `1px solid ${categoryFilter === opt.value ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.05)"}`,
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 4. Main Card Grid ────────────────────────────────────────── */}
+      <section id="owner-direct-list" className="scroll-mt-10 pt-4">
+        <div className="mb-5 flex items-center justify-between px-1">
+          <div className="flex items-center gap-3">
+            <UserCheck className="h-5 w-5" style={{ color: C.cyHi }} />
+            <h2 className="text-[16px] sm:text-[18px] font-bold tracking-tight text-white">
+              Owner / Direct Signals
+            </h2>
+          </div>
+          <span
+            className="hidden sm:inline-flex rounded-full border px-3 py-1 text-[11px] font-bold"
+            style={{ color: C.t3, background: "rgba(255,255,255,0.02)", borderColor: C.border }}
+          >
+            {formatNumber(visibleCards.length)} Signals
+          </span>
+        </div>
+
+        {visibleCards.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {visibleCards.map((item, idx) => (
+              <OwnerDirectCard
+                key={item.id}
+                idx={idx}
+                item={item}
+                routeBase={country.routeBase}
+                currency={country.currency}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[20px] border p-12 text-center" style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}>
+            <p className="text-[15px] font-bold text-white">No signals found in this view</p>
+            <p className="mt-2 text-[13px] font-medium" style={{ color: C.t4 }}>
+              Try selecting a different signal category or filter.
+            </p>
+          </div>
+        )}
+
+        {filteredItems.length > visibleCards.length && (
+          <p className="mt-6 text-center text-[13px] font-bold" style={{ color: C.t4 }}>
+            Showing top {visibleCards.length} of {formatNumber(filteredItems.length)} filtered signals
+          </p>
+        )}
+      </section>
+
+      {/* ── 5. Trust Strip ──────────────────────────────────────────────── */}
+      <section className="pt-4">
+        <div
+          className="flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-4 rounded-[16px] border px-6 py-4 shadow-sm"
+          style={{
+            background: "rgba(255,255,255,0.015)",
+            borderColor: C.borderSub,
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t2 }}>
+              <Globe2 className="h-3.5 w-3.5 opacity-70" style={{ color: C.t3 }} />
+              Public listing evidence
+            </div>
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t1 }}>
+              <CheckCircle2 className="h-4 w-4 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" style={{ color: C.emHi }} />
+              Verify source before outreach
+            </div>
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t2 }}>
+              <ShieldCheck className="h-3.5 w-3.5 opacity-70" style={{ color: C.t3 }} />
+              Owner/direct-style signals are not ownership confirmation
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 text-[12px] font-bold tracking-wide" style={{ color: C.t3 }}>
+            <span className="uppercase tracking-widest text-[9px] text-zinc-300 bg-white/5 border border-white/10 px-2 py-1 rounded-md shadow-inner">
+              {country.currency}
+            </span>
+            {country.label} Workspace
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }
