@@ -1,929 +1,1182 @@
 // app/dashboard/_components/PriceDropRadarPage.tsx
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import {
+  Activity,
   ArrowRight,
+  ArrowUpRight,
   BarChart2,
-  Database,
-  ExternalLink,
-  Layers3,
-  Shield,
+  CheckCircle2,
+  Clock,
+  Globe2,
+  Layers,
   ShieldCheck,
   TrendingDown,
 } from "lucide-react";
-import ReconMetricCard from "./ReconMetricCard";
-import ReconOpportunityCard from "./ReconOpportunityCard";
-import ReconFiltersBar from "./ReconFiltersBar";
-import {
-  formatCurrency,
-  formatNumber,
-  formatPercent,
-} from "@/lib/recon/formatters";
+import { formatNumber } from "@/lib/recon/formatters";
 import { normalizeReconList } from "@/lib/recon/normalize";
-import {
-  DEFAULT_RECON_FILTERS,
-  applyReconFilters,
-  buildReconFilterOptions,
-  hasActiveReconFilters,
-  type ReconFilterState,
-} from "@/lib/recon/filter";
 import type { CountryConfig } from "@/lib/countries/countryConfig";
-import type {
-  KsaReconDataResult,
-  KsaReconListPayload,
-} from "@/lib/data/ksaRecon";
-import type {
-  UaeReconDataResult,
-  UaeReconListPayload,
-} from "@/lib/data/uaeRecon";
-import type {
-  ReconMetric,
-  NormalizedReconOpportunity,
-  ReconCurrency,
-} from "@/lib/recon/types";
+import type { KsaReconDataResult } from "@/lib/data/ksaRecon";
+import type { UaeReconDataResult } from "@/lib/data/uaeRecon";
+import type { NormalizedReconOpportunity } from "@/lib/recon/types";
 
-// ─── Design tokens — amber/red accent, distinct from emerald/cyan ────────────
+// ─── Render cap to keep static/ISR payload under Vercel limits ────────────────
+const PRICE_DROP_RENDER_LIMIT = 150;
+
+// ─── Design tokens ──────────────────────────────────────────────────────────
 const C = {
-  cardBg: "#111113",
-  insetBg: "#0f0f11",
-  deepBg: "#0d0d0f",
-  wellBg: "#18181b",
-  border: "rgba(255,255,255,0.07)",
-  borderFt: "rgba(255,255,255,0.04)",
-  borderSub: "rgba(255,255,255,0.055)",
-  borderInner: "rgba(255,255,255,0.035)",
-  t1: "#f4f4f5",
-  t2: "#a1a1aa",
-  t3: "#71717a",
-  t4: "#52525b",
-  t5: "#3f3f46",
-  // Amber — module badge / brand accent
-  am: "#f59e0b",
-  amHi: "#fbbf24",
-  amBg: "rgba(245,158,11,0.06)",
-  amBdr: "rgba(245,158,11,0.18)",
-  // Red — price drop / movement indicator
-  rd: "#f43f5e",
-  rdHi: "#fb7185",
-  rdBg: "rgba(244,63,94,0.06)",
-  rdBdr: "rgba(244,63,94,0.16)",
-  // Teal — secondary stat
-  tl: "#14b8a6",
-  tlHi: "#2dd4bf",
-  tlBg: "rgba(20,184,166,0.06)",
-  tlBdr: "rgba(20,184,166,0.16)",
+  t1: "#ffffff",
+  t2: "#e4e4e7",
+  t3: "#a1a1aa",
+  t4: "#71717a",
+  em: "#10b981",
+  emHi: "#34d399",
+  cy: "#06b6d4",
+  cyHi: "#22d3ee",
+  am: "#fbbf24",
+  amHi: "#fcd34d",
+  rd: "#fb7185",
+  rdHi: "#f43f5e",
+  border: "rgba(255,255,255,0.06)",
+  borderSub: "rgba(255,255,255,0.04)",
 } as const;
 
-type PriceDropRadarPageProps = {
+export type PriceDropRadarPageProps = {
   country: CountryConfig;
   data: UaeReconDataResult | KsaReconDataResult;
 };
 
-// "all" = all filtered items
-// "strong" = dropPct >= 10% — strong directional signal
-// "documented" = dropAmount !== null — exact drop figure available
-type ViewMode = "all" | "strong" | "documented";
+type PriceDropView = "all" | "strong" | "documented" | "stale";
+type CategoryFilter = "all" | "residential_buy" | "residential_rent" | "commercial_buy" | "commercial_rent" | "short_rental" | "land";
 
-// ─── Segment helpers ────────────────────────────────────────────────────────
-const STRONG_DROP_THRESHOLD = 10; // percent
-
-function isStrongMovement(item: NormalizedReconOpportunity): boolean {
-  return item.dropPct !== null && item.dropPct >= STRONG_DROP_THRESHOLD;
+// ─── Type Helpers ─────────────────────────────────────────────────────────
+function getNumberField(record: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const val = record[key];
+    if (typeof val === "number") {
+      return val;
+    }
+    if (typeof val === "string") {
+      const parsed = parseFloat(val);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return undefined;
 }
 
-function isDocumented(item: NormalizedReconOpportunity): boolean {
-  return item.dropAmount !== null;
+function getBooleanField(record: Record<string, unknown>, keys: string[]): boolean {
+  for (const key of keys) {
+    const val = record[key];
+    if (val === true || val === 1 || val === "true" || val === "1") return true;
+  }
+  return false;
 }
 
-// ─── Compact date ───────────────────────────────────────────────────────────
-function compactDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(d);
+// ─── Formatters ───────────────────────────────────────────────────────────
+function formatCurrencyCompact(value: number, currency: string): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M ${currency}`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}k ${currency}`;
+  return `${value} ${currency}`;
 }
 
-// ─── Section group label ─────────────────────────────────────────────────────
-function GroupLabel({ children }: { children: React.ReactNode }) {
+function formatDropPercent(value: number): string {
+  return `${value.toFixed(1)}%`;
+}
+
+function formatPriceLocation(value: string | null | undefined): string {
+  if (!value) return "Unknown Location";
+
+  return value
+    .replace(/\|+/g, " · ")
+    .replace(/\s*-\s*/g, " · ")
+    .replace(/\s*\/\s*/g, " · ")
+    .replace(/\s+/g, " ")
+    .replace(/\s+·\s+/g, " · ")
+    .trim();
+}
+
+function formatPropertyType(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const cleaned = value
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const lower = cleaned.toLowerCase();
+
+  if (
+    lower === "residential lands" ||
+    lower === "residential land" ||
+    lower === "lands" ||
+    lower === "land" ||
+    lower === "commercial lands" ||
+    lower === "commercial land"
+  ) {
+    return "Land";
+  }
+
+  return cleaned
+    .split(" ")
+    .map((part) => part.length > 0 ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : part)
+    .join(" ");
+}
+
+function formatCategoryLabel(item: NormalizedReconOpportunity): string | undefined {
+  const sc = (item.sourceCategory || "").toLowerCase();
+  const pt = (item.propertyType || "").toLowerCase();
+
+  if (sc.includes("short") || sc.includes("holiday") || pt.includes("short") || pt.includes("holiday")) return "Short Rental";
+  if (sc.includes("land") || pt.includes("land")) return "Land";
+  if (sc.includes("residential") && sc.includes("buy")) return "Residential Buy";
+  if (sc.includes("residential") && sc.includes("rent")) return "Residential Rent";
+  if (sc.includes("commercial") && sc.includes("buy")) return "Commercial Buy";
+  if (sc.includes("commercial") && sc.includes("rent")) return "Commercial Rent";
+  
+  if (item.sourceCategory && item.sourceCategory.toLowerCase() !== "all") {
+     return item.sourceCategory.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+  }
+  if (item.propertyType) {
+     return formatPropertyType(item.propertyType);
+  }
+  return undefined;
+}
+
+function getItemCategoryFilter(item: NormalizedReconOpportunity): CategoryFilter {
+  const sc = (item.sourceCategory || "").toLowerCase();
+  const pt = (item.propertyType || "").toLowerCase();
+  
+  if (pt.includes("land") || sc.includes("land")) return "land";
+  if (sc.includes("short") || sc.includes("holiday") || pt.includes("short") || pt.includes("holiday")) return "short_rental";
+  if (sc.includes("commercial") && (sc.includes("buy") || sc.includes("sale"))) return "commercial_buy";
+  if (sc.includes("commercial") && (sc.includes("rent") || sc.includes("lease"))) return "commercial_rent";
+  if (sc.includes("residential") && (sc.includes("buy") || sc.includes("sale"))) return "residential_buy";
+  if (sc.includes("residential") && (sc.includes("rent") || sc.includes("lease"))) return "residential_rent";
+  
+  if (sc.includes("commercial")) return "commercial_rent";
+  if (sc.includes("buy") || sc.includes("sale")) return "residential_buy";
+  if (sc.includes("rent") || sc.includes("lease")) return "residential_rent";
+  
+  return "all";
+}
+
+function cleanPriceTitle(item: NormalizedReconOpportunity): string {
+  const title = item.title || item.subtitle || "";
+  const location = formatPriceLocation(item.locationLabel);
+
+  const lower = title.toLowerCase();
+  
+  if (
+    lower.includes("owner/direct signal") ||
+    lower.includes("price movement") ||
+    lower.includes("refresh signal") ||
+    lower.includes("price drop") ||
+    lower.includes("stale") ||
+    lower.includes("aged") ||
+    lower.includes("signal +") ||
+    lower.includes(" + ")
+  ) {
+    return location;
+  }
+
+  return title || location;
+}
+
+// ─── Dedupe Logic ───────────────────────────────────────────────────────────
+function getPriceDisplayDedupeKey(item: NormalizedReconOpportunity): string {
+  if (item.listingUrl) return `url:${item.listingUrl}`;
+  const raw = item.raw as Record<string, unknown>;
+  const oldPrice = getNumberField(raw, ["old_price"]) ?? item.oldPrice ?? 0;
+  const newPrice = getNumberField(raw, ["new_price"]) ?? item.newPrice ?? item.price ?? 0;
+  const dropAmount = getNumberField(raw, ["drop_amount", "price_drop_amount"]) ?? item.dropAmount ?? 0;
+  const dropPct = getNumberField(raw, ["drop_pct", "price_drop_rate_pct"]) ?? item.dropPct ?? 0;
+  const propType = formatPropertyType(item.propertyType) ?? "";
+  const loc = formatPriceLocation(item.locationLabel);
+  
+  return [item.portal || "", loc, item.agencyName || "", oldPrice, newPrice, dropAmount, dropPct, propType].join("-").toLowerCase();
+}
+
+function dedupePriceDrops(items: NormalizedReconOpportunity[]): NormalizedReconOpportunity[] {
+  const map = new Map<string, NormalizedReconOpportunity>();
+  for (const item of items) {
+    const key = getPriceDisplayDedupeKey(item);
+    if (!map.has(key)) {
+      map.set(key, item);
+    } else {
+      const existing = map.get(key)!;
+      const extRaw = existing.raw as Record<string, unknown>;
+      const itemRaw = item.raw as Record<string, unknown>;
+
+      const extPct = getNumberField(extRaw, ["drop_pct", "price_drop_rate_pct"]) ?? existing.dropPct ?? 0;
+      const itemPct = getNumberField(itemRaw, ["drop_pct", "price_drop_rate_pct"]) ?? item.dropPct ?? 0;
+      
+      if (itemPct > extPct) {
+        map.set(key, item);
+        continue;
+      } else if (itemPct < extPct) {
+        continue;
+      }
+
+      const extAmt = getNumberField(extRaw, ["drop_amount", "price_drop_amount"]) ?? existing.dropAmount ?? 0;
+      const itemAmt = getNumberField(itemRaw, ["drop_amount", "price_drop_amount"]) ?? item.dropAmount ?? 0;
+
+      if (itemAmt > extAmt) {
+        map.set(key, item);
+        continue;
+      } else if (itemAmt < extAmt) {
+        continue;
+      }
+
+      if (item.listingUrl && !existing.listingUrl) {
+        map.set(key, item);
+        continue;
+      } else if (!item.listingUrl && existing.listingUrl) {
+        continue;
+      }
+
+      if (item.agencyName && !existing.agencyName) {
+        map.set(key, item);
+        continue;
+      }
+    }
+  }
+  return Array.from(map.values());
+}
+
+// ─── Background Grid Pattern ──────────────────────────────────────────────
+function GridPattern() {
   return (
-    <div className="flex items-center gap-2">
-      <span
-        className="text-[9px] font-black uppercase tracking-[0.16em]"
-        style={{ color: C.t5 }}
-      >
-        {children}
-      </span>
-      <div className="h-px flex-1" style={{ background: C.borderFt }} />
+    <div className="absolute inset-0 pointer-events-none select-none opacity-[0.03]" style={{ zIndex: 0 }}>
+      <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="price-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M0 40V.5H40" fill="none" stroke="white" strokeWidth="1" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#price-grid)" />
+      </svg>
     </div>
   );
 }
 
-// ─── Empty state ────────────────────────────────────────────────────────────
-function EmptyPriceDropState({
-  country,
-  message,
-}: {
-  country: CountryConfig;
-  message: string;
-}) {
-  return (
-    <div className="space-y-5">
-      <section
-        className="rounded-xl border p-6"
-        style={{
-          background: "rgba(245,158,11,0.04)",
-          borderColor: "rgba(245,158,11,0.15)",
-        }}
-      >
-        <div
-          className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg"
-          style={{
-            background: "rgba(245,158,11,0.08)",
-            border: "1px solid rgba(245,158,11,0.15)",
-          }}
-        >
-          <Database className="h-5 w-5" style={{ color: C.amHi }} />
-        </div>
-        <h1 className="text-lg font-bold" style={{ color: C.t1 }}>
-          {country.label} Price Drop export not loaded
-        </h1>
-        <p
-          className="mt-2 max-w-2xl text-[13px] leading-relaxed"
-          style={{ color: "rgba(251,191,36,0.7)" }}
-        >
-          {message}
-        </p>
-        <div
-          className="mt-4 rounded-lg p-3"
-          style={{
-            background: "rgba(0,0,0,0.25)",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          <p className="text-[12px] font-medium" style={{ color: C.t2 }}>
-            Run locally:
-          </p>
-          <code
-            className="mt-1.5 block rounded-md p-2.5 text-[11px]"
-            style={{ background: "rgba(0,0,0,0.3)", color: C.t4 }}
-          >
-            {country.slug === "uae"
-              ? "python tools\\export_uae_recon_frontend_data.py"
-              : "python tools\\export_ksa_recon_frontend_data.py"}
-          </code>
-        </div>
-      </section>
-    </div>
-  );
-}
+// ─── Components ─────────────────────────────────────────────────────────────
 
-// ─── Safe caveat strip ──────────────────────────────────────────────────────
-function SafeCaveatStrip() {
-  return (
-    <div
-      className="flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5"
-      style={{ background: C.amBg, borderColor: C.amBdr }}
-    >
-      <ShieldCheck
-        className="mt-px h-3.5 w-3.5 shrink-0"
-        style={{ color: C.amHi }}
-      />
-      <p className="text-[11px] leading-relaxed" style={{ color: C.t3 }}>
-        These are{" "}
-        <span className="font-semibold" style={{ color: C.t2 }}>
-          cleaned dashboard-safe price movement signals
-        </span>
-        . Verify the current advertised price on the source listing before outreach.
-      </p>
-    </div>
-  );
-}
-
-// ─── Data freshness strip ───────────────────────────────────────────────────
-function DataStrip({
-  sourceTable,
-  exportedRows,
-  totalRows,
-  exportedAt,
-}: {
-  sourceTable: string;
-  exportedRows: number;
-  totalRows: number;
-  exportedAt: string;
-}) {
-  return (
-    <div
-      className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg px-3.5 py-2"
-      style={{
-        background: "rgba(255,255,255,0.02)",
-        border: `1px solid ${C.borderFt}`,
-      }}
-    >
-      <div className="flex items-center gap-1.5">
-        <Database className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Source
-        </span>
-        <span className="text-[10px] font-semibold" style={{ color: C.t3 }}>
-          {sourceTable}
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <Layers3 className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Total rows
-        </span>
-        <span
-          className="text-[10px] font-semibold tabular-nums"
-          style={{ color: C.t2 }}
-        >
-          {totalRows.toLocaleString("en-US")}
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Sample loaded
-        </span>
-        <span
-          className="text-[10px] font-semibold tabular-nums"
-          style={{ color: C.t3 }}
-        >
-          {exportedRows.toLocaleString("en-US")}
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <Shield className="h-3 w-3 shrink-0" style={{ color: C.t5 }} />
-        <span className="text-[10px]" style={{ color: C.t5 }}>
-          Exported
-        </span>
-        <span className="text-[10px] font-semibold" style={{ color: C.amHi }}>
-          {compactDate(exportedAt)}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Price movement breakdown row ────────────────────────────────────────────
-// Inset surface with three horizontal stat items.
-// Visually distinct from the KPI card row above it.
-function PriceMovementBreakdown({
-  strongCount,
-  documentedCount,
-  averageDropPct,
-}: {
-  strongCount: number;
-  documentedCount: number;
-  averageDropPct: number | null;
-}) {
-  const items = [
-    {
-      icon: TrendingDown,
-      iconColor: C.rdHi,
-      label: `≥${STRONG_DROP_THRESHOLD}% movement`,
-      value: strongCount.toLocaleString("en-US"),
-      note: "Sample rows with strong downward price signal",
-    },
-    {
-      icon: BarChart2,
-      iconColor: C.amHi,
-      label: "Drop amount known",
-      value: documentedCount.toLocaleString("en-US"),
-      note: "Sample rows with documented price-drop figure",
-    },
-    {
-      icon: TrendingDown,
-      iconColor: C.tlHi,
-      label: "Avg movement",
-      value:
-        averageDropPct !== null
-          ? (formatPercent(averageDropPct) ?? "—")
-          : "—",
-      note: "Average drop % across sample rows with % data",
-    },
-  ] as const;
-
-  return (
-    <div
-      className="overflow-hidden rounded-xl border"
-      style={{
-        background: C.insetBg,
-        borderColor: C.borderSub,
-        boxShadow: "inset 0 1px 0 rgba(0,0,0,0.15)",
-      }}
-    >
-      <div className="grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-        {items.map(({ icon: Icon, iconColor, label, value, note }) => (
-          <div
-            key={label}
-            className="flex items-center gap-3 px-4 py-3 sm:gap-4 sm:py-4"
-            style={{ borderColor: C.borderInner }}
-          >
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-              style={{
-                background: "rgba(255,255,255,0.035)",
-                border: `1px solid ${C.borderFt}`,
-              }}
-            >
-              <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} />
-            </div>
-            <div className="min-w-0">
-              <p
-                className="text-[10px] font-semibold uppercase tracking-[0.07em]"
-                style={{ color: iconColor }}
-              >
-                {label}
-              </p>
-              <p
-                className="mt-0.5 text-[20px] font-bold tabular-nums leading-none"
-                style={{ color: C.t1, letterSpacing: "-0.02em" }}
-              >
-                {value}
-              </p>
-              <p
-                className="mt-1 text-[10px] leading-snug"
-                style={{ color: C.t5 }}
-              >
-                {note}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── View mode selector ─────────────────────────────────────────────────────
-function ViewModeSelector({
-  mode,
-  onModeChange,
-  counts,
-}: {
-  mode: ViewMode;
-  onModeChange: (mode: ViewMode) => void;
-  counts: { all: number; strong: number; documented: number };
-}) {
-  const modes: Array<{ key: ViewMode; label: string; count: number }> = [
-    { key: "all", label: "All signals", count: counts.all },
-    {
-      key: "strong",
-      label: `≥${STRONG_DROP_THRESHOLD}% drop`,
-      count: counts.strong,
-    },
-    { key: "documented", label: "Drop amount known", count: counts.documented },
-  ];
-
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {modes.map((m) => {
-        const isActive = m.key === mode;
-        return (
-          <button
-            key={m.key}
-            type="button"
-            onClick={() => onModeChange(m.key)}
-            className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-[7px] text-[12px] font-semibold transition-all duration-150"
-            style={{
-              color: isActive ? C.amHi : C.t3,
-              background: isActive ? C.amBg : "rgba(255,255,255,0.025)",
-              border: `1px solid ${isActive ? C.amBdr : C.borderFt}`,
-              boxShadow: isActive
-                ? "0 0 12px rgba(245,158,11,0.06)"
-                : "none",
-            }}
-            aria-pressed={isActive}
-          >
-            {isActive && (
-              <span
-                className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{
-                  background: C.amHi,
-                  boxShadow: "0 0 4px rgba(251,191,36,0.5)",
-                }}
-              />
-            )}
-            {m.label}
-            <span
-              className="rounded px-1.5 py-[1px] text-[10px] font-bold tabular-nums"
-              style={{
-                color: isActive ? C.amHi : C.t5,
-                background: isActive
-                  ? "rgba(245,158,11,0.12)"
-                  : "rgba(255,255,255,0.04)",
-              }}
-            >
-              {m.count.toLocaleString("en-US")}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Section divider ────────────────────────────────────────────────────────
-function SectionDivider({
-  icon: Icon,
-  label,
-  count,
-  accent,
+function SnapshotCard({
+  title,
   description,
+  value,
+  icon,
+  accentColor,
+  href,
+  ctaLabel,
+  disabled,
 }: {
-  icon: typeof TrendingDown;
-  label: string;
-  count: number;
-  accent: string;
+  title: string;
   description: string;
+  value?: string | number;
+  icon: React.ReactNode;
+  accentColor: string;
+  href: string;
+  ctaLabel?: string;
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 pt-2">
-      <div className="flex items-center gap-2">
-        <div
-          className="h-4 w-[3px] shrink-0 rounded-full"
-          style={{ background: accent }}
-        />
-        <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
-        <h2
-          className="text-[13px] font-semibold"
-          style={{ color: C.t1, letterSpacing: "-0.01em" }}
-        >
-          {label}
-        </h2>
-        <span
-          className="rounded px-1.5 py-[1px] text-[10px] font-bold tabular-nums"
-          style={{
-            color: accent,
-            background: "rgba(255,255,255,0.04)",
-            border: `1px solid ${C.borderFt}`,
-          }}
-        >
-          {count}
-        </span>
-      </div>
-      <span className="text-[10px]" style={{ color: C.t5 }}>
-        {description}
-      </span>
-      <div
-        className="hidden h-px flex-1 sm:block"
-        style={{ background: C.borderFt }}
-      />
-    </div>
-  );
-}
-
-// ─── Total drop amount helper (safe — only available when documented) ────────
-function computeTotalDropAmount(
-  items: NormalizedReconOpportunity[]
-): number | null {
-  const documented = items.filter((i) => i.dropAmount !== null);
-  if (documented.length === 0) return null;
-  return documented.reduce((sum, i) => sum + (i.dropAmount ?? 0), 0);
-}
-
-function computeAverageDropPct(
-  items: NormalizedReconOpportunity[]
-): number | null {
-  const withPct = items
-    .map((i) => i.dropPct)
-    .filter((v): v is number => v !== null);
-  if (withPct.length === 0) return null;
-  return withPct.reduce((s, v) => s + v, 0) / withPct.length;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// INNER CONTENT — all hooks at the top, no conditional returns before them
-// ═══════════════════════════════════════════════════════════════════════════
-function PriceDropContent({
-  country,
-  payload,
-}: {
-  country: CountryConfig;
-  payload: UaeReconListPayload | KsaReconListPayload;
-}) {
-  const [viewMode, setViewMode] = useState<ViewMode>("all");
-  const [filters, setFilters] = useState<ReconFilterState>({
-    ...DEFAULT_RECON_FILTERS,
-  });
-
-  // ── Normalize once ────────────────────────────────────────
-  const normalizedAll = useMemo(
-    () => normalizeReconList(payload.items, country.slug, payload.source_table),
-    [payload, country.slug]
-  );
-
-  const filterOptions = useMemo(
-    () => buildReconFilterOptions(normalizedAll),
-    [normalizedAll]
-  );
-
-  const filteredAll = useMemo(
-    () => applyReconFilters(normalizedAll, filters),
-    [normalizedAll, filters]
-  );
-
-  const strongItems = useMemo(
-    () => filteredAll.filter(isStrongMovement),
-    [filteredAll]
-  );
-
-  const documentedItems = useMemo(
-    () => filteredAll.filter(isDocumented),
-    [filteredAll]
-  );
-
-  const activeItems =
-    viewMode === "strong"
-      ? strongItems
-      : viewMode === "documented"
-        ? documentedItems
-        : filteredAll;
-
-  // ── Unfiltered statistics ─────────────────────────────────
-  const totalRows = payload.total_rows_available;
-  const exportedRows = payload.exported_rows;
-
-  const withDropPctCount = normalizedAll.filter((i) => i.dropPct !== null).length;
-  const withDropAmountCount = normalizedAll.filter(
-    (i) => i.dropAmount !== null
-  ).length;
-  const totalDropAmount = computeTotalDropAmount(normalizedAll);
-  const averageDropPct = computeAverageDropPct(normalizedAll);
-
-  // Breakdown counts from full normalized (unfiltered)
-  const strongCount = normalizedAll.filter(isStrongMovement).length;
-  const documentedCount = normalizedAll.filter(isDocumented).length;
-
-  // ── KPI metrics — overview level ─────────────────────────
-  const currency = payload.currency as ReconCurrency;
-
-  const metrics: ReconMetric[] = [
-    {
-      label: "Price-drop signals",
-      value: formatNumber(totalRows),
-      description: "Total rows in source table",
-      tone: "red",
-    },
-    {
-      label: "Sample loaded",
-      value: formatNumber(exportedRows),
-      description: "Rows in this frontend preview",
-      tone: "slate",
-    },
-    {
-      label: "Drop % available",
-      value: formatNumber(withDropPctCount),
-      description: "Sample rows with drop percentage data",
-      tone: "amber",
-    },
-    {
-      label: "Avg drop",
-      value: averageDropPct !== null
-        ? (formatPercent(averageDropPct) ?? "—")
-        : "—",
-      description: "Average price movement % across sample",
-      tone: "teal",
-    },
-  ];
-
-  const featuredItem = activeItems[0] ?? null;
-  const remainingItems = activeItems.slice(1);
-  const hasFilters = hasActiveReconFilters(filters);
-
-  return (
-    <div className="space-y-5">
-      {/* ── 1. Page header ────────────────────────────────────── */}
-      <header className="relative">
-        {/* Amber hairline — distinct from cyan (Owner Direct) and emerald (Recon Hub) */}
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px"
-          style={{
-            background:
-              "linear-gradient(90deg, transparent 0%, rgba(251,191,36,0.28) 30%, rgba(251,191,36,0.09) 70%, transparent 100%)",
-          }}
-        />
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="mb-1.5 flex items-center gap-2">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-[3px] text-[9px] font-black uppercase tracking-[0.16em]"
-                style={{
-                  color: C.amHi,
-                  background: C.amBg,
-                  border: `1px solid ${C.amBdr}`,
-                }}
-              >
-                <TrendingDown className="h-2.5 w-2.5" />
-                {country.label} Price Drop
-              </span>
-              <span
-                className="rounded-md px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.12em]"
-                style={{
-                  color: C.t5,
-                  background: "rgba(255,255,255,0.03)",
-                  border: `1px solid ${C.border}`,
-                }}
-              >
-                {country.currency}
-              </span>
-            </div>
-
-            <h1
-              className="text-[20px] font-bold tracking-tight sm:text-[24px]"
-              style={{ color: C.t1, letterSpacing: "-0.025em" }}
-            >
-              Price Movement Review
-            </h1>
-            <p
-              className="mt-0.5 max-w-2xl text-[13px] leading-relaxed"
-              style={{ color: C.t4 }}
-            >
-              Identify repriced public listings — verify current advertised
-              price before review or outreach.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 sm:self-end">
-            <Link
-              href={`${country.routeBase}/recon`}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-white/[0.04]"
-              style={{ color: C.t3, border: `1px solid ${C.borderFt}` }}
-            >
-              Recon Hub
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-            <Link
-              href={country.routeBase}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-white/[0.04]"
-              style={{ color: C.t4, border: `1px solid ${C.borderFt}` }}
-            >
-              {country.label}
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* ── 2. Safe caveat ────────────────────────────────────── */}
-      <SafeCaveatStrip />
-
-      {/* ── 3. Data freshness strip ───────────────────────────── */}
-      <DataStrip
-        sourceTable={payload.source_table}
-        exportedRows={exportedRows}
-        totalRows={totalRows}
-        exportedAt={payload.exported_at}
-      />
-
-      {/* ── 4. KPI overview row ───────────────────────────────── */}
-      <div className="space-y-2">
-        <GroupLabel>Overview</GroupLabel>
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-          {metrics.map((metric) => (
-            <ReconMetricCard key={metric.label} metric={metric} />
-          ))}
-        </div>
-      </div>
-
-      {/* ── 5. Price movement breakdown ───────────────────────── */}
-      {/* Inset surface — clearly secondary to KPI row above */}
-      <div className="space-y-2">
-        <GroupLabel>Price movement breakdown</GroupLabel>
-
-        {/* Total drop amount — only rendered when documented items exist */}
-        {totalDropAmount !== null && withDropAmountCount > 0 && (
+    <Link
+      href={disabled ? "#" : href}
+      className={`group relative flex flex-col h-full rounded-[16px] border p-5 transition-all duration-300 ${
+        disabled ? "opacity-60 cursor-not-allowed" : "hover:-translate-y-1 hover:shadow-lg"
+      }`}
+      style={{
+        background: "rgba(255, 255, 255, 0.015)",
+        borderColor: C.borderSub,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      {!disabled && (
+        <>
           <div
-            className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-lg border px-3.5 py-2"
-            style={{
-              background: "rgba(244,63,94,0.03)",
-              borderColor: "rgba(244,63,94,0.1)",
-            }}
-          >
-            <TrendingDown
-              className="h-3 w-3 shrink-0"
-              style={{ color: C.rdHi }}
-            />
-            <span className="text-[10px]" style={{ color: C.t4 }}>
-              Sample total drop value
-            </span>
-            <span
-              className="text-[10px] font-bold tabular-nums"
-              style={{ color: C.rdHi }}
-            >
-              {formatCurrency(totalDropAmount, currency)}
-            </span>
-            <span className="text-[10px]" style={{ color: C.t5 }}>
-              across {withDropAmountCount.toLocaleString()} documented rows —
-              verify current advertised price on source listing
-            </span>
-          </div>
-        )}
-
-        <PriceMovementBreakdown
-          strongCount={strongCount}
-          documentedCount={documentedCount}
-          averageDropPct={averageDropPct}
-        />
-      </div>
-
-      {/* ── 6. Signal filter / view mode command bar ──────────── */}
-      <section
-        className="rounded-xl border"
-        style={{ background: C.cardBg, borderColor: C.border }}
-      >
-        <div className="p-3 pb-0">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span
-                className="text-[9px] font-black uppercase tracking-[0.16em]"
-                style={{ color: C.t5 }}
-              >
-                Price movement filter
-              </span>
-              <div
-                className="h-px flex-1"
-                style={{ background: C.borderFt }}
-              />
-            </div>
-            {/* Helper line */}
-            <p className="text-[10px] leading-snug" style={{ color: C.t5 }}>
-              <span style={{ color: C.t4 }}>
-                ≥{STRONG_DROP_THRESHOLD}% drop
-              </span>{" "}
-              = strong directional signal.{" "}
-              <span style={{ color: C.t4 }}>Drop amount known</span> = exact
-              price-drop figure available from export.
-            </p>
-            <ViewModeSelector
-              mode={viewMode}
-              onModeChange={setViewMode}
-              counts={{
-                all: filteredAll.length,
-                strong: strongItems.length,
-                documented: documentedItems.length,
-              }}
-            />
-          </div>
-        </div>
-
-        <div
-          className="border-t px-4 py-3"
-          style={{ borderColor: C.borderFt }}
-        >
-          <ReconFiltersBar
-            filters={filters}
-            onFiltersChange={setFilters}
-            options={filterOptions}
-            totalCount={normalizedAll.length}
-            filteredCount={filteredAll.length}
+            className="absolute top-0 left-0 right-0 h-[1.5px] opacity-0 group-hover:opacity-60 transition-all duration-300"
+            style={{ background: accentColor, boxShadow: `0 0 10px ${accentColor}` }}
           />
-        </div>
-      </section>
-
-      {/* ── 7. Featured top repriced listing ──────────────────── */}
-      {featuredItem && (
-        <section>
-          <div className="mb-2.5 flex items-center gap-2.5">
-            <div
-              className="h-4 w-[3px] shrink-0 rounded-full"
-              style={{ background: C.rdHi }}
-            />
-            <h2
-              className="text-[14px] font-semibold"
-              style={{ color: C.t1, letterSpacing: "-0.01em" }}
-            >
-              {viewMode === "strong"
-                ? "Top strong price movement"
-                : viewMode === "documented"
-                  ? "Top documented price drop"
-                  : "Top repriced listing"}
-            </h2>
-            <span className="text-[11px]" style={{ color: C.t5 }}>
-              · Verify first
-            </span>
-          </div>
-          <ReconOpportunityCard
-            opportunity={featuredItem}
-            variant="featured"
+          <div
+            className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"
+            style={{ background: accentColor }}
           />
-        </section>
+        </>
       )}
 
-      {/* ── 8. Remaining list ─────────────────────────────────── */}
-      {remainingItems.length > 0 && (
-        <section>
-          <SectionDivider
-            icon={
-              viewMode === "strong"
-                ? TrendingDown
-                : viewMode === "documented"
-                  ? BarChart2
-                  : Layers3
-            }
-            label={
-              viewMode === "strong"
-                ? `Strong price movement (≥${STRONG_DROP_THRESHOLD}%)`
-                : viewMode === "documented"
-                  ? "Documented price drops"
-                  : "All repriced listings"
-            }
-            count={remainingItems.length}
-            accent={
-              viewMode === "strong"
-                ? C.rdHi
-                : viewMode === "documented"
-                  ? C.amHi
-                  : C.t3
-            }
-            description={
-              viewMode === "strong"
-                ? "Verify current advertised price on source listing"
-                : viewMode === "documented"
-                  ? "Drop amount available from export data"
-                  : "Ranked by recon score"
-            }
-          />
-          <div className="mt-2 space-y-2">
-            {remainingItems.map((opportunity) => (
-              <ReconOpportunityCard
-                key={opportunity.id}
-                opportunity={opportunity}
-                variant="list"
-              />
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="flex items-start justify-between gap-3.5 mb-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-inner transition-colors duration-300"
+            style={{
+              background: `linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)`,
+              borderColor: "rgba(255,255,255,0.1)",
+              color: disabled ? C.t4 : accentColor,
+            }}
+          >
+            {icon}
+          </div>
+          {value !== undefined && (
+            <span className="text-[18px] font-black tabular-nums tracking-tight text-white mt-1">
+              {value}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex-1 min-w-0 mb-3">
+          <h3 className="text-[15px] font-bold tracking-tight text-white flex items-center gap-2 mb-1">
+            {title}
+            {disabled && (
+              <span className="text-[9px] uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded shadow-inner">
+                Limited
+              </span>
+            )}
+          </h3>
+          <p className="text-[13px] leading-relaxed font-medium" style={{ color: C.t3 }}>
+            {description}
+          </p>
+        </div>
+
+        <div 
+          className="mt-auto flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-transform group-hover:translate-x-0.5" 
+          style={{ color: disabled ? C.t4 : accentColor }}
+        >
+          {disabled ? "Unavailable" : ctaLabel ?? "Open Workspace"}
+          <ArrowRight className="h-3 w-3" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function IntelligencePanel({
+  title,
+  purpose,
+  agentUseText,
+  chips,
+  icon,
+  accentColor,
+  primaryAction,
+}: {
+  title: string;
+  purpose: string;
+  agentUseText: string;
+  chips: string[];
+  icon: React.ReactNode;
+  accentColor: string;
+  primaryAction: { label: string; onClick: () => void };
+}) {
+  return (
+    <article
+      className="relative overflow-hidden rounded-[20px] border shadow-md"
+      style={{
+        background: "linear-gradient(135deg, rgba(24,24,27,0.4) 0%, rgba(9,9,11,0.6) 100%)",
+        borderColor: C.border,
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      <div
+        className="absolute top-0 left-0 w-1.5 h-full opacity-80"
+        style={{ background: accentColor }}
+      />
+      <div
+        className="absolute top-0 left-0 w-64 h-64 rounded-full blur-[80px] pointer-events-none opacity-10"
+        style={{ background: accentColor }}
+      />
+
+      <div className="relative z-10 p-5 sm:p-7 flex flex-col md:flex-row md:items-center gap-5 md:gap-8">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="p-2 rounded-lg bg-white/5 border border-white/10" style={{ color: accentColor }}>
+              {icon}
+            </div>
+            <h2 className="text-[18px] sm:text-[22px] font-extrabold tracking-tight text-white">
+              {title}
+            </h2>
+          </div>
+
+          <p className="text-[13.5px] leading-relaxed font-medium mb-3 pl-1" style={{ color: C.t2 }}>
+            {purpose}
+          </p>
+          
+          <div className="flex flex-wrap gap-2 mb-3.5 pl-1">
+            {chips.map((chip) => (
+              <span 
+                key={chip} 
+                className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md shadow-sm" 
+                style={{ 
+                  color: accentColor, 
+                  background: "rgba(255,255,255,0.03)", 
+                  border: "1px solid rgba(255,255,255,0.06)" 
+                }}
+              >
+                {chip}
+              </span>
             ))}
           </div>
-        </section>
-      )}
-
-      {/* ── Empty state ───────────────────────────────────────── */}
-      {activeItems.length === 0 && (
-        <div
-          className="rounded-xl border p-10 text-center"
-          style={{ background: C.cardBg, borderColor: C.border }}
-        >
-          <p className="text-[13px] font-medium" style={{ color: C.t3 }}>
-            No repriced listings match the current view and filters.
-          </p>
-          <p className="mt-1.5 text-[11px]" style={{ color: C.t5 }}>
-            {hasFilters
-              ? "Try adjusting your filters or switching the price movement view."
-              : "Try selecting a different price movement view."}
-          </p>
+          
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-black/20 border border-white/5 shadow-inner">
+            <div className="h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" style={{ background: accentColor, boxShadow: `0 0 8px ${accentColor}` }} />
+            <p className="text-[13px] leading-relaxed font-medium" style={{ color: C.t3 }}>
+              <span className="text-white font-bold mr-1.5">Agent Workflow:</span>
+              {agentUseText}
+            </p>
+          </div>
         </div>
-      )}
 
-      {/* ── 9. Footer nav ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between pt-2">
-        <div className="flex items-center gap-1.5">
-          <ExternalLink className="h-3 w-3" style={{ color: C.t5 }} />
-          <span className="text-[10px]" style={{ color: C.t5 }}>
-            Always verify current advertised price on source listing before outreach
-          </span>
+        <div className="flex flex-col gap-2.5 md:min-w-[180px] shrink-0 mt-2 md:mt-0">
+          <button
+            onClick={primaryAction.onClick}
+            className="flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-[13px] font-bold text-white transition-all hover:opacity-90 hover:-translate-y-px shadow-sm"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}
+          >
+            {primaryAction.label}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
         </div>
-        <Link
-          href={`${country.routeBase}/recon`}
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-white/[0.04]"
-          style={{
-            color: C.t4,
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          Compare with Recon Hub
-          <ArrowRight className="h-3 w-3" />
-        </Link>
       </div>
+    </article>
+  );
+}
+
+function MetricPill({ 
+  label, 
+  value, 
+  tone = "neutral", 
+  truncate = false 
+}: { 
+  label: string; 
+  value: string | number; 
+  tone?: "neutral" | "rd" | "am" | "cy" | "em";
+  truncate?: boolean;
+}) {
+  const colors = {
+    neutral: { text: C.t1, bg: "rgba(255,255,255,0.03)", border: C.borderSub },
+    rd: { text: C.rdHi, bg: "rgba(244,63,94,0.1)", border: "rgba(244,63,94,0.2)" },
+    am: { text: C.amHi, bg: "rgba(251,191,36,0.1)", border: "rgba(251,191,36,0.2)" },
+    cy: { text: C.cyHi, bg: "rgba(34,211,238,0.1)", border: "rgba(34,211,238,0.2)" },
+    em: { text: C.emHi, bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.2)" },
+  };
+  const c = colors[tone];
+
+  return (
+    <div className="flex flex-col gap-0.5 rounded-lg px-2.5 py-1.5 border" style={{ background: c.bg, borderColor: c.border }}>
+      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: C.t4 }}>{label}</span>
+      <span 
+        className={`text-[12px] font-bold tabular-nums ${truncate ? "max-w-[110px] truncate" : ""}`} 
+        style={{ color: c.text }} 
+        title={typeof value === 'string' ? value : undefined}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// EXPORT — guards before hooks, delegates to PriceDropContent
-// ═══════════════════════════════════════════════════════════════════════════
+function PriceDropCard({ item, idx, routeBase, currency }: { item: NormalizedReconOpportunity; idx: number; routeBase: string; currency: string }) {
+  const raw = item.raw;
+  const rank = idx + 1;
+
+  const dropPct = getNumberField(raw, ["drop_pct", "price_drop_rate_pct"]) ?? item.dropPct;
+  const dropAmount = getNumberField(raw, ["drop_amount", "price_drop_amount"]) ?? item.dropAmount;
+  const oldPrice = getNumberField(raw, ["old_price"]) ?? item.oldPrice;
+  const newPrice = getNumberField(raw, ["new_price"]) ?? item.newPrice ?? item.price;
+  
+  const trueAge = getNumberField(raw, ["effective_true_age_days"]);
+  const isStale = getBooleanField(raw, ["is_stale", "is_old_inventory", "is_very_old_inventory"]) || (trueAge !== undefined && trueAge > 60) || item.signalBadges?.some(b => b.label.toLowerCase().includes("stale") || b.label.toLowerCase().includes("aged"));
+  const isStrongDrop = dropPct !== undefined && dropPct >= 10;
+  const isDocumented = dropAmount !== undefined || (oldPrice !== undefined && newPrice !== undefined);
+
+  const agentName = item.agentName;
+  const agencyName = item.agencyName;
+
+  // Price Read
+  let priceRead = "This listing shows public price-movement evidence. Verify the current advertised price before acting.";
+  if (isStrongDrop) {
+    priceRead = "This listing shows a strong advertised price reduction. Verify current source price before outreach.";
+  } else if (dropAmount !== undefined) {
+    priceRead = "This listing has documented public price movement. Review source and listing context before follow-up.";
+  } else if (isStale) {
+    priceRead = "Aged inventory with price movement can provide useful repricing context, but source verification is required.";
+  }
+
+  // Why this matters
+  let actionText = "Use this as pricing context before outreach, negotiation review, or comparing nearby supply.";
+  if (isStrongDrop) {
+    actionText = "Larger advertised reductions can help agents prioritize pricing review, follow-up, or negotiation context.";
+  } else if (isDocumented) {
+    actionText = "Old/new price evidence gives stronger context than a generic price-drop label.";
+  } else if (isStale) {
+    actionText = "Older inventory with price movement may deserve closer review when Listing Truth also confirms age.";
+  }
+
+  // Category Badge
+  const categoryBadge = formatCategoryLabel(item);
+
+  // Pills
+  const pillsToRender = [];
+  
+  if (dropPct !== undefined) {
+    pillsToRender.push({ label: "Drop %", value: formatDropPercent(dropPct), tone: "rd" as const });
+  }
+  
+  if (dropAmount !== undefined) {
+    pillsToRender.push({ label: "Drop Amount", value: formatCurrencyCompact(dropAmount, currency), tone: "rd" as const });
+  }
+  
+  if (oldPrice !== undefined) {
+    pillsToRender.push({ label: "Old Price", value: formatCurrencyCompact(oldPrice, currency), tone: "neutral" as const });
+  }
+  
+  if (newPrice !== undefined) {
+    pillsToRender.push({ label: "Advertised", value: formatCurrencyCompact(newPrice, currency), tone: "neutral" as const });
+  } else if (item.price !== null) {
+    pillsToRender.push({ label: "Advertised", value: formatCurrencyCompact(item.price, currency), tone: "neutral" as const });
+  }
+  
+  if (item.portal) {
+    pillsToRender.push({ label: "Portal", value: item.portal, tone: "neutral" as const });
+  }
+  
+  const displayPropertyType = formatPropertyType(item.propertyType);
+  if (displayPropertyType && pillsToRender.length < 5) {
+    pillsToRender.push({ label: "Type", value: displayPropertyType, tone: "neutral" as const });
+  }
+
+  const finalPills = pillsToRender.slice(0, 5);
+  
+  const toneColor = isStrongDrop ? C.rdHi : isStale ? C.amHi : C.cyHi;
+  const badgeLabel = isStrongDrop ? "Strong Drop" : isStale ? "Stale + Drop" : "Price Movement";
+
+  const displayTitle = cleanPriceTitle(item);
+  const formattedLocation = formatPriceLocation(item.locationLabel);
+
+  return (
+    <article
+      className="group relative flex flex-col rounded-[20px] border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden"
+      style={{
+        background: `linear-gradient(135deg, rgba(24,24,27,0.48) 0%, rgba(9,9,11,0.72) 100%)`,
+        borderColor: "rgba(255,255,255,0.065)",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.02)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
+      <div 
+        className="absolute top-0 left-0 right-0 h-[1.5px] opacity-0 group-hover:opacity-50 transition-all duration-300 z-10" 
+        style={{ background: toneColor, boxShadow: `0 0 10px ${toneColor}` }} 
+      />
+
+      <div className="absolute top-0 right-0 h-32 w-32 rounded-full blur-[70px] opacity-[0.08] pointer-events-none z-0" style={{ background: toneColor }} />
+
+      <div className="p-5 sm:p-6 flex flex-col flex-1 relative z-10">
+        
+        {/* Top Row: Rank & Type */}
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <span
+              className="rounded px-1.5 py-[3px] text-[9px] font-extrabold uppercase tracking-widest"
+              style={{ color: toneColor, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.borderSub}` }}
+            >
+              #{rank}
+            </span>
+            <span 
+              className="inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest leading-none shadow-sm"
+              style={{
+                color: C.t2,
+                background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+                borderColor: "rgba(255,255,255,0.15)",
+              }}
+            >
+              {badgeLabel}
+            </span>
+          </div>
+          {categoryBadge && (
+            <span 
+              className="inline-flex items-center rounded border px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest leading-none shadow-sm"
+              style={{
+                color: C.t3,
+                background: "rgba(255,255,255,0.02)",
+                borderColor: C.borderSub,
+              }}
+            >
+              {categoryBadge}
+            </span>
+          )}
+        </div>
+
+        <h3 className="line-clamp-2 text-[16px] font-extrabold text-white tracking-tight mb-1">
+          {displayTitle}
+        </h3>
+        
+        {displayTitle !== formattedLocation && formattedLocation && formattedLocation !== "Unknown Location" && (
+          <p className="text-[12px] font-bold mb-4" style={{ color: C.t4 }}>
+            {formattedLocation}
+          </p>
+        )}
+
+        {/* Agency/Agent */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 rounded-lg border p-3 mb-4" style={{ background: "rgba(255,255,255,0.02)", borderColor: C.borderSub }}>
+          <span className="block text-[13px] font-bold leading-relaxed text-white line-clamp-2" title={agencyName || "Agency not listed"}>
+            {agencyName || "Agency not listed"}
+          </span>
+          <span className="text-[11px] font-bold uppercase tracking-wider shrink-0" style={{ color: C.t4 }}>
+            {agentName || "Agent not listed"}
+          </span>
+        </div>
+        
+        {/* Metric Pills Row */}
+        {finalPills.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {finalPills.map((p, i) => (
+              <MetricPill key={i} label={p.label} value={p.value} tone={p.tone} />
+            ))}
+          </div>
+        )}
+        
+        {priceRead && (
+          <p className="text-[13px] leading-relaxed font-medium mb-3" style={{ color: C.t3 }}>
+            {priceRead}
+          </p>
+        )}
+
+        {/* Action Box */}
+        <div className="mt-auto mb-5 rounded-xl border p-3.5" style={{ background: "rgba(0,0,0,0.18)", borderColor: C.borderSub }}>
+          <span className="block text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: toneColor }}>
+            Why this matters
+          </span>
+          <p className="text-[12.5px] leading-relaxed font-medium" style={{ color: C.t2 }}>
+            {actionText}
+          </p>
+        </div>
+
+        {/* Footer Row (CTA) */}
+        <div className="pt-4 border-t flex items-center justify-between" style={{ borderColor: C.borderSub }}>
+          {item.listingUrl ? (
+            <a
+              href={item.listingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80" 
+              style={{ color: C.t4 }}
+            >
+              Verify Source
+            </a>
+          ) : (
+            <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: C.t4 }}>
+              Source Unavailable
+            </span>
+          )}
+          
+          <Link
+            href={`${routeBase}/listing-age`}
+            className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80" 
+            style={{ color: toneColor }}
+          >
+            Review Listing Truth
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+      </div>
+    </article>
+  );
+}
+
+// ─── Main Page ──────────────────────────────────────────────────────────────
 export default function PriceDropRadarPage({
   country,
   data,
 }: PriceDropRadarPageProps) {
-  if (data.status !== "ready" || !data.manifest) {
-    return <EmptyPriceDropState country={country} message={data.message} />;
-  }
+  const isUae = country.slug === "uae";
+  
+  const [activeLane, setActiveLane] = useState<PriceDropView>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
-  const priceDropPayload = data.lists.priceDrops;
+  const allNormalized = useMemo(() => {
+    const seenIds = new Set<string>();
+    const results: NormalizedReconOpportunity[] = [];
 
-  if (!priceDropPayload || priceDropPayload.items.length === 0) {
+    function addItems(items: Record<string, unknown>[] | undefined | null, sourceTable?: string | null) {
+      if (!items || items.length === 0) return;
+      const normalized = normalizeReconList(items, country.slug, sourceTable ?? null);
+      for (const item of normalized) {
+        if (!seenIds.has(item.id)) {
+          seenIds.add(item.id);
+          results.push(item);
+        }
+      }
+    }
+
+    if (isUae) {
+      const uData = data as UaeReconDataResult;
+      addItems(uData.lists.priceDrops?.items as Record<string, unknown>[] | undefined, uData.lists.priceDrops?.source_table);
+      addItems(uData.lists.stalePriceDrops?.items as Record<string, unknown>[] | undefined, uData.lists.stalePriceDrops?.source_table);
+    } else {
+      const kData = data as KsaReconDataResult;
+      addItems(kData.lists.priceDrops?.items as Record<string, unknown>[] | undefined, kData.lists.priceDrops?.source_table);
+    }
+
+    return results;
+  }, [country.slug, data, isUae]);
+
+  const dedupedPriceDrops = useMemo(() => dedupePriceDrops(allNormalized), [allNormalized]);
+
+  const filteredItems = useMemo(() => {
+    return dedupedPriceDrops.filter(item => {
+      // Lane filter
+      let laneMatch = false;
+      if (activeLane === "all") laneMatch = true;
+      else {
+        const raw = item.raw;
+        const trueAge = getNumberField(raw, ["effective_true_age_days"]);
+        const isStale = getBooleanField(raw, ["is_stale", "is_old_inventory", "is_very_old_inventory"]) || (trueAge !== undefined && trueAge > 60) || item.signalBadges?.some(b => b.label.toLowerCase().includes("stale") || b.label.toLowerCase().includes("aged"));
+        const dropPct = getNumberField(raw, ["drop_pct", "price_drop_rate_pct"]) ?? item.dropPct ?? 0;
+        const dropAmount = getNumberField(raw, ["drop_amount", "price_drop_amount"]) ?? item.dropAmount;
+        const oldPrice = getNumberField(raw, ["old_price"]) ?? item.oldPrice;
+        const newPrice = getNumberField(raw, ["new_price"]) ?? item.newPrice ?? item.price;
+        
+        const isStrongDrop = dropPct >= 10;
+        const isDocumented = dropAmount !== undefined || (oldPrice !== undefined && newPrice !== undefined);
+
+        if (activeLane === "strong") laneMatch = isStrongDrop;
+        else if (activeLane === "documented") laneMatch = isDocumented;
+        else if (activeLane === "stale") laneMatch = isStale;
+      }
+
+      // Category filter
+      let catMatch = false;
+      if (categoryFilter === "all") {
+        catMatch = true;
+      } else {
+        catMatch = getItemCategoryFilter(item) === categoryFilter;
+      }
+
+      return laneMatch && catMatch;
+    });
+  }, [dedupedPriceDrops, activeLane, categoryFilter]);
+
+  const visibleCards = filteredItems.slice(0, PRICE_DROP_RENDER_LIMIT);
+
+  // Overview Metrics based on dedupedPriceDrops
+  const totalSignalsCount = dedupedPriceDrops.length;
+  
+  const strongDropsCount = dedupedPriceDrops.filter(item => {
+    const raw = item.raw;
+    const dropPct = getNumberField(raw, ["drop_pct", "price_drop_rate_pct"]) ?? item.dropPct ?? 0;
+    return dropPct >= 10;
+  }).length;
+
+  const documentedDropsCount = dedupedPriceDrops.filter(item => {
+    const raw = item.raw;
+    const dropAmount = getNumberField(raw, ["drop_amount", "price_drop_amount"]) ?? item.dropAmount;
+    const oldPrice = getNumberField(raw, ["old_price"]) ?? item.oldPrice;
+    const newPrice = getNumberField(raw, ["new_price"]) ?? item.newPrice ?? item.price;
+    return dropAmount !== undefined || (oldPrice !== undefined && newPrice !== undefined);
+  }).length;
+
+  const staleDropsCount = dedupedPriceDrops.filter(item => {
+    const raw = item.raw;
+    const trueAge = getNumberField(raw, ["effective_true_age_days"]);
+    return getBooleanField(raw, ["is_stale", "is_old_inventory", "is_very_old_inventory"]) || (trueAge !== undefined && trueAge > 60) || item.signalBadges?.some(b => b.label.toLowerCase().includes("stale") || b.label.toLowerCase().includes("aged"));
+  }).length;
+
+  if (allNormalized.length === 0) {
     return (
-      <EmptyPriceDropState
-        country={country}
-        message={`${country.label} Price Drop export loaded, but no price-drop records were available in the local frontend sample.`}
-      />
+      <div className="space-y-8 max-w-7xl mx-auto pb-16">
+        <section
+          className="relative rounded-[28px] border overflow-hidden"
+          style={{
+            background: "linear-gradient(180deg, rgba(24,24,27,0.7) 0%, rgba(9,9,11,0.9) 100%)",
+            borderColor: "rgba(255,255,255,0.06)",
+            boxShadow: "0 24px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+            backdropFilter: "blur(20px)",
+          }}
+        >
+          <GridPattern />
+          <div className="absolute top-0 left-1/3 w-[400px] h-[400px] bg-red-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-1/2" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none translate-y-1/2" />
+          
+          <div className="relative z-10 p-8 sm:p-12 lg:p-16">
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <span
+                className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] rounded-full px-4 py-1.5 shadow-sm"
+                style={{ color: C.rdHi, background: "rgba(244,63,94,0.1)", border: `1px solid rgba(244,63,94,0.2)` }}
+              >
+                <TrendingDown className="h-3.5 w-3.5" />
+                Price Drop Radar
+              </span>
+            </div>
+
+            <h1 className="text-[38px] sm:text-[48px] lg:text-[56px] font-extrabold leading-[1.1] tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-100 to-zinc-400 drop-shadow-sm">
+              No price-drop signals available
+            </h1>
+            
+            <p className="max-w-2xl text-[16px] sm:text-[18px] leading-[1.6] font-medium" style={{ color: C.t2 }}>
+              No public price-drop signals are available in this workspace snapshot.
+            </p>
+
+            <div className="mt-10 flex flex-wrap items-center gap-3.5">
+              <Link
+                href={`${country.routeBase}/activity-feed`}
+                className="group inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3.5 text-[14px] font-bold text-black transition-all hover:scale-[1.02]"
+                style={{ 
+                  background: "linear-gradient(180deg, #f43f5e 0%, #e11d48 100%)", 
+                  boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4), 0 8px 24px rgba(225,29,72,0.25)" 
+                }}
+              >
+                Open Recent Market Movement
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              
+              <Link
+                href={`${country.routeBase}/listing-age`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+                style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+              >
+                Open Listing Truth
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
     );
   }
 
-  return <PriceDropContent country={country} payload={priceDropPayload} />;
+  const categoryOptions: { value: CategoryFilter, label: string }[] = [
+    { value: "all", label: "All Categories" },
+    { value: "residential_buy", label: "Residential Buy" },
+    { value: "residential_rent", label: "Residential Rent" },
+    { value: "commercial_buy", label: "Commercial Buy" },
+    { value: "commercial_rent", label: "Commercial Rent" },
+    { value: "short_rental", label: "Short Rental" },
+    { value: "land", label: "Land" },
+  ];
+
+  return (
+    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+      
+      {/* ── 1. Hero Section ─────────────────────────────────────────────── */}
+      <section
+        className="relative rounded-[28px] border overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, rgba(24,24,27,0.7) 0%, rgba(9,9,11,0.9) 100%)",
+          borderColor: "rgba(255,255,255,0.06)",
+          boxShadow: "0 24px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        <GridPattern />
+        
+        {/* Ambient hero glows */}
+        <div className="absolute top-0 left-1/3 w-[400px] h-[400px] bg-red-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-1/2" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none translate-y-1/2" />
+        
+        <div className="relative z-10 p-8 sm:p-12 lg:p-16">
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <span
+              className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] rounded-full px-4 py-1.5 shadow-sm"
+              style={{ color: C.rdHi, background: "rgba(244,63,94,0.1)", border: `1px solid rgba(244,63,94,0.2)` }}
+            >
+              <TrendingDown className="h-3.5 w-3.5" />
+              Price Drop Radar
+            </span>
+          </div>
+
+          <h1 className="text-[38px] sm:text-[48px] lg:text-[56px] font-extrabold leading-[1.1] tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-100 to-zinc-400 drop-shadow-sm">
+            Where Did Prices Move?
+          </h1>
+          
+          <p className="max-w-2xl text-[16px] sm:text-[18px] leading-[1.6] font-medium" style={{ color: C.t2 }}>
+            Review public price-drop signals, advertised price changes, and repricing context before deciding which listings deserve follow-up.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center gap-3.5">
+            <button
+              onClick={() => {
+                document.getElementById('price-drop-list')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="group inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3.5 text-[14px] font-bold text-black transition-all hover:scale-[1.02]"
+              style={{ 
+                background: "linear-gradient(180deg, #f43f5e 0%, #e11d48 100%)", 
+                boxShadow: "inset 0 1px 1px rgba(255,255,255,0.4), 0 8px 24px rgba(225,29,72,0.25)" 
+              }}
+            >
+              Review Price Drops
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </button>
+            
+            <Link
+              href={`${country.routeBase}/listing-age`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Listing Truth
+            </Link>
+
+            <Link
+              href={`${country.routeBase}/inventory-pressure`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Supply Pressure
+            </Link>
+
+            <Link
+              href={`${country.routeBase}/activity-feed`}
+              className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[14px] font-bold transition-all hover:bg-white/[0.08]"
+              style={{ color: C.t1, background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.1)`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+            >
+              Recent Market Movement
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 2. Overview Cards ─────────────────────────────────────── */}
+      <section>
+        <div className="mb-4 flex items-center gap-3 px-1">
+          <Activity className="h-5 w-5" style={{ color: C.rdHi }} />
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white">
+            Pricing Overview
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SnapshotCard
+            title="Price Drop Signals"
+            value={formatNumber(totalSignalsCount)}
+            description="Total visible items analyzed."
+            icon={<ShieldCheck className="h-5 w-5" />}
+            accentColor={C.cyHi}
+            href="#price-drop-list"
+            ctaLabel="View Signals"
+          />
+          <SnapshotCard
+            title="Strong Drops"
+            value={formatNumber(strongDropsCount)}
+            description="Listings with reductions over 10%."
+            icon={<TrendingDown className="h-5 w-5" />}
+            accentColor={C.rdHi}
+            href="#price-drop-list"
+            ctaLabel="Review Strong Drops"
+          />
+          <SnapshotCard
+            title="Documented Drops"
+            value={formatNumber(documentedDropsCount)}
+            description="Items with old/new price evidence."
+            icon={<BarChart2 className="h-5 w-5" />}
+            accentColor={C.emHi}
+            href="#price-drop-list"
+            ctaLabel="View Evidence"
+          />
+          <SnapshotCard
+            title="Stale + Dropped"
+            value={formatNumber(staleDropsCount)}
+            description="Aged inventory with price movement."
+            icon={<Clock className="h-5 w-5" />}
+            accentColor={C.amHi}
+            href="#price-drop-list"
+            ctaLabel="Find Follow-ups"
+          />
+        </div>
+      </section>
+
+      {/* ── 3. Insight Panels ─────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="mb-5 flex items-center gap-3 px-1 pt-2">
+          <Layers className="h-5 w-5" style={{ color: C.t3 }} />
+          <h2 className="text-[14px] font-bold uppercase tracking-[0.15em] text-white">
+            Pricing Intelligence
+          </h2>
+        </div>
+
+        <IntelligencePanel
+          title="Strong Price Movement"
+          purpose="Find listings with larger advertised price reductions."
+          agentUseText="Use this to prioritize follow-up on listings that have shown significant repricing activity."
+          chips={["Strong drops", "Repricing", "Follow-up opportunities"]}
+          icon={<TrendingDown className="h-5 w-5" />}
+          accentColor={C.rdHi}
+          primaryAction={{ label: "View Strong Drops", onClick: () => setActiveLane("strong") }}
+        />
+
+        <IntelligencePanel
+          title="Documented Drop Evidence"
+          purpose="Review listings where old/new price or drop amount is available."
+          agentUseText="Use this to gain precise context on pricing changes before initiating a conversation."
+          chips={["Price evidence", "Drop amount", "Old/new price"]}
+          icon={<BarChart2 className="h-5 w-5" />}
+          accentColor={C.emHi}
+          primaryAction={{ label: "View Documented Drops", onClick: () => setActiveLane("documented") }}
+        />
+
+        {(isUae || staleDropsCount > 0) && (
+          <IntelligencePanel
+            title="Stale + Price Drop"
+            purpose="Combine aged inventory and price movement for stronger follow-up context."
+            agentUseText="Use this to identify older inventory with repricing context before prioritizing follow-up."
+            chips={["Aged inventory", "Price movement", "Negotiation context"]}
+            icon={<Clock className="h-5 w-5" />}
+            accentColor={C.amHi}
+            primaryAction={{ label: "Review Stale Inventory", onClick: () => setActiveLane("stale") }}
+          />
+        )}
+      </section>
+
+      {/* ── Filter Selectors ────────────────────────────────────────────────── */}
+      <section className="flex flex-col gap-3 pt-2">
+        {/* Lane Selector */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setActiveLane("all")}
+            className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
+            style={{
+              background: activeLane === "all" ? C.rdHi : "rgba(255,255,255,0.05)",
+              color: activeLane === "all" ? "#000" : C.t2,
+            }}
+          >
+            All Price Drops
+          </button>
+          <button
+            onClick={() => setActiveLane("strong")}
+            className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
+            style={{
+              background: activeLane === "strong" ? C.rdHi : "rgba(255,255,255,0.05)",
+              color: activeLane === "strong" ? "#000" : C.t2,
+            }}
+          >
+            Strong Drops
+          </button>
+          <button
+            onClick={() => setActiveLane("documented")}
+            className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
+            style={{
+              background: activeLane === "documented" ? C.rdHi : "rgba(255,255,255,0.05)",
+              color: activeLane === "documented" ? "#000" : C.t2,
+            }}
+          >
+            Documented Drops
+          </button>
+          {(isUae || staleDropsCount > 0) && (
+            <button
+              onClick={() => setActiveLane("stale")}
+              className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
+              style={{
+                background: activeLane === "stale" ? C.rdHi : "rgba(255,255,255,0.05)",
+                color: activeLane === "stale" ? "#000" : C.t2,
+              }}
+            >
+              Stale + Dropped
+            </button>
+          )}
+        </div>
+
+        {/* Category Selector */}
+        <div className="flex flex-wrap items-center gap-2 pb-2 border-b" style={{ borderColor: C.borderSub }}>
+          {categoryOptions.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setCategoryFilter(opt.value)}
+              className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors"
+              style={{
+                background: categoryFilter === opt.value ? "rgba(255,255,255,0.15)" : "transparent",
+                color: categoryFilter === opt.value ? C.t1 : C.t4,
+                border: `1px solid ${categoryFilter === opt.value ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.05)"}`
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 4. Main Price Drop List ─────────────────────────────────── */}
+      <section id="price-drop-list" className="scroll-mt-10 pt-4">
+        <div className="mb-5 flex items-center justify-between px-1">
+          <div className="flex items-center gap-3">
+            <TrendingDown className="h-5 w-5" style={{ color: C.rdHi }} />
+            <h2 className="text-[16px] sm:text-[18px] font-bold tracking-tight text-white">
+              Price Drop Signals
+            </h2>
+          </div>
+          <span 
+            className="hidden sm:inline-flex rounded-full border px-3 py-1 text-[11px] font-bold"
+            style={{ color: C.t3, background: "rgba(255,255,255,0.02)", borderColor: C.border }}
+          >
+            {formatNumber(visibleCards.length)} Signals
+          </span>
+        </div>
+
+        {visibleCards.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {visibleCards.map((item, idx) => (
+              <PriceDropCard 
+                key={item.id} 
+                idx={idx} 
+                item={item} 
+                routeBase={country.routeBase} 
+                currency={country.currency}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[20px] border p-12 text-center" style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}>
+            <p className="text-[15px] font-bold text-white">No signals found in this view</p>
+            <p className="mt-2 text-[13px] font-medium" style={{ color: C.t4 }}>
+              Try selecting a different signal category or filter.
+            </p>
+          </div>
+        )}
+
+        {filteredItems.length > visibleCards.length && (
+          <p className="mt-6 text-center text-[13px] font-bold" style={{ color: C.t4 }}>
+            Showing top {visibleCards.length} of {formatNumber(filteredItems.length)} filtered signals
+          </p>
+        )}
+      </section>
+
+      {/* ── 5. Trust Strip ──────────────────────────────────────────────── */}
+      <section className="pt-4">
+        <div
+          className="flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-4 rounded-[16px] border px-6 py-4 shadow-sm"
+          style={{ 
+            background: "rgba(255,255,255,0.015)", 
+            borderColor: C.borderSub,
+            backdropFilter: "blur(10px)"
+          }}
+        >
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t2 }}>
+              <Globe2 className="h-3.5 w-3.5 opacity-70" style={{ color: C.t3 }} />
+              Public price-movement evidence
+            </div>
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t1 }}>
+              <CheckCircle2 className="h-4 w-4 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" style={{ color: C.emHi }} />
+              Verify source before action
+            </div>
+            <div className="flex items-center gap-2 text-[12px] font-bold tracking-wide" style={{ color: C.t2 }}>
+              <ShieldCheck className="h-3.5 w-3.5 opacity-70" style={{ color: C.t3 }} />
+              Price signals are not seller-intent claims
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2.5 text-[12px] font-bold tracking-wide" style={{ color: C.t3 }}>
+            <span className="uppercase tracking-widest text-[9px] text-zinc-300 bg-white/5 border border-white/10 px-2 py-1 rounded-md shadow-inner">
+              {country.currency}
+            </span>
+            {country.label} Workspace
+          </div>
+        </div>
+      </section>
+
+    </div>
+  );
 }
