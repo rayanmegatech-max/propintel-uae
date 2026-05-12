@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import ActivityFeedPage from "../../_components/ActivityFeedPage";
+import AIReconIntelligencePage from "../../_components/AIReconIntelligencePage";
 import AgencyProfilesPage from "../../_components/AgencyProfilesPage";
 import BuildingIntelligencePage from "../../_components/BuildingIntelligencePage";
 import CountryModulePlaceholderPage from "../../_components/CountryModulePlaceholderPage";
@@ -29,6 +30,7 @@ import {
 import { getExportHealthData } from "@/lib/data/exportHealth";
 import { getKsaReconData } from "@/lib/data/ksaRecon";
 import { getModule5Data } from "@/lib/data/module5";
+import { getModule6Data } from "@/lib/data/module6";
 import { getUaeReconData } from "@/lib/data/uaeRecon";
 
 export function generateStaticParams() {
@@ -102,6 +104,11 @@ export default async function CountrySectionPage({
   if (country === "ksa" && section === "listing-age") {
     const data = await getKsaReconData();
     return <ListingTruthRadarPage country={countryConfig} data={data} />;
+  }
+
+  if (section === "ai-recon") {
+    const data = await getModule6Data(country);
+    return <AIReconIntelligencePage country={countryConfig} data={data} />;
   }
 
   if (section === "activity-feed") {

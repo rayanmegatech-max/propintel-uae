@@ -87,6 +87,7 @@ interface NavGroup {
 // ─── Section → icon ───────────────────────────────────────────────────────────
 const SECTION_ICON: Record<ProductSectionSlug, React.ElementType> = {
   recon:                 Radar,
+  "ai-recon":            Radar,
   "market-radar":        Activity,
   "competitor-radar":    ShieldCheck,
   "owner-direct":        UserCheck,

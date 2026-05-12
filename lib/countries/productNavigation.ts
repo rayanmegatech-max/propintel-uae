@@ -1,5 +1,6 @@
 export type ProductSectionSlug =
   | "recon"
+  | "ai-recon"
   | "owner-direct"
   | "price-drops"
   | "listing-age"
@@ -30,6 +31,17 @@ export type ProductSection = {
 };
 
 export const PRODUCT_SECTIONS: ProductSection[] = [
+  {
+    slug: "ai-recon",
+    label: "AI Recon Intelligence",
+    shortLabel: "AI Recon",
+    eyebrow: "Semantic Intelligence",
+    description:
+      "Pre-computed AI narratives that package listing profile, seller-behavior, and market-context signals while keeping vectors out of the frontend export.",
+    primaryUse:
+      "Help users review AI-generated listing, seller-behavior, and market-context narratives safely before source verification and outreach.",
+    navGroup: "OPPORTUNITIES",
+  },
   {
     slug: "recon",
     label: "Daily Opportunities",
