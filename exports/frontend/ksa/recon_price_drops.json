@@ -2,7 +2,7 @@
   "country": "ksa",
   "currency": "SAR",
   "source_table": "ksa_recon_dashboard_price_drops",
-  "exported_at": "2026-05-08T19:06:39",
+  "exported_at": "2026-05-13T00:37:33",
   "total_rows_available": 100,
   "exported_rows": 100,
   "default_sort": "CASE WHEN dashboard_rank IS NULL THEN 1 ELSE 0 END ASC,\n            dashboard_rank ASC,\n            recon_score DESC",

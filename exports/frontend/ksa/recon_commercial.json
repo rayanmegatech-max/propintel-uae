@@ -2,7 +2,7 @@
   "country": "ksa",
   "currency": "SAR",
   "source_table": "ksa_recon_dashboard_commercial",
-  "exported_at": "2026-05-08T19:06:39",
+  "exported_at": "2026-05-13T00:37:33",
   "total_rows_available": 1273,
   "exported_rows": 500,
   "default_sort": "CASE WHEN dashboard_rank IS NULL THEN 1 ELSE 0 END ASC,\n            dashboard_rank ASC,\n            recon_score DESC",
@@ -884,7 +884,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 303 days old, updated 83.3 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1066369\", \"source_url\": \"https://www.bayut.sa/property/details-87685816.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87685816.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87685816.html"
     },
     {
       "dashboard_rank": 11,
@@ -964,7 +964,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 262 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1094820\", \"source_url\": \"https://www.bayut.sa/property/details-87718109.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87718109.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87718109.html"
     },
     {
       "dashboard_rank": 12,
@@ -1284,7 +1284,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 268 days old, updated 83.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1070113\", \"source_url\": \"https://www.bayut.sa/property/details-87690192.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87690192.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87690192.html"
     },
     {
       "dashboard_rank": 16,
@@ -1364,7 +1364,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 263 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1094631\", \"source_url\": \"https://www.bayut.sa/property/details-87717768.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87717768.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87717768.html"
     },
     {
       "dashboard_rank": 17,
@@ -1444,7 +1444,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1060880\", \"source_url\": \"https://www.bayut.sa/property/details-87676782.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87676782.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87676782.html"
     },
     {
       "dashboard_rank": 18,
@@ -1764,7 +1764,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 21.9, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1061601\", \"source_url\": \"https://www.bayut.sa/property/details-87678449.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87678449.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87678449.html"
     },
     {
       "dashboard_rank": 22,
@@ -1844,7 +1844,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_POSSIBLE | Refresh signal: 273 days old, updated 83.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 21.0, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1062604\", \"source_url\": \"https://www.bayut.sa/property/details-87679982.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87679982.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87679982.html"
     },
     {
       "dashboard_rank": 23,
@@ -1924,7 +1924,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_POSSIBLE | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 19.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1060969\", \"source_url\": \"https://www.bayut.sa/property/details-87673627.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87673627.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87673627.html"
     },
     {
       "dashboard_rank": 24,
@@ -2004,7 +2004,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_POSSIBLE | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 19.2, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1054278\", \"source_url\": \"https://www.bayut.sa/property/details-87665858.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87665858.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87665858.html"
     },
     {
       "dashboard_rank": 25,
@@ -2084,7 +2084,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 290 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 15.6, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1073492\", \"source_url\": \"https://www.bayut.sa/property/details-87694848.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87694848.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87694848.html"
     },
     {
       "dashboard_rank": 26,
@@ -2244,7 +2244,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 202 days old, updated 24.5 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 13.2, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1167825\", \"source_url\": \"https://www.bayut.sa/property/details-87787286.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87787286.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87787286.html"
     },
     {
       "dashboard_rank": 28,
@@ -2484,7 +2484,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 183 days old, updated 21.4 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 10.8, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1183018\", \"source_url\": \"https://www.bayut.sa/property/details-87810441.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87810441.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87810441.html"
     },
     {
       "dashboard_rank": 31,
@@ -24084,7 +24084,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 27.0, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1238980\", \"source_url\": \"https://www.bayut.sa/property/details-87871845.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87871845.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87871845.html"
     },
     {
       "dashboard_rank": 301,
@@ -24164,7 +24164,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 27.0, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1166012\", \"source_url\": \"https://www.bayut.sa/property/details-87785501.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87785501.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87785501.html"
     },
     {
       "dashboard_rank": 302,
@@ -24404,7 +24404,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.8, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1252548\", \"source_url\": \"https://www.bayut.sa/property/details-87886365.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87886365.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87886365.html"
     },
     {
       "dashboard_rank": 305,
@@ -24484,7 +24484,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1095120\", \"source_url\": \"https://www.bayut.sa/property/details-87718628.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87718628.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87718628.html"
     },
     {
       "dashboard_rank": 306,
@@ -24564,7 +24564,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1323554\", \"source_url\": \"https://www.bayut.sa/property/details-87958430.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87958430.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87958430.html"
     },
     {
       "dashboard_rank": 307,
@@ -24644,7 +24644,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1198859\", \"source_url\": \"https://www.bayut.sa/property/details-87828335.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87828335.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87828335.html"
     },
     {
       "dashboard_rank": 308,
@@ -24724,7 +24724,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1199031\", \"source_url\": \"https://www.bayut.sa/property/details-87828973.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87828973.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87828973.html"
     },
     {
       "dashboard_rank": 309,
@@ -24804,7 +24804,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1199456\", \"source_url\": \"https://www.bayut.sa/property/details-87829096.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87829096.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87829096.html"
     },
     {
       "dashboard_rank": 310,
@@ -24884,7 +24884,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1323235\", \"source_url\": \"https://www.bayut.sa/property/details-87963805.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87963805.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87963805.html"
     },
     {
       "dashboard_rank": 311,
@@ -24964,7 +24964,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1182248\", \"source_url\": \"https://www.bayut.sa/property/details-87808436.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87808436.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87808436.html"
     },
     {
       "dashboard_rank": 312,
@@ -25044,7 +25044,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1195868\", \"source_url\": \"https://www.bayut.sa/property/details-87825656.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87825656.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87825656.html"
     },
     {
       "dashboard_rank": 313,
@@ -25124,7 +25124,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1184271\", \"source_url\": \"https://www.bayut.sa/property/details-87811969.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87811969.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87811969.html"
     },
     {
       "dashboard_rank": 314,
@@ -25204,7 +25204,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1143876\", \"source_url\": \"https://www.bayut.sa/property/details-87744841.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87744841.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87744841.html"
     },
     {
       "dashboard_rank": 315,
@@ -25284,7 +25284,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1303407\", \"source_url\": \"https://www.bayut.sa/property/details-87942050.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87942050.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87942050.html"
     },
     {
       "dashboard_rank": 316,
@@ -25364,7 +25364,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1222243\", \"source_url\": \"https://www.bayut.sa/property/details-87847826.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87847826.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87847826.html"
     },
     {
       "dashboard_rank": 317,
@@ -25444,7 +25444,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1140354\", \"source_url\": \"https://www.bayut.sa/property/details-87764438.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87764438.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87764438.html"
     },
     {
       "dashboard_rank": 318,
@@ -26404,7 +26404,7 @@
       "recommended_action": "Open source URL; listing appears old or recently refreshed but lacks price-drop or owner/direct signal.",
       "opportunity_summary": "Refresh signal: 257 days old, updated 2.5 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 0, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 0.0, \"price_drop\": 0.0, \"refresh\": 22.5, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 3.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1079225\", \"source_url\": \"https://www.bayut.sa/property/details-87674415.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87674415.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87674415.html"
     },
     {
       "dashboard_rank": 330,
@@ -33364,7 +33364,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.9, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1335282\", \"source_url\": \"https://www.bayut.sa/property/details-87976902.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87976902.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87976902.html"
     },
     {
       "dashboard_rank": 417,
@@ -33444,7 +33444,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.6, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1255655\", \"source_url\": \"https://www.bayut.sa/property/details-87889627.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87889627.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87889627.html"
     },
     {
       "dashboard_rank": 418,
@@ -33524,7 +33524,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.6, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1125690\", \"source_url\": \"https://www.bayut.sa/property/details-87746352.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87746352.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87746352.html"
     },
     {
       "dashboard_rank": 419,
@@ -33604,7 +33604,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.6, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1176662\", \"source_url\": \"https://www.bayut.sa/property/details-87798911.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87798911.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87798911.html"
     },
     {
       "dashboard_rank": 420,
@@ -33684,7 +33684,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.6, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1333199\", \"source_url\": \"https://www.bayut.sa/property/details-87893357.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87893357.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87893357.html"
     },
     {
       "dashboard_rank": 421,
@@ -33764,7 +33764,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.6, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1239544\", \"source_url\": \"https://www.bayut.sa/property/details-87872709.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87872709.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87872709.html"
     },
     {
       "dashboard_rank": 422,
@@ -33844,7 +33844,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.3, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_buy_commercial\", \"source_listing_id\": \"1109582\", \"source_url\": \"https://www.bayut.sa/property/details-87733179.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87733179.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87733179.html"
     },
     {
       "dashboard_rank": 423,
@@ -33924,7 +33924,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.3, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1312664\", \"source_url\": \"https://www.bayut.sa/property/details-87949073.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87949073.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87949073.html"
     },
     {
       "dashboard_rank": 424,
@@ -36004,7 +36004,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.0, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1184837\", \"source_url\": \"https://www.bayut.sa/property/details-87813217.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87813217.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87813217.html"
     },
     {
       "dashboard_rank": 450,
@@ -36084,7 +36084,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.0, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1078945\", \"source_url\": \"https://www.bayut.sa/property/details-87699934.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87699934.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87699934.html"
     },
     {
       "dashboard_rank": 451,
@@ -36164,7 +36164,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.0, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1107760\", \"source_url\": \"https://www.bayut.sa/property/details-87731085.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87731085.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87731085.html"
     },
     {
       "dashboard_rank": 452,
@@ -36244,7 +36244,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.0, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1098433\", \"source_url\": \"https://www.bayut.sa/property/details-87722610.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87722610.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87722610.html"
     },
     {
       "dashboard_rank": 453,
@@ -36324,7 +36324,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.0, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1248168\", \"source_url\": \"https://www.bayut.sa/property/details-87881674.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87881674.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87881674.html"
     },
     {
       "dashboard_rank": 454,
@@ -36404,7 +36404,7 @@
       "recommended_action": "Contact directly or open source URL; owner/direct signal is the main opportunity.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 0}, \"score_components\": {\"owner\": 24.0, \"price_drop\": 0.0, \"refresh\": 0.0, \"overlap\": 0.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_commercial\", \"source_listing_id\": \"1245123\", \"source_url\": \"https://www.bayut.sa/property/details-87874941.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87874941.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87874941.html"
     },
     {
       "dashboard_rank": 455,

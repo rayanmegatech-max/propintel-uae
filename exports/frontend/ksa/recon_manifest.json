@@ -3,7 +3,7 @@
   "country": "ksa",
   "currency": "SAR",
   "database_path": "C:\\Users\\User\\Documents\\malesh\\KSA\\intelligence\\ksa_intelligence.db",
-  "exported_at": "2026-05-08T19:06:39",
+  "exported_at": "2026-05-13T00:37:33",
   "limit": 500,
   "exports": {
     "hot_leads": {
@@ -897,7 +897,8 @@
     "badges_json_parsed_to_badges": true,
     "source_url_normalized_to_property_url": true,
     "bayut_urls_canonicalized": true,
-    "note": "KSA may have weaker phone/WhatsApp coverage; URL-lead/source URL paths are valid. Bayut URLs are canonicalized to /property/details-{id}.html."
+    "bayut_ksa_canonical_template": "https://www.bayut.sa/en/property/details-{}.html",
+    "note": "KSA may have weaker phone/WhatsApp coverage; URL-lead/source URL paths are valid. Bayut URLs are canonicalized to the KSA domain (bayut.sa)."
   },
   "do_not_expose_directly": [
     "ksa_listing_price_events",

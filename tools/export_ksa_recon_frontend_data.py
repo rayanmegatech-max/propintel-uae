@@ -1,3 +1,4 @@
+# tools/export_ksa_recon_frontend_data.py
 from __future__ import annotations
 
 import json
@@ -66,8 +67,10 @@ SUMMARY_OUTPUT = EXPORT_DIR / "recon_summary.json"
 MANIFEST_OUTPUT = EXPORT_DIR / "recon_manifest.json"
 
 # ─── Bayut URL canonicalization ───────────────────────────────────────────────
-# Bayut slug URLs  (…/some-title-8500411.html) resolve to 404.
-# Canonical form:  https://www.bayut.com/property/details-{id}.html
+# Bayut slug URLs (…/some-title-8500411.html) resolve to 404.
+# For KSA the canonical URL is:
+#   https://www.bayut.sa/en/property/details-{id}.html
+# (UAE canonicalization is handled by the UAE exporter and uses bayut.com).
 # This fix is applied at export time so the JSON on disk is already correct.
 
 _BAYUT_ID_RE = re.compile(r"(\d+)\.html(?:[?#].*)?$", re.IGNORECASE)
@@ -88,6 +91,9 @@ _BAYUT_URL_FIELDS = (
     "detail_url",
 )
 
+# KSA Bayut base URL – note the /en/ segment for the English site
+_KSA_BAYUT_CANONICAL_TEMPLATE = "https://www.bayut.sa/en/property/details-{}.html"
+
 
 def _is_bayut_row(data: dict[str, Any]) -> bool:
     portal = str(data.get("portal") or data.get("source_portal") or "").lower()
@@ -102,7 +108,7 @@ def _extract_bayut_id_from_url(url: str) -> str | None:
 
 def _canonicalize_bayut_url(data: dict[str, Any]) -> str | None:
     """
-    Return a canonical Bayut URL for this row, or None if no ID can be found.
+    Return a canonical KSA Bayut URL for this row, or None if no ID can be found.
     Non-Bayut rows must never call this function.
     """
     # 1. Try all URL-bearing fields.
@@ -111,13 +117,13 @@ def _canonicalize_bayut_url(data: dict[str, Any]) -> str | None:
         if isinstance(url, str) and url.strip():
             bid = _extract_bayut_id_from_url(url.strip())
             if bid:
-                return f"https://www.bayut.com/property/details-{bid}.html"
+                return _KSA_BAYUT_CANONICAL_TEMPLATE.format(bid)
 
     # 2. Fallback: explicit numeric ID columns.
     for field in _BAYUT_ID_FIELDS:
         val = str(data.get(field) or "").strip()
         if val.isdigit() and val:
-            return f"https://www.bayut.com/property/details-{val}.html"
+            return _KSA_BAYUT_CANONICAL_TEMPLATE.format(val)
 
     return None
 
@@ -225,7 +231,7 @@ def normalize_row(row: sqlite3.Row) -> dict[str, Any]:
     if not data.get("property_url") and data.get("source_url"):
         data["property_url"] = data.get("source_url")
 
-    # Bayut canonicalization: rewrite slug URLs to /property/details-{id}.html
+    # Bayut canonicalization: rewrite slug URLs to https://www.bayut.sa/en/property/details-{id}.html
     if _is_bayut_row(data):
         canonical = _canonicalize_bayut_url(data)
         if canonical:
@@ -299,7 +305,8 @@ def export_ksa_recon(limit: int = DEFAULT_LIMIT) -> None:
             "badges_json_parsed_to_badges": True,
             "source_url_normalized_to_property_url": True,
             "bayut_urls_canonicalized": True,
-            "note": "KSA may have weaker phone/WhatsApp coverage; URL-lead/source URL paths are valid. Bayut URLs are canonicalized to /property/details-{id}.html.",
+            "bayut_ksa_canonical_template": _KSA_BAYUT_CANONICAL_TEMPLATE,
+            "note": "KSA may have weaker phone/WhatsApp coverage; URL-lead/source URL paths are valid. Bayut URLs are canonicalized to the KSA domain (bayut.sa).",
         },
         "do_not_expose_directly": [
             "ksa_listing_price_events",

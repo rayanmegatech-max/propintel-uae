@@ -1,3 +1,4 @@
+// lib/recon/normalize.ts
 import {
   asBooleanSignal,
   asNumber,
@@ -190,14 +191,16 @@ function sizeLabel(row: RawReconRow, sizeValue: number | null): string | null {
 // ─── Bayut URL canonicalization ──────────────────────────────────────────────
 //
 // Bayut slug URLs are broken: /property/some-long-title-{id}.html resolves to
-// a 404. The canonical pattern is: /property/details-{id}.html
+// a 404. The canonical pattern depends on the country:
+//   UAE: https://www.bayut.com/property/details-{id}.html
+//   KSA: https://www.bayut.sa/en/property/details-{id}.html
 //
 // This helper:
 //   1. Returns the input URL unchanged for any non-Bayut portal.
 //   2. For Bayut, extracts the numeric listing ID from:
 //      a) the trailing segment of any URL  (…-8500411.html → 8500411)
 //      b) explicit ID fields in the row     (external_id, listing_id, …)
-//   3. Reconstructs the canonical URL when an ID is found.
+//   3. Reconstructs the country‑correct canonical URL when an ID is found.
 //   4. Returns the original URL if no numeric ID can be found, so nothing is lost.
 
 const BAYUT_ID_FIELDS = [
@@ -223,12 +226,13 @@ function extractBayutNumericId(url: string): string | null {
 }
 
 /**
- * If the row belongs to Bayut, return the canonical URL.
+ * If the row belongs to Bayut, return the canonical URL for the given country.
  * Otherwise return the rawUrl as-is (including null).
  */
 function canonicalizeBayutUrl(
   rawUrl: string | null,
-  row: RawReconRow
+  row: RawReconRow,
+  country: ReconCountry
 ): string | null {
   if (!isBayutPortal(row)) {
     return rawUrl;
@@ -238,7 +242,10 @@ function canonicalizeBayutUrl(
   if (rawUrl) {
     const id = extractBayutNumericId(rawUrl);
     if (id) {
-      return `https://www.bayut.com/property/details-${id}.html`;
+      const base = country === "ksa"
+        ? "https://www.bayut.sa/en"
+        : "https://www.bayut.com";
+      return `${base}/property/details-${id}.html`;
     }
   }
 
@@ -248,7 +255,10 @@ function canonicalizeBayutUrl(
     if (candidate) {
       const id = extractBayutNumericId(candidate);
       if (id) {
-        return `https://www.bayut.com/property/details-${id}.html`;
+        const base = country === "ksa"
+          ? "https://www.bayut.sa/en"
+          : "https://www.bayut.com";
+        return `${base}/property/details-${id}.html`;
       }
     }
   }
@@ -257,7 +267,10 @@ function canonicalizeBayutUrl(
   for (const field of BAYUT_ID_FIELDS) {
     const val = String(row[field] ?? "").trim();
     if (/^\d+$/.test(val) && val.length > 0) {
-      return `https://www.bayut.com/property/details-${val}.html`;
+      const base = country === "ksa"
+        ? "https://www.bayut.sa/en"
+        : "https://www.bayut.com";
+      return `${base}/property/details-${val}.html`;
     }
   }
 
@@ -339,7 +352,7 @@ export function normalizeReconOpportunity(
   ]);
 
   // Apply Bayut canonicalization; all other portals pass through unchanged.
-  const listingUrl = canonicalizeBayutUrl(rawListingUrl, row);
+  const listingUrl = canonicalizeBayutUrl(rawListingUrl, row, selectedCountry);
 
   const normalized: NormalizedReconOpportunity = {
     country: selectedCountry,

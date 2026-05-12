@@ -2,7 +2,7 @@
   "country": "ksa",
   "currency": "SAR",
   "source_table": "ksa_recon_dashboard_residential_rent",
-  "exported_at": "2026-05-08T19:06:39",
+  "exported_at": "2026-05-13T00:37:33",
   "total_rows_available": 4469,
   "exported_rows": 500,
   "default_sort": "CASE WHEN dashboard_rank IS NULL THEN 1 ELSE 0 END ASC,\n            dashboard_rank ASC,\n            recon_score DESC",
@@ -324,7 +324,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 231 days old, updated 6.2 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 24.6, \"price_drop\": 0.0, \"refresh\": 24.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 3.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1132602\", \"source_url\": \"https://www.bayut.sa/property/details-87756798.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87756798.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87756798.html"
     },
     {
       "dashboard_rank": 4,
@@ -2244,7 +2244,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 256 days old, updated 72.7 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1079557\", \"source_url\": \"https://www.bayut.sa/property/details-87701448.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87701448.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87701448.html"
     },
     {
       "dashboard_rank": 28,
@@ -2324,7 +2324,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 272 days old, updated 83.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1067443\", \"source_url\": \"https://www.bayut.sa/property/details-87686983.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87686983.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87686983.html"
     },
     {
       "dashboard_rank": 29,
@@ -2404,7 +2404,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 272 days old, updated 83.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1086491\", \"source_url\": \"https://www.bayut.sa/property/details-87708876.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87708876.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87708876.html"
     },
     {
       "dashboard_rank": 30,
@@ -2484,7 +2484,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1043340\", \"source_url\": \"https://www.bayut.sa/property/details-87646464.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87646464.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87646464.html"
     },
     {
       "dashboard_rank": 31,
@@ -2564,7 +2564,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 319 days old, updated 83.3 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1043194\", \"source_url\": \"https://www.bayut.sa/property/details-87647461.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87647461.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87647461.html"
     },
     {
       "dashboard_rank": 32,
@@ -2644,7 +2644,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 255 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1100512\", \"source_url\": \"https://www.bayut.sa/property/details-87710151.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87710151.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87710151.html"
     },
     {
       "dashboard_rank": 33,
@@ -2724,7 +2724,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1061227\", \"source_url\": \"https://www.bayut.sa/property/details-87677593.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87677593.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87677593.html"
     },
     {
       "dashboard_rank": 34,
@@ -2804,7 +2804,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1061217\", \"source_url\": \"https://www.bayut.sa/property/details-87677560.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87677560.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87677560.html"
     },
     {
       "dashboard_rank": 35,
@@ -2884,7 +2884,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 265 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 25.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1092269\", \"source_url\": \"https://www.bayut.sa/property/details-87715217.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87715217.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87715217.html"
     },
     {
       "dashboard_rank": 36,
@@ -3284,7 +3284,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 227 days old, updated 6.2 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 15.0, \"price_drop\": 0.0, \"refresh\": 23.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 3.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1143825\", \"source_url\": \"https://www.bayut.sa/property/details-87729718.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87729718.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87729718.html"
     },
     {
       "dashboard_rank": 41,
@@ -3364,7 +3364,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 252 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 24.0, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1107381\", \"source_url\": \"https://www.bayut.sa/property/details-87730718.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87730718.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87730718.html"
     },
     {
       "dashboard_rank": 42,
@@ -3444,7 +3444,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 269 days old, updated 79.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 24.0, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1083661\", \"source_url\": \"https://www.bayut.sa/property/details-87705101.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87705101.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87705101.html"
     },
     {
       "dashboard_rank": 43,
@@ -3764,7 +3764,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 253 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1106621\", \"source_url\": \"https://www.bayut.sa/property/details-87729800.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87729800.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87729800.html"
     },
     {
       "dashboard_rank": 47,
@@ -3844,7 +3844,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 258 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1100191\", \"source_url\": \"https://www.bayut.sa/property/details-87723869.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87723869.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87723869.html"
     },
     {
       "dashboard_rank": 48,
@@ -3924,7 +3924,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 284 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1080291\", \"source_url\": \"https://www.bayut.sa/property/details-87701598.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87701598.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87701598.html"
     },
     {
       "dashboard_rank": 49,
@@ -4004,7 +4004,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 313 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1064453\", \"source_url\": \"https://www.bayut.sa/property/details-87683118.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87683118.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87683118.html"
     },
     {
       "dashboard_rank": 50,
@@ -4084,7 +4084,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 302 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1061064\", \"source_url\": \"https://www.bayut.sa/property/details-87677142.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87677142.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87677142.html"
     },
     {
       "dashboard_rank": 51,
@@ -4164,7 +4164,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 279 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1083596\", \"source_url\": \"https://www.bayut.sa/property/details-87704972.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87704972.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87704972.html"
     },
     {
       "dashboard_rank": 52,
@@ -4244,7 +4244,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 315 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 23.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1064131\", \"source_url\": \"https://www.bayut.sa/property/details-87682434.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87682434.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87682434.html"
     },
     {
       "dashboard_rank": 53,
@@ -4564,7 +4564,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 275 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 22.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1085038\", \"source_url\": \"https://www.bayut.sa/property/details-87706435.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87706435.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87706435.html"
     },
     {
       "dashboard_rank": 57,
@@ -4644,7 +4644,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 275 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 22.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1085035\", \"source_url\": \"https://www.bayut.sa/property/details-87706430.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87706430.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87706430.html"
     },
     {
       "dashboard_rank": 58,
@@ -4724,7 +4724,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_LIKELY | Refresh signal: 274 days old, updated 83.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 22.5, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1066428\", \"source_url\": \"https://www.bayut.sa/property/details-87685934.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87685934.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87685934.html"
     },
     {
       "dashboard_rank": 59,
@@ -4884,7 +4884,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_POSSIBLE | Refresh signal: 305 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 21.3, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1066068\", \"source_url\": \"https://www.bayut.sa/property/details-87685456.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87685456.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87685456.html"
     },
     {
       "dashboard_rank": 61,
@@ -4964,7 +4964,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_POSSIBLE | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 21.3, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1053908\", \"source_url\": \"https://www.bayut.sa/property/details-87662818.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87662818.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87662818.html"
     },
     {
       "dashboard_rank": 62,
@@ -5044,7 +5044,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_POSSIBLE | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 21.3, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1042933\", \"source_url\": \"https://www.bayut.sa/property/details-87646185.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87646185.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87646185.html"
     },
     {
       "dashboard_rank": 63,
@@ -5204,7 +5204,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_POSSIBLE | Refresh signal: 282 days old, updated 83.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 21.0, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1062356\", \"source_url\": \"https://www.bayut.sa/property/details-87679748.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87679748.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87679748.html"
     },
     {
       "dashboard_rank": 65,
@@ -5604,7 +5604,7 @@
       "recommended_action": "Contact directly and ask about availability; listing appears old/recently refreshed.",
       "opportunity_summary": "Owner/Direct signal: DIRECT_POSSIBLE | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 20.1, \"price_drop\": 0.0, \"refresh\": 17.25, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1058710\", \"source_url\": \"https://www.bayut.sa/property/details-87673374.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87673374.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87673374.html"
     },
     {
       "dashboard_rank": 70,
@@ -6324,7 +6324,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 254 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 17.1, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1104520\", \"source_url\": \"https://www.bayut.sa/property/details-87728229.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87728229.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87728229.html"
     },
     {
       "dashboard_rank": 79,
@@ -6404,7 +6404,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 260 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 17.1, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1098775\", \"source_url\": \"https://www.bayut.sa/property/details-87721815.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87721815.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87721815.html"
     },
     {
       "dashboard_rank": 80,
@@ -6484,7 +6484,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 16.2, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1054395\", \"source_url\": \"https://www.bayut.sa/property/details-87666334.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87666334.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87666334.html"
     },
     {
       "dashboard_rank": 81,
@@ -6644,7 +6644,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 283 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 15.6, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1080634\", \"source_url\": \"https://www.bayut.sa/property/details-87702345.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87702345.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87702345.html"
     },
     {
       "dashboard_rank": 83,
@@ -6724,7 +6724,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 289 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 15.6, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1074052\", \"source_url\": \"https://www.bayut.sa/property/details-87694911.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87694911.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87694911.html"
     },
     {
       "dashboard_rank": 84,
@@ -6804,7 +6804,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 15.6, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1054062\", \"source_url\": \"https://www.bayut.sa/property/details-87665092.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87665092.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87665092.html"
     },
     {
       "dashboard_rank": 85,
@@ -6884,7 +6884,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 284 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 15.6, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1080401\", \"source_url\": \"https://www.bayut.sa/property/details-87701854.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87701854.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87701854.html"
     },
     {
       "dashboard_rank": 86,
@@ -6964,7 +6964,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 15.6, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1046725\", \"source_url\": \"https://www.bayut.sa/property/details-87652619.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87652619.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87652619.html"
     },
     {
       "dashboard_rank": 87,
@@ -7044,7 +7044,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 286 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 15.3, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1057805\", \"source_url\": \"https://www.bayut.sa/property/details-87670516.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87670516.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87670516.html"
     },
     {
       "dashboard_rank": 88,
@@ -7124,7 +7124,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 252 days old, updated 37.5 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 14.1, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1083207\", \"source_url\": \"https://www.bayut.sa/property/details-87704084.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87704084.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87704084.html"
     },
     {
       "dashboard_rank": 89,
@@ -7204,7 +7204,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 252 days old, updated 64.9 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 14.1, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1083205\", \"source_url\": \"https://www.bayut.sa/property/details-87704081.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87704081.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87704081.html"
     },
     {
       "dashboard_rank": 90,
@@ -7284,7 +7284,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 228 days old, updated 33.9 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 14.1, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1279005\", \"source_url\": \"https://www.bayut.sa/property/details-87763995.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87763995.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87763995.html"
     },
     {
       "dashboard_rank": 91,
@@ -7364,7 +7364,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: CONTACTABLE_NON_AGENCY | Refresh signal: 266 days old, updated 83.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 13.8, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1053146\", \"source_url\": \"https://www.bayut.sa/property/details-87661345.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87661345.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87661345.html"
     },
     {
       "dashboard_rank": 92,
@@ -7444,7 +7444,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 272 days old, updated 8.1 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 11.7, \"price_drop\": 0.0, \"refresh\": 18.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1086934\", \"source_url\": \"https://www.bayut.sa/property/details-87709346.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87709346.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87709346.html"
     },
     {
       "dashboard_rank": 93,
@@ -7524,7 +7524,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 189 days old, updated 8.0 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 11.7, \"price_drop\": 0.0, \"refresh\": 18.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1178283\", \"source_url\": \"https://www.bayut.sa/property/details-87763989.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87763989.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87763989.html"
     },
     {
       "dashboard_rank": 94,
@@ -7604,7 +7604,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 189 days old, updated 8.0 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 11.7, \"price_drop\": 0.0, \"refresh\": 18.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1177784\", \"source_url\": \"https://www.bayut.sa/property/details-87800607.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87800607.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87800607.html"
     },
     {
       "dashboard_rank": 95,
@@ -7764,7 +7764,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 282 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 13.2, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1081564\", \"source_url\": \"https://www.bayut.sa/property/details-87703305.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87703305.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87703305.html"
     },
     {
       "dashboard_rank": 97,
@@ -7844,7 +7844,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 275 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 13.2, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1085499\", \"source_url\": \"https://www.bayut.sa/property/details-87706841.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87706841.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87706841.html"
     },
     {
       "dashboard_rank": 98,
@@ -7924,7 +7924,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 303 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 12.9, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1066408\", \"source_url\": \"https://www.bayut.sa/property/details-87685905.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87685905.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87685905.html"
     },
     {
       "dashboard_rank": 99,
@@ -8084,7 +8084,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 251 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 11.7, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1109622\", \"source_url\": \"https://www.bayut.sa/property/details-87733245.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87733245.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87733245.html"
     },
     {
       "dashboard_rank": 101,
@@ -8164,7 +8164,7 @@
       "recommended_action": "Contact or open URL; stale/refreshed behavior may indicate a neglected or repeatedly marketed listing.",
       "opportunity_summary": "Owner/Direct signal: WEAK_SIGNAL | Refresh signal: 296 days old, updated 69.6 days ago",
       "evidence_json": "{\"signals\": {\"owner_direct\": 1, \"price_drop\": 0, \"refresh_inflation\": 1}, \"score_components\": {\"owner\": 10.8, \"price_drop\": 0.0, \"refresh\": 16.5, \"overlap\": 8.0, \"contact\": 8.0, \"freshness\": 0.0}, \"source\": {\"source_portal\": \"bayut\", \"source_db_label\": \"bayut_rent_residential\", \"source_listing_id\": \"1071268\", \"source_url\": \"https://www.bayut.sa/property/details-87691527.html\"}}",
-      "property_url": "https://www.bayut.com/property/details-87691527.html"
+      "property_url": "https://www.bayut.sa/en/property/details-87691527.html"
     },
     {
       "dashboard_rank": 102,
