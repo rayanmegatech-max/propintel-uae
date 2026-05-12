@@ -12,6 +12,7 @@ import {
   Clock,
   Globe2,
   Layers,
+  Search,
   ShieldCheck,
   TrendingDown,
 } from "lucide-react";
@@ -164,6 +165,37 @@ function getItemCategoryFilter(item: NormalizedReconOpportunity): CategoryFilter
   return "all";
 }
 
+// ─── Location filter helpers ──────────────────────────────────────────────
+function getLocationFilterLabel(item: NormalizedReconOpportunity): string {
+  const rawCity = item.city?.trim();
+  const rawDistrict = item.districtOrCommunity?.trim();
+
+  const city = rawCity ? formatPriceLocation(rawCity) : undefined;
+  const district = rawDistrict ? formatPriceLocation(rawDistrict) : undefined;
+
+  if (city && district) return `${city} · ${district}`;
+  if (city) return city;
+  if (district) return district;
+
+  const fallback = formatPriceLocation(item.locationLabel);
+  if (!fallback || fallback.toLowerCase() === "unknown location") return "Unknown Location";
+  return fallback;
+}
+
+function getLocationFilterKey(item: NormalizedReconOpportunity): string {
+  const label = getLocationFilterLabel(item);
+  if (!label || label.toLowerCase() === "unknown location") return "unknown";
+  return label.toLowerCase().trim();
+}
+
+function getCityFilterKey(item: NormalizedReconOpportunity): string {
+  const rawCity = item.city?.trim();
+  if (!rawCity) return "unknown";
+  const formatted = formatPriceLocation(rawCity);
+  if (!formatted || formatted.toLowerCase() === "unknown location") return "unknown";
+  return formatted.toLowerCase();
+}
+
 function cleanPriceTitle(item: NormalizedReconOpportunity): string {
   const title = item.title || item.subtitle || "";
   const location = formatPriceLocation(item.locationLabel);
@@ -184,6 +216,59 @@ function cleanPriceTitle(item: NormalizedReconOpportunity): string {
   }
 
   return title || location;
+}
+
+// ─── Competitor Lens helpers ─────────────────────────────────────────────
+function getStringField(raw: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const val = raw[key];
+    if (typeof val === "string" && val.trim() !== "") {
+      return val.trim();
+    }
+  }
+  return undefined;
+}
+
+function getActorSearchText(item: NormalizedReconOpportunity): string {
+  const raw = item.raw as Record<string, unknown>;
+  const parts: string[] = [];
+  if (item.agencyName) parts.push(item.agencyName);
+  if (item.agentName) parts.push(item.agentName);
+  // include raw fields for completeness (agency/agent may be missing in normalized)
+  const rawAgency = getStringField(raw, ["agency_name", "brokerage_name", "company_name"]);
+  const rawAgent = getStringField(raw, ["agent_name"]);
+  if (rawAgency && !parts.includes(rawAgency)) parts.push(rawAgency);
+  if (rawAgent && !parts.includes(rawAgent)) parts.push(rawAgent);
+  return parts.join(" ").toLowerCase().trim();
+}
+
+function hasAgencyActor(item: NormalizedReconOpportunity): boolean {
+  const raw = item.raw as Record<string, unknown>;
+  return Boolean(
+    item.agencyName?.trim() ||
+    getStringField(raw, ["agency_name"]) ||
+    getStringField(raw, ["brokerage_name"]) ||
+    getStringField(raw, ["company_name"])
+  );
+}
+
+function hasOwnerDirectStyleSignal(item: NormalizedReconOpportunity): boolean {
+  const raw = item.raw as Record<string, unknown>;
+  const boolVal = getBooleanField(raw, ["has_owner_direct_signal", "is_owner_direct"]);
+  if (boolVal) return true;
+
+  const fields = ["owner_direct_bucket", "owner_direct_label", "owner_direct_confidence_tier", "direct_confidence_class"];
+  for (const key of fields) {
+    const val = getStringField(raw, [key]);
+    if (val) {
+      const lower = val.toLowerCase();
+      // reject meaningless or explicitly negative values
+      if (lower === "none" || lower === "no" || lower === "false" || lower === "low" || lower === "unknown") continue;
+      // accept if contains any positive indicator
+      if (/owner|direct|high|medium|likely|true/.test(lower)) return true;
+    }
+  }
+  return false;
 }
 
 // ─── Dedupe Logic ───────────────────────────────────────────────────────────
@@ -538,9 +623,9 @@ function PriceDropCard({ item, idx, routeBase, currency }: { item: NormalizedRec
   }
   
   if (newPrice !== undefined) {
-    pillsToRender.push({ label: "Advertised", value: formatCurrencyCompact(newPrice, currency), tone: "neutral" as const });
+    pillsToRender.push({ label: "Current Price", value: formatCurrencyCompact(newPrice, currency), tone: "neutral" as const });
   } else if (item.price !== null) {
-    pillsToRender.push({ label: "Advertised", value: formatCurrencyCompact(item.price, currency), tone: "neutral" as const });
+    pillsToRender.push({ label: "Current Price", value: formatCurrencyCompact(item.price, currency), tone: "neutral" as const });
   }
   
   if (item.portal) {
@@ -665,8 +750,13 @@ function PriceDropCard({ item, idx, routeBase, currency }: { item: NormalizedRec
               href={item.listingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80" 
-              style={{ color: C.t4 }}
+              className="text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80 rounded-full border px-2.5 py-1"
+              style={{
+                color: toneColor,
+                borderColor: toneColor,
+                background: "rgba(255,255,255,0.05)",
+                backdropFilter: "blur(4px)"
+              }}
             >
               Verify Source
             </a>
@@ -679,7 +769,7 @@ function PriceDropCard({ item, idx, routeBase, currency }: { item: NormalizedRec
           <Link
             href={`${routeBase}/listing-age`}
             className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80" 
-            style={{ color: toneColor }}
+            style={{ color: item.listingUrl ? C.t4 : toneColor }}
           >
             Review Listing Truth
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -700,6 +790,9 @@ export default function PriceDropRadarPage({
   
   const [activeLane, setActiveLane] = useState<PriceDropView>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [actorQuery, setActorQuery] = useState("");
+  const [actorFilter, setActorFilter] = useState<"all" | "agency" | "owner_direct">("all");
 
   const allNormalized = useMemo(() => {
     const seenIds = new Set<string>();
@@ -730,7 +823,53 @@ export default function PriceDropRadarPage({
 
   const dedupedPriceDrops = useMemo(() => dedupePriceDrops(allNormalized), [allNormalized]);
 
+  const cityOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number }>();
+    for (const item of dedupedPriceDrops) {
+      const key = getCityFilterKey(item);
+      if (key === "unknown") continue;
+      const existing = map.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        const rawCity = item.city?.trim();
+        const label = rawCity ? formatPriceLocation(rawCity) : key;
+        map.set(key, { label, count: 1 });
+      }
+    }
+    return Array.from(map.entries())
+      .map(([value, { label, count }]) => ({ value, label, count }))
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.label.localeCompare(b.label);
+      })
+      .slice(0, 5);
+  }, [dedupedPriceDrops]);
+
+  const locationOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number }>();
+    for (const item of dedupedPriceDrops) {
+      const key = getLocationFilterKey(item);
+      if (key === "unknown") continue;
+      const existing = map.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        const label = getLocationFilterLabel(item);
+        map.set(key, { label, count: 1 });
+      }
+    }
+    return Array.from(map.entries())
+      .map(([value, { label, count }]) => ({ value: `loc:${value}`, label, count }))
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.label.localeCompare(b.label);
+      })
+      .slice(0, 40);
+  }, [dedupedPriceDrops]);
+
   const filteredItems = useMemo(() => {
+    const query = actorQuery.trim().toLowerCase();
     return dedupedPriceDrops.filter(item => {
       // Lane filter
       let laneMatch = false;
@@ -760,9 +899,34 @@ export default function PriceDropRadarPage({
         catMatch = getItemCategoryFilter(item) === categoryFilter;
       }
 
-      return laneMatch && catMatch;
+      // Location filter
+      let locationMatch = false;
+      if (locationFilter === "all") locationMatch = true;
+      else if (locationFilter.startsWith("city:")) {
+        const cityKey = locationFilter.slice(5);
+        locationMatch = getCityFilterKey(item) === cityKey;
+      } else if (locationFilter.startsWith("loc:")) {
+        const locKey = locationFilter.slice(4);
+        locationMatch = getLocationFilterKey(item) === locKey;
+      } else {
+        // legacy fallback
+        locationMatch = getLocationFilterKey(item) === locationFilter;
+      }
+
+      // Competitor Lens filter
+      let actorMatch = true;
+      if (query) {
+        const searchText = getActorSearchText(item);
+        actorMatch = searchText.includes(query);
+      }
+      if (actorMatch && actorFilter !== "all") {
+        if (actorFilter === "agency") actorMatch = hasAgencyActor(item);
+        else if (actorFilter === "owner_direct") actorMatch = hasOwnerDirectStyleSignal(item);
+      }
+
+      return laneMatch && catMatch && locationMatch && actorMatch;
     });
-  }, [dedupedPriceDrops, activeLane, categoryFilter]);
+  }, [dedupedPriceDrops, activeLane, categoryFilter, locationFilter, actorQuery, actorFilter]);
 
   const visibleCards = filteredItems.slice(0, PRICE_DROP_RENDER_LIMIT);
 
@@ -1032,8 +1196,8 @@ export default function PriceDropRadarPage({
       </section>
 
       {/* ── Filter Selectors ────────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3 pt-2">
-        {/* Lane Selector */}
+      <section className="flex flex-col gap-4 pt-2">
+        {/* Row 1: signal type buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveLane("all")}
@@ -1079,8 +1243,139 @@ export default function PriceDropRadarPage({
           )}
         </div>
 
-        {/* Category Selector */}
-        <div className="flex flex-wrap items-center gap-2 pb-2 border-b" style={{ borderColor: C.borderSub }}>
+        {/* Row 2: location row */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* All locations */}
+          <button
+            onClick={() => setLocationFilter("all")}
+            className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors"
+            style={{
+              background: locationFilter === "all" ? C.rdHi : "rgba(255,255,255,0.05)",
+              color: locationFilter === "all" ? "#000" : C.t2,
+              border: `1px solid ${locationFilter === "all" ? "transparent" : C.borderSub}`,
+            }}
+          >
+            All locations
+          </button>
+
+          {/* city chips */}
+          {cityOptions.map((city) => {
+            const cityValue = `city:${city.value}`;
+            const isActive = locationFilter === cityValue;
+            return (
+              <button
+                key={cityValue}
+                onClick={() => setLocationFilter(cityValue)}
+                className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: isActive ? C.rdHi : "rgba(255,255,255,0.05)",
+                  color: isActive ? "#000" : C.t2,
+                  border: `1px solid ${isActive ? "transparent" : C.borderSub}`,
+                }}
+              >
+                {city.label} ({city.count})
+              </button>
+            );
+          })}
+
+          {/* More locations select */}
+          <div className="relative inline-block">
+            <select
+              value={locationFilter.startsWith("loc:") ? locationFilter : ""}
+              onChange={(e) => setLocationFilter(e.target.value || "all")}
+              className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider appearance-none cursor-pointer transition-colors"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                color: C.t2,
+                border: `1px solid ${C.borderSub}`,
+                backdropFilter: "blur(8px)",
+                paddingRight: "2rem",
+              }}
+            >
+              <option value="">Districts / more locations</option>
+              {locationOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label} ({opt.count})
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" style={{ color: C.t4 }}>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 3: Competitor Lens */}
+        <div
+          className="rounded-xl border p-4 flex flex-col md:flex-row md:items-center gap-3"
+          style={{ background: "rgba(255,255,255,0.02)", borderColor: C.borderSub, backdropFilter: "blur(10px)" }}
+        >
+          <div className="flex-1 min-w-0">
+            <h3 className="text-[13px] font-bold text-white">Competitor Lens</h3>
+            <p className="text-[11px] font-medium mt-0.5" style={{ color: C.t4 }}>
+              Filter public price drops by agency, agent, or owner/direct-style signal.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            {/* Search input */}
+            <div className="relative w-full md:min-w-[280px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: C.t4 }} />
+              <input
+                type="text"
+                value={actorQuery}
+                onChange={(e) => setActorQuery(e.target.value)}
+                placeholder="Search agency or agent…"
+                className="w-full rounded-full pl-9 pr-4 py-1.5 text-[12px] font-medium placeholder:text-white/30 border outline-none transition-all focus:border-white/20"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  color: C.t2,
+                  borderColor: C.borderSub,
+                }}
+              />
+            </div>
+            {/* Actor filter buttons */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() => setActorFilter("all")}
+                className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: actorFilter === "all" ? C.rdHi : "rgba(255,255,255,0.05)",
+                  color: actorFilter === "all" ? "#000" : C.t2,
+                  border: `1px solid ${actorFilter === "all" ? "transparent" : C.borderSub}`,
+                }}
+              >
+                All actors
+              </button>
+              <button
+                onClick={() => setActorFilter("agency")}
+                className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: actorFilter === "agency" ? C.rdHi : "rgba(255,255,255,0.05)",
+                  color: actorFilter === "agency" ? "#000" : C.t2,
+                  border: `1px solid ${actorFilter === "agency" ? "transparent" : C.borderSub}`,
+                }}
+              >
+                Agencies only
+              </button>
+              <button
+                onClick={() => setActorFilter("owner_direct")}
+                className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: actorFilter === "owner_direct" ? C.rdHi : "rgba(255,255,255,0.05)",
+                  color: actorFilter === "owner_direct" ? "#000" : C.t2,
+                  border: `1px solid ${actorFilter === "owner_direct" ? "transparent" : C.borderSub}`,
+                }}
+              >
+                Owner/direct-style
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 4: category chips */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 pb-2 border-b" style={{ borderColor: C.borderSub }}>
           {categoryOptions.map(opt => (
             <button
               key={opt.value}
@@ -1131,7 +1426,7 @@ export default function PriceDropRadarPage({
           <div className="rounded-[20px] border p-12 text-center" style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}>
             <p className="text-[15px] font-bold text-white">No signals found in this view</p>
             <p className="mt-2 text-[13px] font-medium" style={{ color: C.t4 }}>
-              Try selecting a different signal category or filter.
+              Try selecting a different price movement, location, category, or competitor filter.
             </p>
           </div>
         )}
