@@ -146,6 +146,37 @@ function getItemCategoryFilter(item: NormalizedReconOpportunity): CategoryFilter
   return "all";
 }
 
+// ─── Location filter helpers ──────────────────────────────────────────────
+function getLocationFilterKey(item: NormalizedReconOpportunity): string {
+  const label = getLocationFilterLabel(item);
+  if (!label || label.toLowerCase() === "unknown location") return "unknown";
+  return label.toLowerCase().trim();
+}
+
+function getLocationFilterLabel(item: NormalizedReconOpportunity): string {
+  const rawCity = item.city?.trim();
+  const rawDistrict = item.districtOrCommunity?.trim();
+
+  const city = rawCity ? formatLocation(rawCity) : undefined;
+  const district = rawDistrict ? formatLocation(rawDistrict) : undefined;
+
+  if (city && district) return `${city} · ${district}`;
+  if (city) return city;
+  if (district) return district;
+
+  const fallback = formatLocation(item.locationLabel);
+  if (!fallback || fallback.toLowerCase() === "unknown location") return "Unknown Location";
+  return fallback;
+}
+
+function getCityFilterKey(item: NormalizedReconOpportunity): string {
+  const rawCity = item.city?.trim();
+  if (!rawCity) return "unknown";
+  const formatted = formatLocation(rawCity);
+  if (!formatted || formatted.toLowerCase() === "unknown location") return "unknown";
+  return formatted.toLowerCase();
+}
+
 function cleanTitle(item: NormalizedReconOpportunity): string {
   const title = item.title || item.subtitle || "";
   const location = formatLocation(item.locationLabel);
@@ -484,13 +515,19 @@ function OwnerDirectCard({
   const displayTitle = cleanTitle(item);
   const formattedLocation = formatLocation(item.locationLabel);
 
-  const toneColor = contactable ? C.emHi : ownerDirect ? C.cyHi : C.amHi;
-  const badgeLabel = contactable ? "Contactable" : sourceLed ? "Source-Led" : ownerDirect ? "Direct-Style" : "Direct Signal";
+  const toneColor = contactable ? C.emHi : sourceLed ? C.amHi : ownerDirect ? C.cyHi : C.amHi;
+  const badgeLabel = contactable
+    ? "Contactable"
+    : sourceLed
+    ? "Verify Source"
+    : ownerDirect
+    ? "Owner/Direct Style"
+    : "Review Signal";
 
   const pillsToRender: Array<{ label: string; value: string | number; tone: "neutral" | "rd" | "am" | "cy" | "em" }> = [];
 
   if (item.price !== null) {
-    pillsToRender.push({ label: "Advertised", value: formatCurrencyCompact(item.price, currency), tone: "neutral" });
+    pillsToRender.push({ label: "Price", value: formatCurrencyCompact(item.price, currency), tone: "neutral" });
   }
 
   if (item.portal) {
@@ -498,14 +535,25 @@ function OwnerDirectCard({
   }
 
   if (ownerLabel) {
-    pillsToRender.push({ label: "Evidence", value: formatOwnerDirectLabel(ownerLabel), tone: "cy" });
+    const lowerOL = ownerLabel.toLowerCase();
+    let evidenceLabel = "Evidence";
+    let evidenceValue = formatOwnerDirectLabel(ownerLabel);
+    if (lowerOL.includes("low")) {
+      evidenceLabel = "Review Evidence";
+      evidenceValue = "Needs Review";
+    } else if (lowerOL.includes("high") || lowerOL.includes("strong") || lowerOL.includes("confirmed")) {
+      evidenceLabel = "Stronger Evidence";
+      evidenceValue = "Higher Confidence";
+    }
+    pillsToRender.push({ label: evidenceLabel, value: evidenceValue, tone: "cy" });
   }
 
   if (confTier) {
     const formattedConfidence = formatOwnerDirectLabel(confTier);
     const confidenceIsReview = formattedConfidence.toLowerCase() === "review";
+    const evidenceLabel = confidenceIsReview ? "Review Evidence" : higherConf ? "Stronger Evidence" : "Evidence";
     pillsToRender.push({
-      label: confidenceIsReview ? "Review Status" : "Evidence",
+      label: evidenceLabel,
       value: confidenceIsReview ? "Needs Review" : formattedConfidence,
       tone: higherConf ? "em" : "neutral",
     });
@@ -577,7 +625,15 @@ function OwnerDirectCard({
 
         {/* Agency/Agent */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 rounded-lg border p-3 mb-4" style={{ background: "rgba(255,255,255,0.02)", borderColor: C.borderSub }}>
-          <span className="block text-[13px] font-bold leading-relaxed text-white line-clamp-2" title={item.agencyName || "Agency not listed"}>
+          <span
+            className="block text-[13px] leading-relaxed line-clamp-2"
+            style={{
+              color: item.agencyName ? C.t1 : C.t4,
+              fontWeight: item.agencyName ? 700 : 500,
+              opacity: item.agencyName ? 1 : 0.7,
+            }}
+            title={item.agencyName || "Agency not listed"}
+          >
             {item.agencyName || "Agency not listed"}
           </span>
           <span className="text-[11px] font-bold uppercase tracking-wider shrink-0" style={{ color: C.t4 }}>
@@ -640,7 +696,7 @@ function OwnerDirectCard({
               target="_blank"
               rel="noopener noreferrer"
               className="text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80"
-              style={{ color: C.t4 }}
+              style={{ color: toneColor }}
             >
               Verify Source
             </a>
@@ -653,7 +709,7 @@ function OwnerDirectCard({
           <Link
             href={`${routeBase}/listing-age`}
             className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80"
-            style={{ color: toneColor }}
+            style={{ color: item.listingUrl ? C.t4 : toneColor }}
           >
             Review Listing Truth
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -673,6 +729,7 @@ export default function OwnerDirectRadarPage({
 
   const [activeLane, setActiveLane] = useState<DirectView>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
 
   const allNormalized = useMemo(() => {
     const seenIds = new Set<string>();
@@ -703,6 +760,53 @@ export default function OwnerDirectRadarPage({
 
   const dedupedItems = useMemo(() => dedupeItems(allNormalized), [allNormalized]);
 
+  const cityOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number }>();
+    for (const item of dedupedItems) {
+      const key = getCityFilterKey(item);
+      if (key === "unknown") continue;
+      const existing = map.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        const rawCity = item.city?.trim();
+        const label = rawCity ? formatLocation(rawCity) : key;
+        map.set(key, { label, count: 1 });
+      }
+    }
+    return Array.from(map.entries())
+      .map(([value, { label, count }]) => ({ value, label, count }))
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.label.localeCompare(b.label);
+      })
+      .slice(0, 5);
+  }, [dedupedItems]);
+
+  const locationOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number }>();
+
+    for (const item of dedupedItems) {
+      const key = getLocationFilterKey(item);
+      if (key === "unknown") continue;
+      const existing = map.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        const label = getLocationFilterLabel(item);
+        map.set(key, { label, count: 1 });
+      }
+    }
+
+    return Array.from(map.entries())
+      .map(([value, { label, count }]) => ({ value: `loc:${value}`, label, count }))
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.label.localeCompare(b.label);
+      })
+      .slice(0, 40);
+  }, [dedupedItems]);
+
   const filteredItems = useMemo(() => {
     return dedupedItems.filter((item) => {
       let laneMatch = false;
@@ -715,9 +819,22 @@ export default function OwnerDirectRadarPage({
       if (categoryFilter === "all") catMatch = true;
       else catMatch = getItemCategoryFilter(item) === categoryFilter;
 
-      return laneMatch && catMatch;
+      let locationMatch = false;
+      if (locationFilter === "all") locationMatch = true;
+      else if (locationFilter.startsWith("city:")) {
+        const cityKey = locationFilter.slice(5);
+        locationMatch = getCityFilterKey(item) === cityKey;
+      } else if (locationFilter.startsWith("loc:")) {
+        const locKey = locationFilter.slice(4);
+        locationMatch = getLocationFilterKey(item) === locKey;
+      } else {
+        // legacy fallback (should not happen with new UI)
+        locationMatch = getLocationFilterKey(item) === locationFilter;
+      }
+
+      return laneMatch && catMatch && locationMatch;
     });
-  }, [dedupedItems, activeLane, categoryFilter]);
+  }, [dedupedItems, activeLane, categoryFilter, locationFilter]);
 
   const visibleCards = filteredItems.slice(0, OWNER_DIRECT_RENDER_LIMIT);
 
@@ -966,14 +1083,15 @@ export default function OwnerDirectRadarPage({
       </section>
 
       {/* ── Filter Selectors ────────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3 pt-2">
+      <section className="flex flex-col gap-4 pt-2">
+        {/* Row 1: signal type buttons */}
         <div className="flex flex-wrap items-center gap-2">
           {(
             [
               { key: "all" as const, label: "All Direct Signals" },
               { key: "contactable" as const, label: "Contactable" },
               { key: "owner-direct" as const, label: "Owner/Direct Style" },
-              { key: "source-led" as const, label: "Source-Led" },
+              { key: "source-led" as const, label: "Source Verification" },
             ] as const
           ).map((opt) => (
             <button
@@ -990,6 +1108,71 @@ export default function OwnerDirectRadarPage({
           ))}
         </div>
 
+        {/* Row 2: location row */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* All locations */}
+          <button
+            onClick={() => setLocationFilter("all")}
+            className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors"
+            style={{
+              background: locationFilter === "all" ? C.cyHi : "rgba(255,255,255,0.05)",
+              color: locationFilter === "all" ? "#000" : C.t2,
+              border: `1px solid ${locationFilter === "all" ? "transparent" : C.borderSub}`,
+            }}
+          >
+            All locations
+          </button>
+
+          {/* city chips */}
+          {cityOptions.map((city) => {
+            const cityValue = `city:${city.value}`;
+            const isActive = locationFilter === cityValue;
+            return (
+              <button
+                key={cityValue}
+                onClick={() => setLocationFilter(cityValue)}
+                className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: isActive ? C.cyHi : "rgba(255,255,255,0.05)",
+                  color: isActive ? "#000" : C.t2,
+                  border: `1px solid ${isActive ? "transparent" : C.borderSub}`,
+                }}
+              >
+                {city.label} ({city.count})
+              </button>
+            );
+          })}
+
+          {/* More locations select */}
+          <div className="relative inline-block">
+            <select
+              value={locationFilter.startsWith("loc:") ? locationFilter : ""}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider appearance-none cursor-pointer transition-colors"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                color: C.t2,
+                border: `1px solid ${C.borderSub}`,
+                backdropFilter: "blur(8px)",
+                paddingRight: "2rem",
+              }}
+            >
+              <option value="">Districts / more locations</option>
+              {locationOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label} ({opt.count})
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" style={{ color: C.t4 }}>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 3: category chips */}
         <div className="flex flex-wrap items-center gap-2 pb-2 border-b" style={{ borderColor: C.borderSub }}>
           {categoryOptions.map((opt) => (
             <button
@@ -1041,7 +1224,7 @@ export default function OwnerDirectRadarPage({
           <div className="rounded-[20px] border p-12 text-center" style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}>
             <p className="text-[15px] font-bold text-white">No signals found in this view</p>
             <p className="mt-2 text-[13px] font-medium" style={{ color: C.t4 }}>
-              Try selecting a different signal category or filter.
+              Try selecting a different signal category, location, or filter.
             </p>
           </div>
         )}
