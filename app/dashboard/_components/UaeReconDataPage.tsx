@@ -77,27 +77,27 @@ export default function UaeReconDataPage({ data }: UaeReconDataPageProps) {
 
   const metrics: ReconMetric[] = [
     {
-      label: "Best Deals Today",
+      label: "Review First",
       value: formatNumber(totalHotLeads),
-      description: "Top-ranked opportunities to review today",
+      description: "Top-ranked opportunities to review first",
       tone: "emerald",
     },
     {
-      label: "Price Drop Signals",
+      label: "Price-Moved",
       value: formatNumber(totalPriceDrops),
-      description: "Active price movement signals",
+      description: "Public listings with visible price movement",
       tone: "red",
     },
     {
-      label: "Owner / Direct Signals",
+      label: "Owner / Direct",
       value: formatNumber(totalOwnerDirect),
-      description: "Owner/direct-style contact signals",
+      description: "Owner/direct-style or contactable listing signals",
       tone: "cyan",
     },
     {
-      label: "Aged + Price Moved",
+      label: "Aged + Moved",
       value: formatNumber(totalStalePriceDrops),
-      description: "Time-on-market with price movement",
+      description: "Older inventory with pricing movement context",
       tone: "amber",
     },
   ];

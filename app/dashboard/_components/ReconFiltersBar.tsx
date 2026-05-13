@@ -1,4 +1,3 @@
-// app/dashboard/_components/ReconFiltersBar.tsx
 "use client";
 
 import { Search, SlidersHorizontal, X } from "lucide-react";
@@ -21,6 +20,7 @@ type ReconFiltersBarProps = {
   onFiltersChange: (filters: ReconFilterState) => void;
   options: {
     locations: ReconFilterOption[];
+    cities: ReconFilterOption[];
     portals: ReconFilterOption[];
     sourceCategories: ReconFilterOption[];
   };
@@ -58,7 +58,6 @@ function MiniSelect({
           </option>
         ))}
       </select>
-      {/* Custom arrow to mask default appearance-none */}
       <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 opacity-50">
         <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -68,7 +67,7 @@ function MiniSelect({
   );
 }
 
-function ToggleChip({
+function ActionLensButton({
   active,
   label,
   onClick,
@@ -81,7 +80,7 @@ function ToggleChip({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all duration-200 whitespace-nowrap"
+      className="rounded-full px-4 py-1.5 text-[12px] font-bold transition-all whitespace-nowrap"
       style={{
         color: active ? C.t1 : C.t3,
         background: active ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.02)",
@@ -105,9 +104,14 @@ export default function ReconFiltersBar({
   const update = (patch: Partial<ReconFilterState>) =>
     onFiltersChange({ ...filters, ...patch });
 
+  const setActionLens = (lens: typeof filters.actionLens) => update({ actionLens: lens });
+
+  // City chips are derived from options.cities (already sliced to top counts)
+  const topCities = options.cities.slice(0, 5);
+
   return (
-    <div className="space-y-3">
-      {/* Row 1: search + selects + score */}
+    <div className="space-y-4">
+      {/* Row 1: Search + selects + min score */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <SlidersHorizontal
           className="h-4 w-4 shrink-0 hidden md:block opacity-70"
@@ -124,7 +128,7 @@ export default function ReconFiltersBar({
             type="text"
             value={filters.search}
             onChange={(e) => update({ search: e.target.value })}
-            placeholder="Search signals..."
+            placeholder="Search listing, area, agent, or agency..."
             className="h-full w-full bg-transparent text-[12px] font-medium outline-none placeholder:text-zinc-600"
             style={{ color: C.t1 }}
           />
@@ -140,14 +144,8 @@ export default function ReconFiltersBar({
           )}
         </div>
 
-        {/* Selects Row */}
-        <div className="grid grid-cols-3 sm:flex gap-2">
-          <MiniSelect
-            value={filters.location}
-            options={options.locations}
-            placeholder="Location"
-            onChange={(v) => update({ location: v })}
-          />
+        {/* Portal and Category selects */}
+        <div className="grid grid-cols-2 sm:flex gap-2">
           <MiniSelect
             value={filters.portal}
             options={options.portals}
@@ -162,7 +160,7 @@ export default function ReconFiltersBar({
           />
         </div>
 
-        {/* Min score */}
+        {/* Min Score */}
         <div className="flex items-center gap-2 sm:ml-auto">
           <span
             className="text-[10px] font-bold uppercase tracking-[0.1em]"
@@ -181,22 +179,102 @@ export default function ReconFiltersBar({
         </div>
       </div>
 
-      {/* Row 2: toggles + count + clear */}
+      {/* Row 2: Market chips (cities + districts) */}
       <div className="flex flex-wrap items-center gap-2 pt-1">
-        <ToggleChip
-          active={filters.onlyContactable}
+        <span className="text-[10px] font-bold uppercase tracking-[0.1em] mr-1" style={{ color: C.t3 }}>
+          Market
+        </span>
+        <button
+          onClick={() => update({ location: "all" })}
+          className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
+          style={{
+            background: filters.location === "all" ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.02)",
+            color: filters.location === "all" ? C.t1 : C.t3,
+            border: `1px solid ${filters.location === "all" ? "rgba(52,211,153,0.3)" : C.borderFt}`,
+          }}
+        >
+          All locations
+        </button>
+        {topCities.map((city) => {
+          const cityValue = `city:${city.value}`;
+          const isActive = filters.location === cityValue;
+          return (
+            <button
+              key={cityValue}
+              onClick={() => update({ location: cityValue })}
+              className="rounded-full px-3 py-1 text-[11px] font-bold transition-colors"
+              style={{
+                background: isActive ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.02)",
+                color: isActive ? C.t1 : C.t3,
+                border: `1px solid ${isActive ? "rgba(52,211,153,0.3)" : C.borderFt}`,
+              }}
+            >
+              {city.label} ({city.count})
+            </button>
+          );
+        })}
+        <div className="relative inline-block">
+          <select
+            value={filters.location.startsWith("loc:") ? filters.location : ""}
+            onChange={(e) => update({ location: e.target.value || "all" })}
+            className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider appearance-none cursor-pointer transition-colors"
+            style={{
+              background: "rgba(255,255,255,0.02)",
+              color: C.t2,
+              border: `1px solid ${C.borderFt}`,
+              backdropFilter: "blur(8px)",
+              paddingRight: "1.8rem",
+            }}
+          >
+            <option value="">Districts / more locations</option>
+            {options.locations.map((opt) => (
+              <option key={`loc:${opt.value}`} value={`loc:${opt.value}`}>
+                {opt.label} ({opt.count})
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 opacity-50">
+            <svg width="8" height="5" viewBox="0 0 10 6" fill="none">
+              <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Action Lens */}
+      <div className="flex flex-wrap items-center gap-2 pt-1 border-t" style={{ borderColor: C.borderFt }}>
+        <span className="text-[10px] font-bold uppercase tracking-[0.1em] mr-1" style={{ color: C.t3 }}>
+          Action Lens
+        </span>
+        <ActionLensButton
+          active={filters.actionLens === "all"}
+          label="All leads"
+          onClick={() => setActionLens("all")}
+        />
+        <ActionLensButton
+          active={filters.actionLens === "contact_ready"}
           label="Contact-ready"
-          onClick={() => update({ onlyContactable: !filters.onlyContactable })}
+          onClick={() => setActionLens("contact_ready")}
         />
-        <ToggleChip
-          active={filters.onlyPriceMovement}
-          label="Price movement"
-          onClick={() => update({ onlyPriceMovement: !filters.onlyPriceMovement })}
+        <ActionLensButton
+          active={filters.actionLens === "verify_source"}
+          label="Verify source"
+          onClick={() => setActionLens("verify_source")}
         />
-        <ToggleChip
-          active={filters.onlyOwnerDirect}
-          label="Owner / direct"
-          onClick={() => update({ onlyOwnerDirect: !filters.onlyOwnerDirect })}
+        <ActionLensButton
+          active={filters.actionLens === "price_moved"}
+          label="Price moved"
+          onClick={() => setActionLens("price_moved")}
+        />
+        <ActionLensButton
+          active={filters.actionLens === "owner_direct"}
+          label="Owner / Direct"
+          onClick={() => setActionLens("owner_direct")}
+        />
+        <ActionLensButton
+          active={filters.actionLens === "high_confidence"}
+          label="High confidence"
+          onClick={() => setActionLens("high_confidence")}
         />
 
         <div className="flex flex-1 items-center justify-end gap-3">
@@ -221,6 +299,8 @@ export default function ReconFiltersBar({
           )}
         </div>
       </div>
+
+      {/* Note: Legacy toggles (contact-ready, price moved, owner/direct) are now replaced by Action Lens, but their state is preserved and cleared with Clear Filters */}
     </div>
   );
 }

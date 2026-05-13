@@ -169,7 +169,7 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
               className="text-[14px] font-bold uppercase tracking-wider"
               style={{ color: C.t1 }}
             >
-              Review first
+              Top Priority Today
             </h2>
             <span className="text-[12px] font-medium" style={{ color: C.t4 }}>
               · {activeTabLabel(activeTab)} view
@@ -226,7 +226,7 @@ export default function KsaReconTabsClient({ data }: KsaReconTabsClientProps) {
             No opportunities match the current filters.
           </p>
           <p className="mt-2 text-[13px] font-medium" style={{ color: C.t3 }}>
-            Try clearing your search or selecting a different Signal View.
+            Try clearing your search or selecting a different Opportunity View.
           </p>
         </div>
       ) : null}

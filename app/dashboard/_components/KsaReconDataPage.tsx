@@ -85,30 +85,29 @@ export default function KsaReconDataPage({ data }: KsaReconDataPageProps) {
     (item) => item.exists
   ).length;
 
-  // KSA priority metrics: Hot Leads > Multi-signal > Owner/Direct > URL Leads
   const metrics: ReconMetric[] = [
     {
-      label: "Hot Leads",
+      label: "Review First",
       value: formatNumber(totalHotLeads),
       description: "Top-ranked opportunities to review today",
       tone: "emerald",
     },
     {
-      label: "Multi-signal",
+      label: "Multi-Signal",
       value: formatNumber(totalMultiSignal),
-      description: "Leads with multiple opportunity signals",
+      description: "Listings with overlapping opportunity signals",
       tone: "teal",
     },
     {
       label: "Owner / Direct",
       value: formatNumber(totalOwnerDirect),
-      description: "Owner/direct-style contact signals",
+      description: "Owner/direct-style or contactable listing signals",
       tone: "cyan",
     },
     {
-      label: "URL Leads",
+      label: "Source Leads",
       value: formatNumber(totalUrlOnly),
-      description: "Source links — verify before outreach",
+      description: "Source links available — verify before outreach",
       tone: "amber",
     },
   ];

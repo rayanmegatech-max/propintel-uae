@@ -148,32 +148,32 @@ function buildInsight(opp: NormalizedReconOpportunity): InsightResult {
   const dropPct = opp.dropPct;
   if (dropPct != null && dropPct > 0)
     return {
-      text: `Price moved ${formatPercent(dropPct)} below previous ask. Verify current listing.`,
+      text: `Price moved ${formatPercent(dropPct)} below previous ask. Verify the live listing before follow-up.`,
       tone: "rd",
     };
   if (opp.priorityLabel?.toLowerCase().includes("owner"))
     return {
-      text: "Owner/direct-style signal detected. Contact path available.",
+      text: "Owner/direct-style signal detected. Review source and contact path before outreach.",
       tone: "em",
     };
   if (opp.score != null && opp.score >= 90)
     return {
-      text: "Top-scoring opportunity. High probability signal match.",
+      text: "High-confidence opportunity. Review source evidence and contact path first.",
       tone: "em",
     };
   if (opp.signalBadges.some((b) => b.label?.toLowerCase().includes("multi")))
     return {
-      text: "Multiple overlapping public signals detected on this property.",
+      text: "Multiple public signals overlap on this listing. Review source before prioritizing.",
       tone: "em",
     };
   const isUrlOnly = !opp.hasPhone && !opp.hasWhatsapp && !opp.hasEmail;
   if (isUrlOnly)
     return {
-      text: "Source verification required. Review public link for contact options.",
+      text: "Source verification needed. Open the public listing before outreach.",
       tone: "neutral",
     };
   return {
-    text: "Public listing activity changed. Review current listing.",
+    text: "Public listing activity changed. Review the current source listing.",
     tone: "neutral",
   };
 }
@@ -183,7 +183,20 @@ function contactInfo(opp: NormalizedReconOpportunity): { label: string; isUrlOnl
   if (opp.hasPhone) return { label: "Phone signal available", isUrlOnly: false };
   if (opp.hasWhatsapp) return { label: "WhatsApp signal available", isUrlOnly: false };
   if (opp.hasEmail) return { label: "Email signal available", isUrlOnly: false };
-  return { label: "Source verification", isUrlOnly: true };
+  return { label: "Source verification needed", isUrlOnly: true };
+}
+
+// ─── Next action chip ──────────────────────────────────────────────────────
+function buildNextAction(opp: NormalizedReconOpportunity): string {
+  const isContactable = opp.hasPhone || opp.hasWhatsapp || opp.hasEmail;
+  const hasPriceMov = opp.dropPct != null && opp.dropPct > 0;
+
+  if (!opp.listingUrl) return "Next: locate source listing";
+  if (!isContactable) return "Next: verify source";
+  if (hasPriceMov) return "Next: review price context";
+  if (opp.priorityLabel?.toLowerCase().includes("owner")) return "Next: contact after source check";
+  if (opp.score != null && opp.score >= 90) return "Next: prioritize follow-up";
+  return "Next: verify source";
 }
 
 // ─── Right side fallback when no price movement ─────────────────────────────
@@ -200,7 +213,7 @@ function RightSideContext({ opp }: { opp: NormalizedReconOpportunity; }) {
       </p>
       <p className="text-[10.5px] leading-snug opacity-90">
         {isContactable
-          ? "Phone/WhatsApp signals found."
+          ? "Phone/WhatsApp signals found. Open listing to review contact path."
           : "Open source link to verify details."}
       </p>
     </div>
@@ -355,8 +368,9 @@ function PriceMovement({ opp }: { opp: NormalizedReconOpportunity }) {
 
 // ─── CTA block ──────────────────────────────────────────────────────────────
 function CtaBlock({ opp, contact, compact }: { opp: NormalizedReconOpportunity; contact: { label: string; isUrlOnly: boolean }; compact?: boolean; }) {
-  const ctaLabel = contact.isUrlOnly ? "View Source" : "Open Listing";
+  const ctaLabel = contact.isUrlOnly ? "Verify Source" : "Open Listing";
   const pyClass = compact ? "py-2" : "py-2.5";
+  const nextAction = buildNextAction(opp);
 
   return (
     <div className="space-y-2 mt-auto">
@@ -403,6 +417,20 @@ function CtaBlock({ opp, contact, compact }: { opp: NormalizedReconOpportunity; 
           </Link>
         )}
       </div>
+
+      {/* Next action chip */}
+      <div
+        className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5"
+        style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${C.borderSub}` }}
+      >
+        <span
+          className="inline-block h-1 w-1 rounded-full shrink-0"
+          style={{ background: C.t4 }}
+        />
+        <span className="text-[10px] font-bold tracking-wide" style={{ color: C.t4 }}>
+          {nextAction}
+        </span>
+      </div>
     </div>
   );
 }
@@ -423,7 +451,7 @@ function SignalHeaderRow({ opp, variant }: { opp: NormalizedReconOpportunity; va
     <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
       {opp.rank != null && (
         <span
-          className={`rounded px-1.5 py-[3px] text-[9px] font-black uppercase tabular-nums tracking-widest`}
+          className="rounded px-1.5 py-[3px] text-[9px] font-black uppercase tabular-nums tracking-widest"
           style={{
             color: isFeatured ? C.t1 : C.t2,
             background: isFeatured ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.06)",
@@ -436,7 +464,7 @@ function SignalHeaderRow({ opp, variant }: { opp: NormalizedReconOpportunity; va
 
       {opp.score != null && (
         <span
-          className={`rounded px-1.5 py-[3px] text-[9px] font-bold tabular-nums`}
+          className="rounded px-1.5 py-[3px] text-[9px] font-bold tabular-nums"
           style={{ color: C.t2, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.borderSub}` }}
         >
           {isFeatured ? `Confidence Score ${opp.score}` : `Score ${opp.score}`}
@@ -445,7 +473,7 @@ function SignalHeaderRow({ opp, variant }: { opp: NormalizedReconOpportunity; va
 
       {dropPct && (
         <span
-          className={`inline-flex items-center gap-1 rounded px-1.5 py-[3px] text-[9px] font-bold`}
+          className="inline-flex items-center gap-1 rounded px-1.5 py-[3px] text-[9px] font-bold"
           style={{ color: C.rd, background: C.rdBg, border: `1px solid ${C.rdBdr}` }}
         >
           <TrendingDown className="h-2.5 w-2.5" />
@@ -510,6 +538,10 @@ function FeaturedCard({ opp }: { opp: NormalizedReconOpportunity }) {
   };
   const curTone = toneConfig[insight.tone] || toneConfig.neutral;
 
+  // Resolve price label: prefer opp.priceLabel, but normalize "Advertised price" → "Current Price"
+  const rawPriceLabel = opp.priceLabel ?? "Current Price";
+  const priceLabel = /advertised/i.test(rawPriceLabel) ? "Current Price" : rawPriceLabel;
+
   return (
     <article
       className="relative overflow-hidden rounded-[20px] border shadow-xl"
@@ -561,7 +593,7 @@ function FeaturedCard({ opp }: { opp: NormalizedReconOpportunity }) {
         >
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-widest mb-1.5" style={{ color: C.t3 }}>
-              {opp.priceLabel ?? "Advertised price"}
+              {priceLabel}
             </p>
             <p className="text-[28px] font-black tabular-nums leading-none text-white mb-4 tracking-tight sm:text-[32px]">
               {formatCurrency(opp.price, opp.currency)}
