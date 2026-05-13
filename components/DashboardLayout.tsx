@@ -214,32 +214,72 @@ function LiveDot({ size = 5 }: { size?: number }) {
   );
 }
 
-function Logo({ uid }: { uid: string }) {
-  const gid = `pi${uid}`;
+// ─── Logo — RASAD Plot Lock ───────────────────────────────────────────────────
+// The Plot Lock mark: a 3×3 real-estate parcel grid where the upper-right cell
+// is detected and locked by the intelligence system (emerald stroke + dot).
+// No gradient. No external assets. Inline SVG only.
+function Logo() {
   return (
     <svg
-      width="144"
-      height="24"
-      viewBox="0 0 144 24"
+      width="164"
+      height="30"
+      viewBox="0 0 164 30"
       fill="none"
-      aria-label="PropIntel GCC"
+      aria-label="RASAD — GCC Real Estate Intelligence"
     >
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stopColor="#6ee7b7" />
-          <stop offset="100%" stopColor="#059669" />
-        </linearGradient>
-      </defs>
-      <rect x="0"  y="16" width="4"  height="7"  rx="0.6" fill={`url(#${gid})`} />
-      <rect x="6"  y="10" width="4"  height="13" rx="0.6" fill={`url(#${gid})`} />
-      <path d="M12 23V3L14 0L16 3V23H12Z" fill={`url(#${gid})`} />
+      {/*
+       * ── 3×3 Plot Lock grid icon ──────────────────────────────────────────
+       * Layout:  cell = 6×6 px,  gap = 1 px,  grid = 20×20 px
+       * Origin:  x=2, y=5  →  grid bottom at x=22, y=25
+       * Column x starts: col0=2  col1=9  col2=16   (step = 7)
+       * Row    y starts: row0=5  row1=12 row2=19   (step = 7)
+       * Locked cell: row0 col2 (upper-right) → x=16, y=5
+       * Detection dot center: cx=19, cy=8
+       */}
+
+      {/* Passive cells — 8 cells, off-white at low opacity */}
+      {/* row 0 */}
+      <rect x="2"  y="5"  width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
+      <rect x="9"  y="5"  width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
+      {/* row 1 */}
+      <rect x="2"  y="12" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
+      <rect x="9"  y="12" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
+      <rect x="16" y="12" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
+      {/* row 2 */}
+      <rect x="2"  y="19" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
+      <rect x="9"  y="19" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
+      <rect x="16" y="19" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
+
+      {/* Locked cell — upper-right (row 0, col 2): emerald border, full opacity */}
+      <rect x="16" y="5"  width="6" height="6" stroke={C.em} strokeOpacity="0.9"  strokeWidth="1.0"  />
+
+      {/* Detection dot — centered in locked cell: cx=16+3=19, cy=5+3=8 */}
+      <circle cx="19" cy="8" r="1.3" fill={C.em} />
+
+      {/* ── RASAD wordmark ───────────────────────────────────────────────── */}
       <text
-        x="23" y="18"
+        x="30"
+        y="17"
         fontFamily="Inter,-apple-system,sans-serif"
-        fontSize="15" fontWeight="700" letterSpacing="-0.025em"
+        fontSize="15"
+        fontWeight="700"
+        letterSpacing="0.06em"
+        fill={C.t1}
       >
-        <tspan fill={C.t1}>PropIntel</tspan>
-        <tspan fill={C.t3} fontWeight="400"> GCC</tspan>
+        RASAD
+      </text>
+
+      {/* ── Descriptor ───────────────────────────────────────────────────── */}
+      <text
+        x="30"
+        y="26"
+        fontFamily="Inter,-apple-system,sans-serif"
+        fontSize="7.5"
+        fontWeight="400"
+        letterSpacing="0.04em"
+        fill={C.t3}
+      >
+        GCC Real Estate Intelligence
       </text>
     </svg>
   );
@@ -392,8 +432,8 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
         className="relative flex items-center px-5 py-[17px] border-b shrink-0"
         style={{ borderColor: C.border }}
       >
-        <Link href="/dashboard" onClick={onNav} aria-label="PropIntel GCC home">
-          <Logo uid="sb" />
+        <Link href="/dashboard" onClick={onNav} aria-label="RASAD home">
+          <Logo />
         </Link>
 
         {/* Mobile close — only when onNav is provided (mobile mode) */}
@@ -476,7 +516,7 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
               Analyst
             </p>
             <p className="text-[10px] truncate" style={{ color: C.t4 }}>
-              © 2026 PropIntel GCC
+              © 2026 RASAD
             </p>
           </div>
         </div>
@@ -521,7 +561,7 @@ function Header({
 
       {/* Mobile logo */}
       <div className="lg:hidden shrink-0">
-        <Link href="/dashboard"><Logo uid="hm" /></Link>
+        <Link href="/dashboard"><Logo /></Link>
       </div>
 
       {/* Desktop: title + context chips */}
