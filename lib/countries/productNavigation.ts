@@ -87,7 +87,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
     internalOnly: true,
     navGroup: "ADMIN",
   },
-  // --- HIDDEN V0 ROUTES BELOW (Kept accessible via direct URL and placeholder pages) ---
+  // --- NEWLY VISIBLE SECTIONS (formerly hidden) ---
   {
     slug: "owner-direct",
     label: "Owner / Direct Radar",
@@ -97,7 +97,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
       "Owner-like, direct, no-commission, missing-brokerage, URL-lead, and contactable opportunity signals from public listings.",
     primaryUse:
       "Help users find owner/direct style opportunities while using cautious wording and source evidence instead of claiming guaranteed private-owner leads.",
-    isHidden: true,
+    navGroup: "OPPORTUNITIES",
   },
   {
     slug: "price-drops",
@@ -108,7 +108,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
       "Frontend-safe price movement and price-drop opportunities from cleaned product tables, not raw price-history evidence.",
     primaryUse:
       "Help users identify recently repriced listings and verify current advertised prices through safe listing-action paths.",
-    isHidden: true,
+    navGroup: "OPPORTUNITIES",
   },
   {
     slug: "listing-age",
@@ -119,18 +119,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
       "True listing age, old inventory, stale signals, recently updated listings, and refresh-inflation behavior.",
     primaryUse:
       "Help users understand whether a listing is genuinely fresh or carrying older public-listing history.",
-    isHidden: true,
-  },
-  {
-    slug: "market-intelligence",
-    label: "Market Intelligence",
-    shortLabel: "Market Intel",
-    eyebrow: "Market Command Center",
-    description:
-      "Country-level market intelligence using dashboard-ready activity, city/community, district, building, agency, pressure, and dominance views.",
-    primaryUse:
-      "Give operators a clean command center for what is moving, where pressure is building, and which public markets are most active.",
-    isHidden: true,
+    navGroup: "OPPORTUNITIES",
   },
   {
     slug: "inventory-pressure",
@@ -141,6 +130,29 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
       "Inventory pressure, price-drop pressure, refresh pressure, owner/direct pressure, old inventory pressure, and market pressure signals.",
     primaryUse:
       "Help users identify markets where public listing activity suggests rising pressure or opportunity density.",
+    navGroup: "MARKET",
+  },
+  {
+    slug: "activity-feed",
+    label: "Recent Market Movement",
+    shortLabel: "Activity",
+    eyebrow: "Daily Activity",
+    description:
+      "Balanced market activity feed built from frontend-safe activity tables, including recon opportunities, price movements, recently detected listings, pressure, dominance, and agency signals.",
+    primaryUse:
+      "Give users a daily feed of meaningful public-listing market movement without exposing raw internal evidence tables.",
+    navGroup: "MARKET",
+  },
+  // --- REMAINING HIDDEN SECTIONS (to avoid overcrowding) ---
+  {
+    slug: "market-intelligence",
+    label: "Market Intelligence",
+    shortLabel: "Market Intel",
+    eyebrow: "Market Command Center",
+    description:
+      "Country-level market intelligence using dashboard-ready activity, city/community, district, building, agency, pressure, and dominance views.",
+    primaryUse:
+      "Give operators a clean command center for what is moving, where pressure is building, and which public markets are most active.",
     isHidden: true,
   },
   {
@@ -163,17 +175,6 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
       "Agency public listing portfolios, portal mix, category mix, city/community or district concentration, and portfolio pressure signals.",
     primaryUse:
       "Help users analyze agency inventory footprint and public listing activity in a product-safe way.",
-    isHidden: true,
-  },
-  {
-    slug: "activity-feed",
-    label: "Recent Market Movement",
-    shortLabel: "Activity",
-    eyebrow: "Daily Activity",
-    description:
-      "Balanced market activity feed built from frontend-safe activity tables, including recon opportunities, price movements, recently detected listings, pressure, dominance, and agency signals.",
-    primaryUse:
-      "Give users a daily feed of meaningful public-listing market movement without exposing raw internal evidence tables.",
     isHidden: true,
   },
   {
