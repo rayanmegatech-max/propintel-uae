@@ -13,6 +13,7 @@ import {
   Globe2,
   Layers,
   RefreshCcw,
+  Search,
   ShieldCheck,
   Timer,
   TrendingDown,
@@ -124,6 +125,103 @@ function formatTruthPropertyType(value: string | null | undefined): string | und
     .split(" ")
     .map((part) => part.length > 0 ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : part)
     .join(" ");
+}
+
+// ─── Location filter helpers ──────────────────────────────────────────────
+function getLocationFilterLabel(item: NormalizedReconOpportunity): string {
+  const rawCity = item.city?.trim();
+  const rawDistrict = item.districtOrCommunity?.trim();
+
+  const city = rawCity ? formatTruthLocation(rawCity) : undefined;
+  const district = rawDistrict ? formatTruthLocation(rawDistrict) : undefined;
+
+  if (city && district) return `${city} · ${district}`;
+  if (city) return city;
+  if (district) return district;
+
+  const fallback = formatTruthLocation(item.locationLabel);
+  if (!fallback || fallback.toLowerCase() === "unknown location") return "Unknown Location";
+  return fallback;
+}
+
+function getLocationFilterKey(item: NormalizedReconOpportunity): string {
+  const label = getLocationFilterLabel(item);
+  if (!label || label.toLowerCase() === "unknown location") return "unknown";
+  return label.toLowerCase().trim();
+}
+
+function getCityFilterKey(item: NormalizedReconOpportunity): string {
+  const rawCity = item.city?.trim();
+  if (!rawCity) return "unknown";
+  const formatted = formatTruthLocation(rawCity);
+  if (!formatted || formatted.toLowerCase() === "unknown location") return "unknown";
+  return formatted.toLowerCase();
+}
+
+// ─── Competitor Lens helpers ─────────────────────────────────────────────
+function getStringField(raw: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const val = raw[key];
+    if (typeof val === "string" && val.trim() !== "") {
+      return val.trim();
+    }
+  }
+  return undefined;
+}
+
+function getActorSearchText(item: NormalizedReconOpportunity): string {
+  const raw = item.raw as Record<string, unknown>;
+  const parts: string[] = [];
+  if (item.agencyName) parts.push(item.agencyName);
+  if (item.agentName) parts.push(item.agentName);
+  const rawAgency = getStringField(raw, ["agency_name", "brokerage_name", "company_name"]);
+  const rawAgent = getStringField(raw, ["agent_name"]);
+  if (rawAgency && !parts.includes(rawAgency)) parts.push(rawAgency);
+  if (rawAgent && !parts.includes(rawAgent)) parts.push(rawAgent);
+  return parts.join(" ").toLowerCase().trim();
+}
+
+function hasAgencyActor(item: NormalizedReconOpportunity): boolean {
+  const raw = item.raw as Record<string, unknown>;
+  return Boolean(
+    item.agencyName?.trim() ||
+    getStringField(raw, ["agency_name"]) ||
+    getStringField(raw, ["brokerage_name"]) ||
+    getStringField(raw, ["company_name"])
+  );
+}
+
+function hasAgentActor(item: NormalizedReconOpportunity): boolean {
+  const raw = item.raw as Record<string, unknown>;
+  return Boolean(
+    item.agentName?.trim() ||
+    getStringField(raw, ["agent_name"])
+  );
+}
+
+function hasRefreshHeavySignal(item: NormalizedReconOpportunity): boolean {
+  const raw = item.raw as Record<string, unknown>;
+  // Boolean flags (severe or generic refresh inflation)
+  if (getBooleanField(raw, ["is_severe_refresh_inflation", "is_refresh_inflated", "is_refresh_inflation"])) return true;
+  
+  // Score threshold: only treat as refresh-heavy if score >= 70
+  const score = getNumberField(raw, ["refresh_inflation_score"]);
+  if (score !== undefined && score >= 70) return true;
+  
+  // Bucket/label checks must include severe, high, hot, or inflated
+  const bucket = getStringField(raw, ["refresh_urgency_bucket", "refresh_inflation_label"]);
+  if (bucket) {
+    const lower = bucket.toLowerCase();
+    if (/severe|high|hot|inflated/.test(lower)) return true;
+  }
+  
+  // Signal badges: require the label to contain specific keywords, not just "refresh"
+  if (item.signalBadges?.some(b => {
+    const lowerLabel = b.label.toLowerCase();
+    return /severe|high|hot|inflated|refresh inflation/.test(lowerLabel);
+  })) return true;
+  
+  return false;
 }
 
 function cleanTruthTitle(item: NormalizedReconOpportunity): string {
@@ -424,7 +522,7 @@ function TruthCard({ item, idx, routeBase, currency }: { item: NormalizedReconOp
   
   if (item.price !== null) {
     pillsToRender.push({
-      label: item.priceLabel || "Price",
+      label: "Price",
       value: formatCurrencyCompact(item.price, currency),
       tone: "neutral" as const,
     });
@@ -534,8 +632,13 @@ function TruthCard({ item, idx, routeBase, currency }: { item: NormalizedReconOp
               href={item.listingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80" 
-              style={{ color: C.t4 }}
+              className="text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80 rounded-full border px-2.5 py-1"
+              style={{
+                color: toneColor,
+                borderColor: toneColor,
+                background: "rgba(255,255,255,0.05)",
+                backdropFilter: "blur(4px)"
+              }}
             >
               Verify Source
             </a>
@@ -548,7 +651,7 @@ function TruthCard({ item, idx, routeBase, currency }: { item: NormalizedReconOp
           <Link
             href={`${routeBase}/inventory-pressure`}
             className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition-all hover:opacity-80" 
-            style={{ color: toneColor }}
+            style={{ color: item.listingUrl ? C.t4 : toneColor }}
           >
             Review Supply Pressure
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -568,6 +671,9 @@ export default function ListingTruthRadarPage({
   const isUae = country.slug === "uae";
   
   const [activeLane, setActiveLane] = useState<"all" | "refresh" | "aged" | "stale">("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [actorQuery, setActorQuery] = useState("");
+  const [actorFilter, setActorFilter] = useState<"all" | "agency" | "agent" | "refresh_heavy">("all");
 
   const allNormalized = useMemo(() => {
     const seenIds = new Set<string>();
@@ -597,22 +703,98 @@ export default function ListingTruthRadarPage({
     return results;
   }, [country.slug, data, isUae]);
 
-  const filteredItems = useMemo(() => {
-    return allNormalized.filter(item => {
-      if (activeLane === "all") return true;
-      
-      const raw = item.raw;
-      const trueAge = getNumberField(raw, ["effective_true_age_days"]);
-      const isRefresh = getBooleanField(raw, ["is_refresh_inflated", "is_refresh_inflation"]) || item.signalBadges?.some(b => b.label.toLowerCase().includes("refresh"));
-      const isStale = getBooleanField(raw, ["is_stale", "is_old_inventory", "is_very_old_inventory"]) || (trueAge !== undefined && trueAge > 60) || item.signalBadges?.some(b => b.label.toLowerCase().includes("stale") || b.label.toLowerCase().includes("aged"));
-      const dropPct = getNumberField(raw, ["drop_pct", "price_drop_rate_pct"]) ?? item.dropPct ?? 0;
+  const cityOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number }>();
+    for (const item of allNormalized) {
+      const key = getCityFilterKey(item);
+      if (key === "unknown") continue;
+      const existing = map.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        const rawCity = item.city?.trim();
+        const label = rawCity ? formatTruthLocation(rawCity) : key;
+        map.set(key, { label, count: 1 });
+      }
+    }
+    return Array.from(map.entries())
+      .map(([value, { label, count }]) => ({ value, label, count }))
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.label.localeCompare(b.label);
+      })
+      .slice(0, 5);
+  }, [allNormalized]);
 
-      if (activeLane === "refresh") return isRefresh;
-      if (activeLane === "aged") return isStale;
-      if (activeLane === "stale") return isStale && dropPct > 0;
-      return true;
+  const locationOptions = useMemo(() => {
+    const map = new Map<string, { label: string; count: number }>();
+    for (const item of allNormalized) {
+      const key = getLocationFilterKey(item);
+      if (key === "unknown") continue;
+      const existing = map.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        const label = getLocationFilterLabel(item);
+        map.set(key, { label, count: 1 });
+      }
+    }
+    return Array.from(map.entries())
+      .map(([value, { label, count }]) => ({ value: `loc:${value}`, label, count }))
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.label.localeCompare(b.label);
+      })
+      .slice(0, 40);
+  }, [allNormalized]);
+
+  const filteredItems = useMemo(() => {
+    const query = actorQuery.trim().toLowerCase();
+    return allNormalized.filter(item => {
+      // Lane filter
+      let laneMatch = false;
+      if (activeLane === "all") laneMatch = true;
+      else {
+        const raw = item.raw;
+        const trueAge = getNumberField(raw, ["effective_true_age_days"]);
+        const isRefresh = getBooleanField(raw, ["is_refresh_inflated", "is_refresh_inflation"]) || item.signalBadges?.some(b => b.label.toLowerCase().includes("refresh"));
+        const isStale = getBooleanField(raw, ["is_stale", "is_old_inventory", "is_very_old_inventory"]) || (trueAge !== undefined && trueAge > 60) || item.signalBadges?.some(b => b.label.toLowerCase().includes("stale") || b.label.toLowerCase().includes("aged"));
+        const dropPct = getNumberField(raw, ["drop_pct", "price_drop_rate_pct"]) ?? item.dropPct ?? 0;
+
+        if (activeLane === "refresh") laneMatch = isRefresh;
+        else if (activeLane === "aged") laneMatch = isStale;
+        else if (activeLane === "stale") laneMatch = isStale && dropPct > 0;
+      }
+
+      // Location filter
+      let locationMatch = false;
+      if (locationFilter === "all") locationMatch = true;
+      else if (locationFilter.startsWith("city:")) {
+        const cityKey = locationFilter.slice(5);
+        locationMatch = getCityFilterKey(item) === cityKey;
+      } else if (locationFilter.startsWith("loc:")) {
+        const locKey = locationFilter.slice(4);
+        locationMatch = getLocationFilterKey(item) === locKey;
+      } else {
+        // legacy fallback
+        locationMatch = getLocationFilterKey(item) === locationFilter;
+      }
+
+      // Actor filter
+      let actorMatch = true;
+      if (query) {
+        const searchText = getActorSearchText(item);
+        actorMatch = searchText.includes(query);
+      }
+      if (actorMatch && actorFilter !== "all") {
+        if (actorFilter === "agency") actorMatch = hasAgencyActor(item);
+        else if (actorFilter === "agent") actorMatch = hasAgentActor(item);
+        else if (actorFilter === "refresh_heavy") actorMatch = hasRefreshHeavySignal(item);
+      }
+
+      return laneMatch && locationMatch && actorMatch;
     });
-  }, [allNormalized, activeLane]);
+  }, [allNormalized, activeLane, locationFilter, actorQuery, actorFilter]);
 
   const visibleCards = filteredItems.slice(0, LISTING_TRUTH_RENDER_LIMIT);
 
@@ -867,50 +1049,195 @@ export default function ListingTruthRadarPage({
         )}
       </section>
 
-      {/* ── Lane Selector ────────────────────────────────────────────────── */}
-      <section className="flex flex-wrap items-center gap-2 pt-2">
-        <button
-          onClick={() => setActiveLane("all")}
-          className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
-          style={{
-            background: activeLane === "all" ? C.viHi : "rgba(255,255,255,0.05)",
-            color: activeLane === "all" ? "#000" : C.t2,
-          }}
-        >
-          All Truth Signals
-        </button>
-        <button
-          onClick={() => setActiveLane("refresh")}
-          className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
-          style={{
-            background: activeLane === "refresh" ? C.viHi : "rgba(255,255,255,0.05)",
-            color: activeLane === "refresh" ? "#000" : C.t2,
-          }}
-        >
-          Refresh Inflation
-        </button>
-        <button
-          onClick={() => setActiveLane("aged")}
-          className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
-          style={{
-            background: activeLane === "aged" ? C.viHi : "rgba(255,255,255,0.05)",
-            color: activeLane === "aged" ? "#000" : C.t2,
-          }}
-        >
-          Aged Listings
-        </button>
-        {isUae && (
+      {/* ── Filter Selectors ────────────────────────────────────────────────── */}
+      <section className="flex flex-col gap-4 pt-2">
+        {/* Row 1: signal type buttons */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setActiveLane("stale")}
+            onClick={() => setActiveLane("all")}
             className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
             style={{
-              background: activeLane === "stale" ? C.viHi : "rgba(255,255,255,0.05)",
-              color: activeLane === "stale" ? "#000" : C.t2,
+              background: activeLane === "all" ? C.viHi : "rgba(255,255,255,0.05)",
+              color: activeLane === "all" ? "#000" : C.t2,
             }}
           >
-            Stale + Price Movement
+            All Truth Signals
           </button>
-        )}
+          <button
+            onClick={() => setActiveLane("refresh")}
+            className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
+            style={{
+              background: activeLane === "refresh" ? C.viHi : "rgba(255,255,255,0.05)",
+              color: activeLane === "refresh" ? "#000" : C.t2,
+            }}
+          >
+            Refresh Inflation
+          </button>
+          <button
+            onClick={() => setActiveLane("aged")}
+            className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
+            style={{
+              background: activeLane === "aged" ? C.viHi : "rgba(255,255,255,0.05)",
+              color: activeLane === "aged" ? "#000" : C.t2,
+            }}
+          >
+            Aged Listings
+          </button>
+          {isUae && (
+            <button
+              onClick={() => setActiveLane("stale")}
+              className="rounded-full px-5 py-2 text-[13px] font-bold transition-colors"
+              style={{
+                background: activeLane === "stale" ? C.viHi : "rgba(255,255,255,0.05)",
+                color: activeLane === "stale" ? "#000" : C.t2,
+              }}
+            >
+              Stale + Price Movement
+            </button>
+          )}
+        </div>
+
+        {/* Row 2: location row */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* All locations */}
+          <button
+            onClick={() => setLocationFilter("all")}
+            className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors"
+            style={{
+              background: locationFilter === "all" ? C.viHi : "rgba(255,255,255,0.05)",
+              color: locationFilter === "all" ? "#000" : C.t2,
+              border: `1px solid ${locationFilter === "all" ? "transparent" : C.borderSub}`,
+            }}
+          >
+            All locations
+          </button>
+
+          {/* city chips */}
+          {cityOptions.map((city) => {
+            const cityValue = `city:${city.value}`;
+            const isActive = locationFilter === cityValue;
+            return (
+              <button
+                key={cityValue}
+                onClick={() => setLocationFilter(cityValue)}
+                className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: isActive ? C.viHi : "rgba(255,255,255,0.05)",
+                  color: isActive ? "#000" : C.t2,
+                  border: `1px solid ${isActive ? "transparent" : C.borderSub}`,
+                }}
+              >
+                {city.label} ({city.count})
+              </button>
+            );
+          })}
+
+          {/* More locations select */}
+          <div className="relative inline-block">
+            <select
+              value={locationFilter.startsWith("loc:") ? locationFilter : ""}
+              onChange={(e) => setLocationFilter(e.target.value || "all")}
+              className="rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider appearance-none cursor-pointer transition-colors"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                color: C.t2,
+                border: `1px solid ${C.borderSub}`,
+                backdropFilter: "blur(8px)",
+                paddingRight: "2rem",
+              }}
+            >
+              <option value="">Districts / more locations</option>
+              {locationOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label} ({opt.count})
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" style={{ color: C.t4 }}>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 3: Competitor Lens */}
+        <div
+          className="rounded-xl border p-4 flex flex-col md:flex-row md:items-center gap-3"
+          style={{ background: "rgba(255,255,255,0.02)", borderColor: C.borderSub, backdropFilter: "blur(10px)" }}
+        >
+          <div className="flex-1 min-w-0">
+            <h3 className="text-[13px] font-bold text-white">Competitor Lens</h3>
+            <p className="text-[11px] font-medium mt-0.5" style={{ color: C.t4 }}>
+              Find which agencies or agents are refreshing old inventory or showing repeated listing-age signals.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            {/* Search input */}
+            <div className="relative w-full md:min-w-[280px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: C.t4 }} />
+              <input
+                type="text"
+                value={actorQuery}
+                onChange={(e) => setActorQuery(e.target.value)}
+                placeholder="Search agency or agent…"
+                className="w-full rounded-full pl-9 pr-4 py-1.5 text-[12px] font-medium placeholder:text-white/30 border outline-none transition-all focus:border-white/20"
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  color: C.t2,
+                  borderColor: C.borderSub,
+                }}
+              />
+            </div>
+            {/* Actor filter buttons */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() => setActorFilter("all")}
+                className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: actorFilter === "all" ? C.viHi : "rgba(255,255,255,0.05)",
+                  color: actorFilter === "all" ? "#000" : C.t2,
+                  border: `1px solid ${actorFilter === "all" ? "transparent" : C.borderSub}`,
+                }}
+              >
+                All agencies & agents
+              </button>
+              <button
+                onClick={() => setActorFilter("agency")}
+                className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: actorFilter === "agency" ? C.viHi : "rgba(255,255,255,0.05)",
+                  color: actorFilter === "agency" ? "#000" : C.t2,
+                  border: `1px solid ${actorFilter === "agency" ? "transparent" : C.borderSub}`,
+                }}
+              >
+                Agencies
+              </button>
+              <button
+                onClick={() => setActorFilter("agent")}
+                className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: actorFilter === "agent" ? C.viHi : "rgba(255,255,255,0.05)",
+                  color: actorFilter === "agent" ? "#000" : C.t2,
+                  border: `1px solid ${actorFilter === "agent" ? "transparent" : C.borderSub}`,
+                }}
+              >
+                Agents
+              </button>
+              <button
+                onClick={() => setActorFilter("refresh_heavy")}
+                className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: actorFilter === "refresh_heavy" ? C.viHi : "rgba(255,255,255,0.05)",
+                  color: actorFilter === "refresh_heavy" ? "#000" : C.t2,
+                  border: `1px solid ${actorFilter === "refresh_heavy" ? "transparent" : C.borderSub}`,
+                }}
+              >
+                Refresh‑heavy
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ── 4. Main Listing Truth List ─────────────────────────────────── */}
@@ -946,7 +1273,7 @@ export default function ListingTruthRadarPage({
           <div className="rounded-[20px] border p-12 text-center" style={{ background: "rgba(255,255,255,0.015)", borderColor: C.border }}>
             <p className="text-[15px] font-bold text-white">No signals found in this view</p>
             <p className="mt-2 text-[13px] font-medium" style={{ color: C.t4 }}>
-              Try selecting a different signal category.
+              Try selecting a different signal type, location, or competitor filter.
             </p>
           </div>
         )}

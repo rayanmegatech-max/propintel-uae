@@ -252,6 +252,12 @@ function hasAgencyActor(item: NormalizedReconOpportunity): boolean {
   );
 }
 
+function hasAgentActor(item: NormalizedReconOpportunity): boolean {
+  const raw = item.raw as Record<string, unknown>;
+  const rawAgentName = getStringField(raw, ["agent_name"]);
+  return Boolean(item.agentName?.trim() || rawAgentName);
+}
+
 function hasOwnerDirectStyleSignal(item: NormalizedReconOpportunity): boolean {
   const raw = item.raw as Record<string, unknown>;
   const boolVal = getBooleanField(raw, ["has_owner_direct_signal", "is_owner_direct"]);
@@ -792,7 +798,7 @@ export default function PriceDropRadarPage({
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [actorQuery, setActorQuery] = useState("");
-  const [actorFilter, setActorFilter] = useState<"all" | "agency" | "owner_direct">("all");
+  const [actorFilter, setActorFilter] = useState<"all" | "agency" | "agent" | "owner_direct">("all");
 
   const allNormalized = useMemo(() => {
     const seenIds = new Set<string>();
@@ -921,6 +927,7 @@ export default function PriceDropRadarPage({
       }
       if (actorMatch && actorFilter !== "all") {
         if (actorFilter === "agency") actorMatch = hasAgencyActor(item);
+        else if (actorFilter === "agent") actorMatch = hasAgentActor(item);
         else if (actorFilter === "owner_direct") actorMatch = hasOwnerDirectStyleSignal(item);
       }
 
@@ -1315,7 +1322,7 @@ export default function PriceDropRadarPage({
           <div className="flex-1 min-w-0">
             <h3 className="text-[13px] font-bold text-white">Competitor Lens</h3>
             <p className="text-[11px] font-medium mt-0.5" style={{ color: C.t4 }}>
-              Filter public price drops by agency, agent, or owner/direct-style signal.
+              Find which agencies or agents are making public price moves or showing owner/direct-style signals.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -1346,7 +1353,7 @@ export default function PriceDropRadarPage({
                   border: `1px solid ${actorFilter === "all" ? "transparent" : C.borderSub}`,
                 }}
               >
-                All actors
+                All agencies & agents
               </button>
               <button
                 onClick={() => setActorFilter("agency")}
@@ -1357,7 +1364,18 @@ export default function PriceDropRadarPage({
                   border: `1px solid ${actorFilter === "agency" ? "transparent" : C.borderSub}`,
                 }}
               >
-                Agencies only
+                Agencies
+              </button>
+              <button
+                onClick={() => setActorFilter("agent")}
+                className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  background: actorFilter === "agent" ? C.rdHi : "rgba(255,255,255,0.05)",
+                  color: actorFilter === "agent" ? "#000" : C.t2,
+                  border: `1px solid ${actorFilter === "agent" ? "transparent" : C.borderSub}`,
+                }}
+              >
+                Agents
               </button>
               <button
                 onClick={() => setActorFilter("owner_direct")}
