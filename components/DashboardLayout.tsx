@@ -205,83 +205,55 @@ function LiveDot({ size = 5 }: { size?: number }) {
     <span
       className="inline-block rounded-full shrink-0"
       style={{
-        width:     size,
-        height:    size,
+        width:      size,
+        height:     size,
         background: C.em,
-        animation: "livepulse 2.8s ease-in-out infinite",
+        animation:  "livepulse 2.8s ease-in-out infinite",
       }}
     />
   );
 }
 
-// ─── Logo — RASAD Plot Lock ───────────────────────────────────────────────────
-// The Plot Lock mark: a 3×3 real-estate parcel grid where the upper-right cell
-// is detected and locked by the intelligence system (emerald stroke + dot).
-// No gradient. No external assets. Inline SVG only.
+// ─── Logo — Wordmark-first with emerald accent ────────────────────────────────
+// Clean, premium B2B SaaS lockup. No complex icon, no grid, no house, no radar.
+// A subtle emerald vertical bar adds brand colour without being noisy.
 function Logo() {
   return (
-    <svg
-      width="164"
-      height="30"
-      viewBox="0 0 164 30"
-      fill="none"
-      aria-label="RASAD — GCC Real Estate Intelligence"
-    >
-      {/*
-       * ── 3×3 Plot Lock grid icon ──────────────────────────────────────────
-       * Layout:  cell = 6×6 px,  gap = 1 px,  grid = 20×20 px
-       * Origin:  x=2, y=5  →  grid bottom at x=22, y=25
-       * Column x starts: col0=2  col1=9  col2=16   (step = 7)
-       * Row    y starts: row0=5  row1=12 row2=19   (step = 7)
-       * Locked cell: row0 col2 (upper-right) → x=16, y=5
-       * Detection dot center: cx=19, cy=8
-       */}
-
-      {/* Passive cells — 8 cells, off-white at low opacity */}
-      {/* row 0 */}
-      <rect x="2"  y="5"  width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
-      <rect x="9"  y="5"  width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
-      {/* row 1 */}
-      <rect x="2"  y="12" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
-      <rect x="9"  y="12" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
-      <rect x="16" y="12" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
-      {/* row 2 */}
-      <rect x="2"  y="19" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
-      <rect x="9"  y="19" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
-      <rect x="16" y="19" width="6" height="6" stroke={C.t1} strokeOpacity="0.22" strokeWidth="0.65" />
-
-      {/* Locked cell — upper-right (row 0, col 2): emerald border, full opacity */}
-      <rect x="16" y="5"  width="6" height="6" stroke={C.em} strokeOpacity="0.9"  strokeWidth="1.0"  />
-
-      {/* Detection dot — centered in locked cell: cx=16+3=19, cy=5+3=8 */}
-      <circle cx="19" cy="8" r="1.3" fill={C.em} />
-
-      {/* ── RASAD wordmark ───────────────────────────────────────────────── */}
-      <text
-        x="30"
-        y="17"
-        fontFamily="Inter,-apple-system,sans-serif"
-        fontSize="15"
-        fontWeight="700"
-        letterSpacing="0.06em"
-        fill={C.t1}
-      >
-        RASAD
-      </text>
-
-      {/* ── Descriptor ───────────────────────────────────────────────────── */}
-      <text
-        x="30"
-        y="26"
-        fontFamily="Inter,-apple-system,sans-serif"
-        fontSize="7.5"
-        fontWeight="400"
-        letterSpacing="0.04em"
-        fill={C.t3}
-      >
-        GCC Real Estate Intelligence
-      </text>
-    </svg>
+    <div className="flex items-center gap-2" aria-label="RASAD — GCC Real Estate Intelligence">
+      {/* Emerald vertical accent bar */}
+      <div
+        style={{
+          width: "2px",
+          height: "18px",
+          background: C.em,
+          borderRadius: "1px",
+        }}
+      />
+      <div className="flex flex-col">
+        <span
+          style={{
+            color: C.t1,
+            fontSize: "15px",
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            lineHeight: 1.2,
+          }}
+        >
+          RASAD
+        </span>
+        <span
+          style={{
+            color: C.t2,
+            fontSize: "9px",
+            fontWeight: 500,
+            letterSpacing: "0.02em",
+            lineHeight: 1.2,
+          }}
+        >
+          Real Estate Intelligence
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -634,8 +606,8 @@ function Header({
           <span
             className="text-[10px] border rounded px-[5px] py-px ml-1 shrink-0"
             style={{
-              fontFamily: "'DM Mono',monospace",
-              color:      C.t4,
+              fontFamily:  "'DM Mono',monospace",
+              color:       C.t4,
               borderColor: C.borderFt,
             }}
           >
