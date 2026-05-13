@@ -110,7 +110,7 @@ export default function ReconFiltersBar({
   const topCities = options.cities.slice(0, 5);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Row 1: Search + selects + min score */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <SlidersHorizontal
@@ -118,9 +118,9 @@ export default function ReconFiltersBar({
           style={{ color: C.t3 }}
         />
 
-        {/* Search */}
+        {/* Search - wider on desktop */}
         <div
-          className="flex h-9 flex-1 items-center gap-2 rounded-lg border px-3 transition-colors focus-within:border-emerald-500/50 min-w-full sm:min-w-[180px] sm:max-w-[240px]"
+          className="flex h-9 flex-1 items-center gap-2 rounded-lg border px-3 transition-colors focus-within:border-emerald-500/50 min-w-full sm:min-w-[280px] sm:max-w-[360px] lg:max-w-[420px]"
           style={{ background: "rgba(0,0,0,0.2)", borderColor: C.borderFt }}
         >
           <Search className="h-3.5 w-3.5 shrink-0 opacity-70" style={{ color: C.t3 }} />
@@ -248,7 +248,7 @@ export default function ReconFiltersBar({
         </span>
         <ActionLensButton
           active={filters.actionLens === "all"}
-          label="All leads"
+          label="All opportunities"
           onClick={() => setActionLens("all")}
         />
         <ActionLensButton
