@@ -5,15 +5,7 @@ import {
   isSupabaseServerConfigured,
 } from "./supabaseServer";
 
-// ─── Render cap ────────────────────────────────────────────────────────────────
-// Vercel-safe maximum items passed to the React render tree per list.
-// Increased from 150 to avoid over-truncating portal-balanced exports.
 const RECON_RENDER_LIMIT = 150;
-
-// Minimum rows to include per portal before filling the remaining budget
-// in original order.  Prevents Property Finder starvation when PF rows
-// appear late in the export (lower dashboard_rank than bayut / dubizzle).
-// Full database totals (total_rows_available, exported_rows) are untouched.
 const MIN_PER_PORTAL_RENDER = 40;
 
 export type UaeReconOpportunity = Record<string, unknown> & {
@@ -169,6 +161,9 @@ export type UaeReconDataResult = {
   };
 };
 
+type UaeReconListKey = keyof UaeReconDataResult["lists"];
+type UaeReconDataOptions = { views?: UaeReconListKey[] };
+
 const EXPORT_BASE_DIR = path.join(process.cwd(), "exports", "frontend", "uae");
 
 const FILES = {
@@ -189,7 +184,7 @@ const FILES = {
 const SUPABASE_TABLE = "recon_opportunities";
 const SUPABASE_SOURCE_TABLE = "public.recon_opportunities";
 const SUPABASE_DEFAULT_SORT = "rank.asc.nullslast,score.desc.nullslast";
-const SUPABASE_QUERY_LIMIT = "500";
+const SUPABASE_QUERY_LIMIT = "150";
 
 const SUPABASE_COLUMNS = [
   "country",
@@ -226,7 +221,6 @@ const SUPABASE_COLUMNS = [
   "true_age_days",
   "recommended_action",
   "badges",
-  "raw_item",
   "generated_at",
   "exported_at",
 ];
@@ -282,7 +276,7 @@ const UAE_SUPABASE_VIEWS = {
   residentialBuy: "residential_buy",
   commercial: "commercial",
   shortRental: "short_rental",
-} as const satisfies Record<keyof UaeReconDataResult["lists"], string>;
+} as const satisfies Record<UaeReconListKey, string>;
 
 async function readJsonFile<T>(fileName: string): Promise<T> {
   const filePath = path.join(EXPORT_BASE_DIR, fileName);
@@ -322,23 +316,9 @@ function emptyLists(): UaeReconDataResult["lists"] {
   };
 }
 
-// ─── Portal-balanced render cap ────────────────────────────────────────────────
-// Replaces the previous simple slice(0, RECON_RENDER_LIMIT) approach.
-//
-// Why: a plain slice removes Property Finder rows when they appear late in
-// the export (lower dashboard_rank than bayut / dubizzle rows).  The filter
-// dropdown then only shows "Bayut" and "Dubizzle" because filter options are
-// built from rendered items.
-//
-// How:
-//   Phase 1 – Per-portal quota: include up to MIN_PER_PORTAL_RENDER rows from
-//              each portal value (bayut, dubizzle, pf, …) preserving their
-//              original within-portal order.
-//   Phase 2 – Global fill: add remaining budget from original list order.
-//   Reconstruction: sorted by original index so global ranking is preserved
-//                   as much as possible within the final selection.
-//
-// Metadata fields (total_rows_available, exported_rows, etc.) are untouched.
+function getRequestedViews(options?: UaeReconDataOptions): UaeReconListKey[] {
+  return options?.views ?? (Object.keys(UAE_SUPABASE_VIEWS) as UaeReconListKey[]);
+}
 
 function getPortalKey(item: UaeReconOpportunity): string | null {
   const raw = item.portal;
@@ -353,12 +333,10 @@ function capListBalanced<T extends UaeReconListPayload | null>(list: T): T {
 
   const items = list.items;
 
-  // No cap needed when items fit within the limit.
   if (items.length <= RECON_RENDER_LIMIT) {
     return { ...list, items } as T;
   }
 
-  // Build per-portal index buckets, preserving original item order within each bucket.
   const portalBuckets = new Map<string, number[]>();
   for (let i = 0; i < items.length; i++) {
     const key = getPortalKey(items[i]) ?? "__none__";
@@ -368,14 +346,12 @@ function capListBalanced<T extends UaeReconListPayload | null>(list: T): T {
 
   const realPortals = [...portalBuckets.keys()].filter((k) => k !== "__none__");
 
-  // Fall back to simple slice when there is no meaningful portal variety.
   if (realPortals.length <= 1) {
     return { ...list, items: items.slice(0, RECON_RENDER_LIMIT) } as T;
   }
 
   const included = new Set<number>();
 
-  // Phase 1 – per-portal quota (up to MIN_PER_PORTAL_RENDER rows per portal).
   for (const key of realPortals) {
     if (included.size >= RECON_RENDER_LIMIT) break;
     const bucket = portalBuckets.get(key)!;
@@ -391,12 +367,10 @@ function capListBalanced<T extends UaeReconListPayload | null>(list: T): T {
     }
   }
 
-  // Phase 2 – fill remaining budget in original list order (Set deduplicates).
   for (let i = 0; i < items.length && included.size < RECON_RENDER_LIMIT; i++) {
     included.add(i);
   }
 
-  // Reconstruct in ascending index order to preserve ranking as much as possible.
   const result = [...included]
     .sort((a, b) => a - b)
     .map((i) => items[i]);
@@ -404,10 +378,19 @@ function capListBalanced<T extends UaeReconListPayload | null>(list: T): T {
   return { ...list, items: result } as T;
 }
 
-// ─── Supabase data loader ─────────────────────────────────────────────────────
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function capLists(lists: UaeReconDataResult["lists"]): UaeReconDataResult["lists"] {
+  return {
+    hotLeads: capListBalanced(lists.hotLeads),
+    priceDrops: capListBalanced(lists.priceDrops),
+    ownerDirect: capListBalanced(lists.ownerDirect),
+    stalePriceDrops: capListBalanced(lists.stalePriceDrops),
+    refreshInflated: capListBalanced(lists.refreshInflated),
+    listingTruth: capListBalanced(lists.listingTruth),
+    residentialRent: capListBalanced(lists.residentialRent),
+    residentialBuy: capListBalanced(lists.residentialBuy),
+    commercial: capListBalanced(lists.commercial),
+    shortRental: capListBalanced(lists.shortRental),
+  };
 }
 
 function booleanFlag(value: unknown): number {
@@ -422,10 +405,6 @@ function booleanFlag(value: unknown): number {
   return 0;
 }
 
-function stringOrNull(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
 function buildSupabaseParams(viewKey: string): URLSearchParams {
   const params = new URLSearchParams();
   params.set("select", SUPABASE_COLUMNS.join(","));
@@ -437,18 +416,11 @@ function buildSupabaseParams(viewKey: string): URLSearchParams {
 }
 
 function buildUaeSupabaseItem(row: SupabaseReconRow): UaeReconOpportunity {
-  const rawItem = isRecord(row.raw_item) ? row.raw_item : {};
   const propertyUrl = row.listing_url || row.source_url || null;
-  const rawListingKey = stringOrNull(rawItem.listing_key);
-  const rawCanonicalId = stringOrNull(rawItem.canonical_id);
-  const rawReconId = rawItem.recon_id;
 
   return {
-    ...rawItem,
     external_key: row.external_key ?? null,
-    listing_key: row.external_key ?? rawListingKey,
-    canonical_id: rawCanonicalId,
-    recon_id: typeof rawReconId === "number" ? rawReconId : null,
+    listing_key: row.external_key ?? null,
     view_key: row.view_key ?? null,
     rank: row.rank ?? null,
     dashboard_rank: row.rank ?? null,
@@ -487,7 +459,7 @@ function buildUaeSupabaseItem(row: SupabaseReconRow): UaeReconOpportunity {
     is_refresh_inflated: booleanFlag(row.has_refresh_signal),
     effective_true_age_days: row.true_age_days ?? null,
     recommended_action: row.recommended_action ?? null,
-    badges: row.badges ?? rawItem.badges ?? null,
+    badges: row.badges ?? null,
     generated_at: row.generated_at ?? null,
     exported_at: row.exported_at ?? null,
   };
@@ -502,10 +474,7 @@ function getRowsExportedAt(rows: SupabaseReconRow[]): string {
   );
 }
 
-function buildUaeSupabaseList(
-  viewKey: string,
-  rows: SupabaseReconRow[]
-): UaeReconListPayload {
+function buildUaeSupabaseList(rows: SupabaseReconRow[]): UaeReconListPayload {
   return {
     country: "uae",
     currency: "AED",
@@ -561,7 +530,7 @@ function createSupabaseManifest(
     key,
     {
       table: SUPABASE_SOURCE_TABLE,
-      exists: true,
+      exists: list !== null,
       total_rows_available: list?.total_rows_available ?? 0,
       exported_rows: list?.exported_rows ?? 0,
       output: `supabase:${SUPABASE_SOURCE_TABLE}:${UAE_SUPABASE_VIEWS[key as keyof typeof UAE_SUPABASE_VIEWS]}`,
@@ -606,69 +575,132 @@ function createSupabaseManifest(
   };
 }
 
-async function getUaeReconDataFromSupabase(): Promise<UaeReconDataResult | null> {
+async function getUaeReconDataFromSupabase(
+  options?: UaeReconDataOptions
+): Promise<UaeReconDataResult | null> {
   if (!isSupabaseServerConfigured()) {
     return null;
   }
 
-  const entries = await Promise.all(
-    Object.entries(UAE_SUPABASE_VIEWS).map(async ([listKey, viewKey]) => {
-      const rows = await fetchSupabaseRows<SupabaseReconRow>(
-        SUPABASE_TABLE,
-        buildSupabaseParams(viewKey)
-      );
+  try {
+    const requestedViews = getRequestedViews(options);
+    const entries = await Promise.all(
+      requestedViews.map(async (listKey) => {
+        const rows = await fetchSupabaseRows<SupabaseReconRow>(
+          SUPABASE_TABLE,
+          buildSupabaseParams(UAE_SUPABASE_VIEWS[listKey])
+        );
 
-      if (rows === null) {
-        return null;
-      }
+        if (rows === null) {
+          return null;
+        }
 
-      return [
-        listKey,
-        buildUaeSupabaseList(viewKey, rows),
-      ] as const;
-    })
-  );
+        return [listKey, buildUaeSupabaseList(rows)] as const;
+      })
+    );
 
-  if (entries.some((entry) => entry === null)) {
+    if (entries.some((entry) => entry === null)) {
+      return null;
+    }
+
+    const lists = {
+      ...emptyLists(),
+      ...(Object.fromEntries(
+        entries.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      ) as Partial<UaeReconDataResult["lists"]>),
+    };
+
+    const [localSummary, localManifest] = await Promise.all([
+      readOptionalJsonFile<UaeReconSummaryPayload>(FILES.summary),
+      readOptionalJsonFile<UaeReconManifestPayload>(FILES.manifest),
+    ]);
+
+    return {
+      status: "ready",
+      message: "UAE Recon Supabase data loaded successfully.",
+      manifest: localManifest ?? createSupabaseManifest(lists),
+      summary: localSummary ?? createSupabaseSummary(lists),
+      lists: capLists(lists),
+    };
+  } catch {
     return null;
   }
-
-  const lists = Object.fromEntries(
-    entries.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-  ) as UaeReconDataResult["lists"];
-
-  const [localSummary, localManifest] = await Promise.all([
-    readOptionalJsonFile<UaeReconSummaryPayload>(FILES.summary),
-    readOptionalJsonFile<UaeReconManifestPayload>(FILES.manifest),
-  ]);
-
-  return {
-    status: "ready",
-    message: "UAE Recon Supabase data loaded successfully.",
-    manifest: localManifest ?? createSupabaseManifest(lists),
-    summary: localSummary ?? createSupabaseSummary(lists),
-    lists: {
-      hotLeads: capListBalanced(lists.hotLeads),
-      priceDrops: capListBalanced(lists.priceDrops),
-      ownerDirect: capListBalanced(lists.ownerDirect),
-      stalePriceDrops: capListBalanced(lists.stalePriceDrops),
-      refreshInflated: capListBalanced(lists.refreshInflated),
-      listingTruth: capListBalanced(lists.listingTruth),
-      residentialRent: capListBalanced(lists.residentialRent),
-      residentialBuy: capListBalanced(lists.residentialBuy),
-      commercial: capListBalanced(lists.commercial),
-      shortRental: capListBalanced(lists.shortRental),
-    },
-  };
 }
 
-// ─── Data loader ──────────────────────────────────────────────────────────────
+async function getUaeReconDataFromScopedLocal(
+  options: UaeReconDataOptions
+): Promise<UaeReconDataResult> {
+  const requestedViews = getRequestedViews(options);
+  const missingRequestedFiles = (
+    await Promise.all(
+      requestedViews.map(async (view) => ({
+        view,
+        exists: await fileExists(FILES[view]),
+      }))
+    )
+  ).filter((entry) => !entry.exists);
 
-export async function getUaeReconData(): Promise<UaeReconDataResult> {
-  const supabaseData = await getUaeReconDataFromSupabase();
+  if (missingRequestedFiles.length > 0) {
+    return {
+      status: "missing",
+      message:
+        "Local UAE Recon export JSON files were not found. Run tools/export_uae_recon_frontend_data.py locally to generate them.",
+      manifest: null,
+      summary: null,
+      lists: emptyLists(),
+    };
+  }
+
+  try {
+    const entries = await Promise.all(
+      requestedViews.map(async (view) => [
+        view,
+        await readJsonFile<UaeReconListPayload>(FILES[view]),
+      ] as const)
+    );
+
+    const [summary, manifest] = await Promise.all([
+      readOptionalJsonFile<UaeReconSummaryPayload>(FILES.summary),
+      readOptionalJsonFile<UaeReconManifestPayload>(FILES.manifest),
+    ]);
+
+    const lists = {
+      ...emptyLists(),
+      ...(Object.fromEntries(entries) as Partial<UaeReconDataResult["lists"]>),
+    };
+
+    return {
+      status: "ready",
+      message: "UAE Recon local export loaded successfully.",
+      manifest,
+      summary,
+      lists: capLists(lists),
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unknown error while loading UAE Recon export files.",
+      manifest: null,
+      summary: null,
+      lists: emptyLists(),
+    };
+  }
+}
+
+export async function getUaeReconData(
+  options?: UaeReconDataOptions
+): Promise<UaeReconDataResult> {
+  const supabaseData = await getUaeReconDataFromSupabase(options);
 
   if (supabaseData) {
     return supabaseData;
+  }
+
+  if (options?.views !== undefined) {
+    return getUaeReconDataFromScopedLocal(options);
   }
 
   const requiredFiles = Object.values(FILES);

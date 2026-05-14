@@ -5,7 +5,6 @@ import {
   isSupabaseServerConfigured,
 } from "./supabaseServer";
 
-// ─── Render cap to keep static/ISR payload under Vercel limits ────────────────
 const RECON_RENDER_LIMIT = 150;
 
 export type KsaReconOpportunity = Record<string, unknown> & {
@@ -162,6 +161,9 @@ export type KsaReconDataResult = {
   };
 };
 
+type KsaReconListKey = keyof KsaReconDataResult["lists"];
+type KsaReconDataOptions = { views?: KsaReconListKey[] };
+
 const EXPORT_BASE_DIR = path.join(process.cwd(), "exports", "frontend", "ksa");
 
 const FILES = {
@@ -182,7 +184,7 @@ const FILES = {
 const SUPABASE_TABLE = "recon_opportunities";
 const SUPABASE_SOURCE_TABLE = "public.recon_opportunities";
 const SUPABASE_DEFAULT_SORT = "rank.asc.nullslast,score.desc.nullslast";
-const SUPABASE_QUERY_LIMIT = "500";
+const SUPABASE_QUERY_LIMIT = "150";
 
 const SUPABASE_COLUMNS = [
   "country",
@@ -219,7 +221,6 @@ const SUPABASE_COLUMNS = [
   "true_age_days",
   "recommended_action",
   "badges",
-  "raw_item",
   "generated_at",
   "exported_at",
 ];
@@ -275,7 +276,7 @@ const KSA_SUPABASE_VIEWS = {
   residentialRent: "residential_rent",
   residentialBuy: "residential_buy",
   commercial: "commercial",
-} as const satisfies Record<keyof KsaReconDataResult["lists"], string>;
+} as const satisfies Record<KsaReconListKey, string>;
 
 async function readJsonFile<T>(fileName: string): Promise<T> {
   const filePath = path.join(EXPORT_BASE_DIR, fileName);
@@ -300,9 +301,6 @@ async function fileExists(fileName: string): Promise<boolean> {
   }
 }
 
-/**
- * Apply render cap to every KSA Recon list payload, preserving all other properties.
- */
 function capList<T extends KsaReconListPayload | null>(list: T): T {
   if (!list) return list;
   return {
@@ -326,10 +324,23 @@ function emptyLists(): KsaReconDataResult["lists"] {
   };
 }
 
-// ─── Supabase data loader ─────────────────────────────────────────────────────
+function getRequestedViews(options?: KsaReconDataOptions): KsaReconListKey[] {
+  return options?.views ?? (Object.keys(KSA_SUPABASE_VIEWS) as KsaReconListKey[]);
+}
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function capLists(lists: KsaReconDataResult["lists"]): KsaReconDataResult["lists"] {
+  return {
+    hotLeads: capList(lists.hotLeads),
+    multiSignal: capList(lists.multiSignal),
+    ownerDirect: capList(lists.ownerDirect),
+    priceDrops: capList(lists.priceDrops),
+    refreshInflation: capList(lists.refreshInflation),
+    contactable: capList(lists.contactable),
+    urlOnly: capList(lists.urlOnly),
+    residentialRent: capList(lists.residentialRent),
+    residentialBuy: capList(lists.residentialBuy),
+    commercial: capList(lists.commercial),
+  };
 }
 
 function booleanFlag(value: unknown): number {
@@ -344,10 +355,6 @@ function booleanFlag(value: unknown): number {
   return 0;
 }
 
-function stringOrNull(value: unknown): string | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
 function buildSupabaseParams(viewKey: string): URLSearchParams {
   const params = new URLSearchParams();
   params.set("select", SUPABASE_COLUMNS.join(","));
@@ -359,18 +366,11 @@ function buildSupabaseParams(viewKey: string): URLSearchParams {
 }
 
 function buildKsaSupabaseItem(row: SupabaseReconRow): KsaReconOpportunity {
-  const rawItem = isRecord(row.raw_item) ? row.raw_item : {};
   const propertyUrl = row.listing_url || row.source_url || null;
-  const rawListingKey = stringOrNull(rawItem.listing_key);
-  const rawCanonicalId = stringOrNull(rawItem.canonical_id);
-  const rawReconId = rawItem.recon_id;
 
   return {
-    ...rawItem,
     external_key: row.external_key ?? null,
-    listing_key: row.external_key ?? rawListingKey,
-    canonical_id: rawCanonicalId,
-    recon_id: typeof rawReconId === "number" ? rawReconId : null,
+    listing_key: row.external_key ?? null,
     view_key: row.view_key ?? null,
     rank: row.rank ?? null,
     dashboard_rank: row.rank ?? null,
@@ -409,7 +409,7 @@ function buildKsaSupabaseItem(row: SupabaseReconRow): KsaReconOpportunity {
     is_refresh_inflated: booleanFlag(row.has_refresh_signal),
     effective_true_age_days: row.true_age_days ?? null,
     recommended_action: row.recommended_action ?? null,
-    badges: row.badges ?? rawItem.badges ?? null,
+    badges: row.badges ?? null,
     generated_at: row.generated_at ?? null,
     exported_at: row.exported_at ?? null,
   };
@@ -424,10 +424,7 @@ function getRowsExportedAt(rows: SupabaseReconRow[]): string {
   );
 }
 
-function buildKsaSupabaseList(
-  viewKey: string,
-  rows: SupabaseReconRow[]
-): KsaReconListPayload {
+function buildKsaSupabaseList(rows: SupabaseReconRow[]): KsaReconListPayload {
   return {
     country: "ksa",
     currency: "SAR",
@@ -483,7 +480,7 @@ function createSupabaseManifest(
     key,
     {
       table: SUPABASE_SOURCE_TABLE,
-      exists: true,
+      exists: list !== null,
       total_rows_available: list?.total_rows_available ?? 0,
       exported_rows: list?.exported_rows ?? 0,
       output: `supabase:${SUPABASE_SOURCE_TABLE}:${KSA_SUPABASE_VIEWS[key as keyof typeof KSA_SUPABASE_VIEWS]}`,
@@ -528,67 +525,132 @@ function createSupabaseManifest(
   };
 }
 
-async function getKsaReconDataFromSupabase(): Promise<KsaReconDataResult | null> {
+async function getKsaReconDataFromSupabase(
+  options?: KsaReconDataOptions
+): Promise<KsaReconDataResult | null> {
   if (!isSupabaseServerConfigured()) {
     return null;
   }
 
-  const entries = await Promise.all(
-    Object.entries(KSA_SUPABASE_VIEWS).map(async ([listKey, viewKey]) => {
-      const rows = await fetchSupabaseRows<SupabaseReconRow>(
-        SUPABASE_TABLE,
-        buildSupabaseParams(viewKey)
-      );
+  try {
+    const requestedViews = getRequestedViews(options);
+    const entries = await Promise.all(
+      requestedViews.map(async (listKey) => {
+        const rows = await fetchSupabaseRows<SupabaseReconRow>(
+          SUPABASE_TABLE,
+          buildSupabaseParams(KSA_SUPABASE_VIEWS[listKey])
+        );
 
-      if (rows === null) {
-        return null;
-      }
+        if (rows === null) {
+          return null;
+        }
 
-      return [
-        listKey,
-        buildKsaSupabaseList(viewKey, rows),
-      ] as const;
-    })
-  );
+        return [listKey, buildKsaSupabaseList(rows)] as const;
+      })
+    );
 
-  if (entries.some((entry) => entry === null)) {
+    if (entries.some((entry) => entry === null)) {
+      return null;
+    }
+
+    const lists = {
+      ...emptyLists(),
+      ...(Object.fromEntries(
+        entries.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      ) as Partial<KsaReconDataResult["lists"]>),
+    };
+
+    const [localSummary, localManifest] = await Promise.all([
+      readOptionalJsonFile<KsaReconSummaryPayload>(FILES.summary),
+      readOptionalJsonFile<KsaReconManifestPayload>(FILES.manifest),
+    ]);
+
+    return {
+      status: "ready",
+      message: "KSA Recon Supabase data loaded successfully.",
+      manifest: localManifest ?? createSupabaseManifest(lists),
+      summary: localSummary ?? createSupabaseSummary(lists),
+      lists: capLists(lists),
+    };
+  } catch {
     return null;
   }
-
-  const lists = Object.fromEntries(
-    entries.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-  ) as KsaReconDataResult["lists"];
-
-  const [localSummary, localManifest] = await Promise.all([
-    readOptionalJsonFile<KsaReconSummaryPayload>(FILES.summary),
-    readOptionalJsonFile<KsaReconManifestPayload>(FILES.manifest),
-  ]);
-
-  return {
-    status: "ready",
-    message: "KSA Recon Supabase data loaded successfully.",
-    manifest: localManifest ?? createSupabaseManifest(lists),
-    summary: localSummary ?? createSupabaseSummary(lists),
-    lists: {
-      hotLeads: capList(lists.hotLeads),
-      multiSignal: capList(lists.multiSignal),
-      ownerDirect: capList(lists.ownerDirect),
-      priceDrops: capList(lists.priceDrops),
-      refreshInflation: capList(lists.refreshInflation),
-      contactable: capList(lists.contactable),
-      urlOnly: capList(lists.urlOnly),
-      residentialRent: capList(lists.residentialRent),
-      residentialBuy: capList(lists.residentialBuy),
-      commercial: capList(lists.commercial),
-    },
-  };
 }
 
-export async function getKsaReconData(): Promise<KsaReconDataResult> {
-  const supabaseData = await getKsaReconDataFromSupabase();
+async function getKsaReconDataFromScopedLocal(
+  options: KsaReconDataOptions
+): Promise<KsaReconDataResult> {
+  const requestedViews = getRequestedViews(options);
+  const missingRequestedFiles = (
+    await Promise.all(
+      requestedViews.map(async (view) => ({
+        view,
+        exists: await fileExists(FILES[view]),
+      }))
+    )
+  ).filter((entry) => !entry.exists);
+
+  if (missingRequestedFiles.length > 0) {
+    return {
+      status: "missing",
+      message:
+        "Local KSA Recon export JSON files were not found. Run tools/export_ksa_recon_frontend_data.py locally to generate them.",
+      manifest: null,
+      summary: null,
+      lists: emptyLists(),
+    };
+  }
+
+  try {
+    const entries = await Promise.all(
+      requestedViews.map(async (view) => [
+        view,
+        await readJsonFile<KsaReconListPayload>(FILES[view]),
+      ] as const)
+    );
+
+    const [summary, manifest] = await Promise.all([
+      readOptionalJsonFile<KsaReconSummaryPayload>(FILES.summary),
+      readOptionalJsonFile<KsaReconManifestPayload>(FILES.manifest),
+    ]);
+
+    const lists = {
+      ...emptyLists(),
+      ...(Object.fromEntries(entries) as Partial<KsaReconDataResult["lists"]>),
+    };
+
+    return {
+      status: "ready",
+      message: "KSA Recon local export loaded successfully.",
+      manifest,
+      summary,
+      lists: capLists(lists),
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unknown error while loading KSA Recon export files.",
+      manifest: null,
+      summary: null,
+      lists: emptyLists(),
+    };
+  }
+}
+
+export async function getKsaReconData(
+  options?: KsaReconDataOptions
+): Promise<KsaReconDataResult> {
+  const supabaseData = await getKsaReconDataFromSupabase(options);
 
   if (supabaseData) {
     return supabaseData;
+  }
+
+  if (options?.views !== undefined) {
+    return getKsaReconDataFromScopedLocal(options);
   }
 
   const requiredFiles = Object.values(FILES);

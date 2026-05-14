@@ -230,6 +230,7 @@ type Module5FileKey =
   | "agencyProfilesMajor";
 
 type Module5DataKey = Exclude<Module5FileKey, "manifest">;
+type Module5DataOptions = { views?: Module5DataKey[] };
 
 type Module5FileConfig = {
   baseDir: string;
@@ -308,7 +309,7 @@ const FILES: Record<Module5Country, Module5FileConfig> = {
 const SUPABASE_TABLE = "module5_market_intelligence";
 const SUPABASE_SOURCE_TABLE = "public.module5_market_intelligence";
 const SUPABASE_DEFAULT_SORT = "rank.asc.nullslast,metric_value.desc.nullslast";
-const SUPABASE_QUERY_LIMIT = "500";
+const SUPABASE_QUERY_LIMIT = "150";
 const SUPABASE_COLUMNS = [
   "country",
   "view_key",
@@ -337,7 +338,6 @@ const SUPABASE_COLUMNS = [
   "recommended_action",
   "label_1",
   "label_2",
-  "raw_item",
   "generated_at",
   "exported_at",
 ];
@@ -409,6 +409,35 @@ function emptyDataResult(
   };
 }
 
+function buildReadyResult(
+  country: Module5Country,
+  currency: Module5Currency,
+  manifest: Module5ManifestPayload | null,
+  payloads: Partial<Record<Module5DataKey, Module5ListPayload>>,
+  message: string
+): Module5DataResult {
+  return {
+    status: "ready",
+    message,
+    country,
+    currency,
+    manifest,
+    summary: payloads.summary ?? null,
+    activityFeed: payloads.activityFeed ?? null,
+    marketDominance: payloads.marketDominance ?? null,
+    inventoryPressure: payloads.inventoryPressure ?? null,
+    agencyProfiles: payloads.agencyProfiles ?? null,
+    communityIntelligence: payloads.communityIntelligence ?? null,
+    buildingIntelligence: payloads.buildingIntelligence ?? null,
+    cityIntelligence: payloads.cityIntelligence ?? null,
+    cityIntelligenceMajor: payloads.cityIntelligenceMajor ?? null,
+    districtIntelligence: payloads.districtIntelligence ?? null,
+    marketDominanceLarge: payloads.marketDominanceLarge ?? null,
+    inventoryPressureLarge: payloads.inventoryPressureLarge ?? null,
+    agencyProfilesMajor: payloads.agencyProfilesMajor ?? null,
+  };
+}
+
 async function readOptionalPayload(
   baseDir: string,
   fileName: string | undefined
@@ -422,10 +451,6 @@ async function readOptionalPayload(
   }
 
   return readJsonFile<Module5ListPayload>(filePath);
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function buildSupabaseParams(
@@ -452,10 +477,7 @@ function getSupabaseExportedAt(rows: SupabaseModule5Row[]): string {
 }
 
 function buildSupabaseRecord(row: SupabaseModule5Row): Module5Record {
-  const rawItem = isPlainObject(row.raw_item) ? row.raw_item : {};
-
   return {
-    ...rawItem,
     external_key: row.external_key,
     entity_type: row.entity_type,
     entity_key: row.entity_key,
@@ -586,9 +608,24 @@ function createSupabaseManifest(
   };
 }
 
+function getRequestedModule5Views(
+  viewMapping: Partial<Record<Module5DataKey, string>>,
+  options?: Module5DataOptions
+): Array<[Module5DataKey, string]> {
+  const entries = Object.entries(viewMapping) as Array<[Module5DataKey, string]>;
+
+  if (options?.views === undefined) {
+    return entries;
+  }
+
+  const requested = new Set(options.views);
+  return entries.filter(([key]) => requested.has(key));
+}
+
 async function getModule5DataFromSupabase(
   country: Module5Country,
-  config: Module5FileConfig
+  config: Module5FileConfig,
+  options?: Module5DataOptions
 ): Promise<Module5DataResult | null> {
   if (!isSupabaseServerConfigured()) {
     return null;
@@ -598,22 +635,19 @@ async function getModule5DataFromSupabase(
 
   try {
     const entries = await Promise.all(
-      Object.entries(viewMapping).map(async ([exportKey, viewKey]) => {
-        const rows = await fetchSupabaseRows<SupabaseModule5Row>(
-          SUPABASE_TABLE,
-          buildSupabaseParams(country, viewKey)
-        );
+      getRequestedModule5Views(viewMapping, options).map(
+        async ([exportKey, viewKey]) => {
+          const rows = await fetchSupabaseRows<SupabaseModule5Row>(
+            SUPABASE_TABLE,
+            buildSupabaseParams(country, viewKey)
+          );
 
-        return [
-          exportKey as Module5DataKey,
-          buildSupabasePayload(
-            country,
-            config.currency,
-            exportKey as Module5DataKey,
-            rows
-          ),
-        ] as const;
-      })
+          return [
+            exportKey,
+            buildSupabasePayload(country, config.currency, exportKey, rows),
+          ] as const;
+        }
+      )
     );
 
     const payloads = Object.fromEntries(entries) as Partial<
@@ -625,40 +659,94 @@ async function getModule5DataFromSupabase(
       localManifest ??
       createSupabaseManifest(country, config.currency, payloads, viewMapping);
 
-    return {
-      status: "ready",
-      message: `${country.toUpperCase()} Module 5 Supabase data loaded successfully.`,
+    return buildReadyResult(
       country,
-      currency: config.currency,
+      config.currency,
       manifest,
-      summary: payloads.summary ?? null,
-      activityFeed: payloads.activityFeed ?? null,
-      marketDominance: payloads.marketDominance ?? null,
-      inventoryPressure: payloads.inventoryPressure ?? null,
-      agencyProfiles: payloads.agencyProfiles ?? null,
-      communityIntelligence: payloads.communityIntelligence ?? null,
-      buildingIntelligence: payloads.buildingIntelligence ?? null,
-      cityIntelligence: payloads.cityIntelligence ?? null,
-      cityIntelligenceMajor: payloads.cityIntelligenceMajor ?? null,
-      districtIntelligence: payloads.districtIntelligence ?? null,
-      marketDominanceLarge: payloads.marketDominanceLarge ?? null,
-      inventoryPressureLarge: payloads.inventoryPressureLarge ?? null,
-      agencyProfilesMajor: payloads.agencyProfilesMajor ?? null,
-    };
+      payloads,
+      `${country.toUpperCase()} Module 5 Supabase data loaded successfully.`
+    );
   } catch {
     return null;
   }
 }
 
+async function getModule5DataFromScopedLocal(
+  country: Module5Country,
+  config: Module5FileConfig,
+  options: Module5DataOptions
+): Promise<Module5DataResult> {
+  const requestedViews = options.views ?? [];
+  const requestedWithFiles = requestedViews
+    .map((key) => [key, config.files[key]] as const)
+    .filter((entry): entry is readonly [Module5DataKey, string] =>
+      typeof entry[1] === "string"
+    );
+
+  const missingRequestedFiles = (
+    await Promise.all(
+      requestedWithFiles.map(async ([key, fileName]) => ({
+        key,
+        exists: await fileExists(path.join(config.baseDir, fileName)),
+      }))
+    )
+  ).filter((entry) => !entry.exists);
+
+  if (missingRequestedFiles.length > 0) {
+    return emptyDataResult(
+      country,
+      config.currency,
+      `Local ${country.toUpperCase()} Module 5 export JSON files were not found. Run ${config.exportCommand} locally to generate them.`,
+      "missing"
+    );
+  }
+
+  try {
+    const entries = await Promise.all(
+      requestedWithFiles.map(async ([key, fileName]) => [
+        key,
+        await readJsonFile<Module5ListPayload>(path.join(config.baseDir, fileName)),
+      ] as const)
+    );
+
+    const manifest = await readLocalManifestIfAvailable(config);
+    const payloads = Object.fromEntries(entries) as Partial<
+      Record<Module5DataKey, Module5ListPayload>
+    >;
+
+    return buildReadyResult(
+      country,
+      config.currency,
+      manifest,
+      payloads,
+      `${country.toUpperCase()} Module 5 local export loaded successfully.`
+    );
+  } catch (error) {
+    return emptyDataResult(
+      country,
+      config.currency,
+      error instanceof Error
+        ? error.message
+        : `Unknown error while loading ${country.toUpperCase()} Module 5 export files.`,
+      "error"
+    );
+  }
+}
+
 export async function getModule5Data(
-  country: CountrySlug
+  country: CountrySlug,
+  options?: Module5DataOptions
 ): Promise<Module5DataResult> {
   const config = FILES[country];
 
-  const supabaseData = await getModule5DataFromSupabase(country, config);
+  const supabaseData = await getModule5DataFromSupabase(country, config, options);
 
   if (supabaseData) {
     return supabaseData;
+  }
+
+  if (options?.views !== undefined) {
+    return getModule5DataFromScopedLocal(country, config, options);
   }
 
   const manifestFile = config.files.manifest;
