@@ -1,8 +1,8 @@
-# RASAD_AUTH_RLS_SUBSCRIPTION_PLAN.md
+# RASAD Auth, RLS, and Subscription Plan
 
 ## 1. Current State
 
-RASAD has completed Phase 5H for UAE and KSA Modules 1–5 dashboard delivery.
+RASAD has completed Phase 5H for UAE and KSA Modules 1–5 dashboard delivery. The Phase 6A database foundation has also been applied and verified.
 
 Current verified architecture:
 
@@ -27,15 +27,40 @@ Current verified architecture:
 - Product navigation:
   - `lib/countries/productNavigation.ts`
 - Phase 6 / AI vectors / pgvector / AI chat are paused.
-- Auth, subscription roles, RLS policies, billing, and user entitlement checks are not implemented yet.
+- Frontend auth, route protection, billing, and user entitlement checks are not implemented yet.
 
 Important current security state:
 
-- The dashboard must not be considered public-production-ready until auth and entitlement checks are implemented.
+- The dashboard must not be considered public-production-ready until frontend auth and entitlement checks are implemented.
 - The Supabase service role key must never be exposed to browser/client code.
 - Raw scraper vaults, SQLite internals, private evidence stores, and backend working tables must never be exposed to customers.
 
-## 2. MVP Auth Decision
+## 2. Phase 6A Database Foundation Applied Status
+
+`supabase/sql/002_auth_entitlements_schema.sql` has been committed and manually applied through Supabase SQL Editor.
+
+Verification confirmed these 4 tables exist:
+
+- `public.user_profiles`
+- `public.user_subscriptions`
+- `public.user_entitlements`
+- `public.subscription_events`
+
+Verification confirmed RLS is enabled on all 4 tables.
+
+Verification confirmed authenticated `SELECT` self-read policies exist for:
+
+- `user_profiles`
+- `user_subscriptions`
+- `user_entitlements`
+
+Verification confirmed `subscription_events` has no subscriber/user read policy.
+
+No anon/public policies were added.
+
+Existing dashboard delivery tables were not modified by this migration.
+
+## 3. MVP Auth Decision
 
 Use **Supabase Auth** first.
 
@@ -60,7 +85,7 @@ The first auth goal is simple:
 Only authenticated and entitled users can access dashboard sections.
 ```
 
-## 3. MVP User Roles
+## 4. MVP User Roles
 
 Keep the role model minimal.
 
@@ -81,7 +106,7 @@ Avoid these for MVP:
 
 One user should equal one subscription during MVP.
 
-## 4. MVP Subscription Tiers
+## 5. MVP Subscription Tiers
 
 Pricing is intentionally **TBD**. Final pricing should be handled in a separate pricing strategy chat.
 
@@ -94,8 +119,6 @@ For now, define tiers by access level, not by fixed price.
 | `market_command` | TBD | Strategic market, inventory, dominance, agency, community, and building intelligence. |
 | `gcc` | TBD | Multi-country access across UAE and KSA. |
 | `admin` | Internal | Internal operator access only. Not sold. |
-
-Recommended product grouping:
 
 ### Opportunities Tier
 
@@ -127,7 +150,7 @@ Strategic intelligence modules:
 - Public API access
 - Enterprise team features
 
-## 5. Country Entitlement Model
+## 6. Country Entitlement Model
 
 RASAD should use a country entitlement model separate from feature tier.
 
@@ -147,7 +170,7 @@ market_command + ksa = KSA tactical + strategic modules only
 market_command + gcc = UAE + KSA tactical + strategic modules
 ```
 
-The page/server route must check both:
+The page/server route must check:
 
 ```text
 1. Is the user authenticated?
@@ -160,7 +183,7 @@ If not allowed:
 - Redirect unauthenticated users to `/login`.
 - Redirect authenticated but unauthorized users to `/upgrade`, or show a clean “Upgrade required” page.
 
-## 6. Dashboard Section Entitlement Matrix
+## 7. Dashboard Section Entitlement Matrix
 
 This matrix should be implemented in a server-side helper later, not hardcoded randomly inside UI components.
 
@@ -183,17 +206,17 @@ This matrix should be implemented in a server-side helper later, not hardcoded r
 
 Country entitlement still applies. A user with UAE access cannot access KSA routes unless they also have KSA/GCC entitlement.
 
-## 7. Supabase RLS Strategy
+## 8. Supabase RLS Strategy
 
 Current delivery tables already have RLS enabled in the Phase 5H schema.
 
 Correct MVP strategy:
 
 - Keep RLS enabled on dashboard-safe delivery tables.
-- Do **not** add public `anon` SELECT policies.
-- Do **not** expose dashboard-safe tables to browser-side Supabase reads.
-- Do **not** use the service role key in client components.
-- Do **not** rely on RLS as the only entitlement layer while using server-side service-role reads.
+- Do not add public anon `SELECT` policies.
+- Do not expose dashboard-safe tables to browser-side Supabase reads.
+- Do not use the service role key in client components.
+- Do not rely on RLS as the only entitlement layer while using server-side service-role reads.
 
 The primary MVP access-control layer should be:
 
@@ -205,7 +228,7 @@ Meaning:
 
 1. The dashboard page/server route verifies the session.
 2. It reads the user’s role, tier, country entitlements, and trial status.
-3. It checks whether the requested `country` and `section` are allowed.
+3. It checks whether the requested country and section are allowed.
 4. Only then does it call the existing data adapters.
 
 RLS remains defense-in-depth:
@@ -216,11 +239,11 @@ RLS remains defense-in-depth:
 
 For MVP, avoid complex RLS policies on large delivery tables until the product, tiers, and entitlements are stable.
 
-## 8. Server-Side Read Strategy
+## 9. Server-Side Read Strategy
 
 Keep dashboard data fetching server-side.
 
-Current `lib/data/supabaseServer.ts` can continue to use the service role key **only on the server** while the page route enforces entitlement first.
+Current `lib/data/supabaseServer.ts` can continue to use the service role key only on the server while the page route enforces entitlement first.
 
 Important rules:
 
@@ -246,11 +269,9 @@ user -> tier -> country -> section
 
 Local JSON fallback must remain available, but it must never bypass entitlement checks. If fallback data is used, it should only be served after the same server-side access check has passed.
 
-## 9. Proposed Future Tables
+## 10. Auth and Subscription Tables
 
-Add minimal auth/subscription tables later. Do not patch SQL yet until the implementation phase.
-
-Recommended future tables:
+These tables now exist as the Phase 6A database foundation. Future work should only extend these tables if explicitly needed.
 
 ### `user_profiles`
 
@@ -258,17 +279,6 @@ Purpose:
 
 - Links Supabase Auth user ID to RASAD app profile.
 - Stores app role and minimal account metadata.
-
-Possible fields later:
-
-```text
-id uuid primary key references auth.users(id)
-email text
-display_name text
-role text
-created_at timestamptz
-updated_at timestamptz
-```
 
 RLS principle:
 
@@ -281,20 +291,6 @@ Purpose:
 
 - Stores subscription state and tier.
 
-Possible fields later:
-
-```text
-id uuid primary key
-user_id uuid references auth.users(id)
-subscription_tier text
-status text
-trial_expires_at timestamptz
-stripe_customer_id text
-stripe_subscription_id text
-created_at timestamptz
-updated_at timestamptz
-```
-
 RLS principle:
 
 - User can read their own subscription.
@@ -306,19 +302,6 @@ RLS principle:
 Purpose:
 
 - Stores country access separately from tier.
-
-Possible fields later:
-
-```text
-id uuid primary key
-user_id uuid references auth.users(id)
-country text
-is_active boolean
-starts_at timestamptz
-ends_at timestamptz
-created_at timestamptz
-updated_at timestamptz
-```
 
 RLS principle:
 
@@ -346,7 +329,7 @@ Do not store:
 - raw portal data.
 - private backend paths that are not needed by the app.
 
-## 10. What Not To Build Yet
+## 11. What Not To Build Yet
 
 Do not build these in the first auth phase:
 
@@ -371,21 +354,15 @@ Billing should also be kept simple at first:
 - Do not build a full billing portal until the gated dashboard works.
 - Pricing values should be finalized in a separate pricing strategy session.
 
-## 11. Exact Implementation Order
+## 12. Exact Implementation Order
 
 Follow this order. Do not skip ahead to billing or Module 6.
 
-### Step 1 — Auth planning freeze
+### Step 1 — Database Foundation (Completed)
 
-Finalize:
+Phase 6A tables and policies successfully applied.
 
-- user roles
-- tier names
-- country entitlement names
-- section entitlement matrix
-- login/upgrade redirect behavior
-
-### Step 2 — Minimal auth package decision
+### Step 2 — Next.js Supabase Auth Implementation Planning
 
 Choose the exact Supabase Auth integration approach for Next.js.
 
@@ -396,18 +373,7 @@ Likely options:
 
 Do not install packages until the exact implementation plan is reviewed.
 
-### Step 3 — Create auth/subscription SQL migration
-
-Create a new migration file later for:
-
-- `user_profiles`
-- `user_subscriptions`
-- `user_entitlements`
-- optional `subscription_events`
-
-Do not modify the existing Phase 5H dashboard delivery schema unless needed.
-
-### Step 4 — Add server-side auth/session helper
+### Step 3 — Add server-side auth/session helper
 
 Create a server-only helper that can answer:
 
@@ -420,7 +386,7 @@ Which countries can they access?
 Is trial access active?
 ```
 
-### Step 5 — Add entitlement helper
+### Step 4 — Add entitlement helper
 
 Create a central helper such as:
 
@@ -430,7 +396,7 @@ canAccessDashboardSection(userAccess, country, section)
 
 This helper should implement the entitlement matrix.
 
-### Step 6 — Protect dashboard route
+### Step 5 — Protect dashboard route
 
 Update:
 
@@ -438,7 +404,7 @@ Update:
 app/dashboard/[country]/[section]/page.tsx
 ```
 
-The route should check entitlement before calling:
+The route should check entitlement before calling data adapters:
 
 ```text
 getUaeReconData
@@ -448,7 +414,7 @@ getModule6Data
 getExportHealthData
 ```
 
-### Step 7 — Add login and upgrade pages
+### Step 6 — Add login and upgrade pages
 
 Add simple pages only:
 
@@ -457,13 +423,13 @@ Add simple pages only:
 
 Do not build complex account management yet.
 
-### Step 8 — Manual provisioning first
+### Step 7 — Manual provisioning first
 
 For the first private beta, manually provision test users in Supabase tables.
 
 Only after this works, add Stripe Checkout/webhooks.
 
-### Step 9 — Validate security
+### Step 8 — Validate security
 
 Test:
 
@@ -474,7 +440,7 @@ Test:
 - fallback path access
 - no client exposure of service role key
 
-### Step 10 — Billing integration later
+### Step 9 — Billing integration later
 
 Only after route protection and entitlement checks are stable:
 
@@ -483,7 +449,7 @@ Only after route protection and entitlement checks are stable:
 - add subscription event logs
 - add upgrade/downgrade handling
 
-## 12. Validation Checklist
+## 13. Validation Checklist
 
 Before declaring the auth/RLS/subscription phase complete:
 
@@ -502,10 +468,10 @@ Before declaring the auth/RLS/subscription phase complete:
 - Service role key is not visible in browser JavaScript.
 - Network tab does not show service role credentials.
 - Raw scraper vaults and SQLite internals are not reachable.
-- No public `anon` SELECT policy exposes dashboard delivery tables.
+- No public anon `SELECT` policy exposes dashboard delivery tables.
 - Build, lint, and typecheck pass.
 
-## 13. Risks and Safeguards
+## 14. Risks and Safeguards
 
 | Risk | Safeguard |
 | --- | --- |
@@ -518,13 +484,3 @@ Before declaring the auth/RLS/subscription phase complete:
 | Module 6 accidentally exposed | Keep `ai-recon` blocked behind entitlement plus feature flag until Phase 6 is formally launched. |
 | Stripe/webhook complexity delays launch | Start with manual provisioning for private beta, then add Stripe after access control works. |
 | Public API requested too early | Do not launch API access until auth, RLS, rate limiting, and abuse controls exist. |
-
-## 14. Save Location
-
-Save this plan as:
-
-```text
-docs/RASAD_AUTH_RLS_SUBSCRIPTION_PLAN.md
-```
-
-This is a planning document only. It should not modify code, SQL, packages, or environment variables.
