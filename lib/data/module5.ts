@@ -1,6 +1,10 @@
 import { promises as fs } from "fs";
 import path from "path";
 import type { CountrySlug } from "@/lib/countries/countryConfig";
+import {
+  fetchSupabaseRows,
+  isSupabaseServerConfigured,
+} from "@/lib/data/supabaseServer";
 
 export type Module5Country = "uae" | "ksa";
 export type Module5Currency = "AED" | "SAR";
@@ -225,11 +229,46 @@ type Module5FileKey =
   | "inventoryPressureLarge"
   | "agencyProfilesMajor";
 
+type Module5DataKey = Exclude<Module5FileKey, "manifest">;
+
 type Module5FileConfig = {
   baseDir: string;
   currency: Module5Currency;
   exportCommand: string;
   files: Partial<Record<Module5FileKey, string>>;
+};
+
+type SupabaseModule5Row = {
+  country?: string | null;
+  view_key?: string | null;
+  external_key?: string | null;
+  entity_type?: string | null;
+  entity_key?: string | null;
+  entity_label?: string | null;
+  rank?: number | null;
+  metric_value?: number | null;
+  metric_label?: string | null;
+  metric_value_2?: number | null;
+  metric_label_2?: string | null;
+  change_pct?: number | null;
+  trend_direction?: string | null;
+  city?: string | null;
+  district?: string | null;
+  community?: string | null;
+  building?: string | null;
+  location_label?: string | null;
+  agency_name?: string | null;
+  agent_name?: string | null;
+  source_portal?: string | null;
+  source_category?: string | null;
+  purpose?: string | null;
+  property_type?: string | null;
+  recommended_action?: string | null;
+  label_1?: string | null;
+  label_2?: string | null;
+  raw_item?: unknown;
+  generated_at?: string | null;
+  exported_at?: string | null;
 };
 
 const FILES: Record<Module5Country, Module5FileConfig> = {
@@ -263,6 +302,68 @@ const FILES: Record<Module5Country, Module5FileConfig> = {
       inventoryPressureLarge: "module5_inventory_pressure_large.json",
       agencyProfilesMajor: "module5_agency_profiles_major.json",
     },
+  },
+};
+
+const SUPABASE_TABLE = "module5_market_intelligence";
+const SUPABASE_SOURCE_TABLE = "public.module5_market_intelligence";
+const SUPABASE_DEFAULT_SORT = "rank.asc.nullslast,metric_value.desc.nullslast";
+const SUPABASE_QUERY_LIMIT = "500";
+const SUPABASE_COLUMNS = [
+  "country",
+  "view_key",
+  "external_key",
+  "entity_type",
+  "entity_key",
+  "entity_label",
+  "rank",
+  "metric_value",
+  "metric_label",
+  "metric_value_2",
+  "metric_label_2",
+  "change_pct",
+  "trend_direction",
+  "city",
+  "district",
+  "community",
+  "building",
+  "location_label",
+  "agency_name",
+  "agent_name",
+  "source_portal",
+  "source_category",
+  "purpose",
+  "property_type",
+  "recommended_action",
+  "label_1",
+  "label_2",
+  "raw_item",
+  "generated_at",
+  "exported_at",
+];
+
+const SUPABASE_VIEW_MAPPING: Record<
+  Module5Country,
+  Partial<Record<Module5DataKey, string>>
+> = {
+  uae: {
+    summary: "summary",
+    activityFeed: "activity_feed",
+    marketDominance: "market_dominance",
+    inventoryPressure: "inventory_pressure",
+    agencyProfiles: "agency_profiles",
+    communityIntelligence: "community_intelligence",
+    buildingIntelligence: "building_intelligence",
+  },
+  ksa: {
+    summary: "summary",
+    activityFeed: "activity_priority",
+    cityIntelligence: "city_intelligence",
+    cityIntelligenceMajor: "city_intelligence_major",
+    districtIntelligence: "district_intelligence",
+    marketDominanceLarge: "market_dominance_large",
+    inventoryPressureLarge: "inventory_pressure_large",
+    agencyProfilesMajor: "agency_profiles_major",
   },
 };
 
@@ -323,10 +424,243 @@ async function readOptionalPayload(
   return readJsonFile<Module5ListPayload>(filePath);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function buildSupabaseParams(
+  country: Module5Country,
+  viewKey: string
+): URLSearchParams {
+  const params = new URLSearchParams();
+  params.set("select", SUPABASE_COLUMNS.join(","));
+  params.set("country", `eq.${country}`);
+  params.set("view_key", `eq.${viewKey}`);
+  params.set("order", SUPABASE_DEFAULT_SORT);
+  params.set("limit", SUPABASE_QUERY_LIMIT);
+  return params;
+}
+
+function getSupabaseExportedAt(rows: SupabaseModule5Row[]): string {
+  const firstRow = rows[0];
+
+  return (
+    firstRow?.exported_at ??
+    firstRow?.generated_at ??
+    new Date().toISOString()
+  );
+}
+
+function buildSupabaseRecord(row: SupabaseModule5Row): Module5Record {
+  const rawItem = isPlainObject(row.raw_item) ? row.raw_item : {};
+
+  return {
+    ...rawItem,
+    external_key: row.external_key,
+    entity_type: row.entity_type,
+    entity_key: row.entity_key,
+    entity_label: row.entity_label,
+    rank: row.rank,
+    dashboard_rank: row.rank,
+    category_rank: row.rank,
+    metric_value: row.metric_value,
+    metric_label: row.metric_label,
+    metric_value_2: row.metric_value_2,
+    metric_label_2: row.metric_label_2,
+    change_pct: row.change_pct,
+    trend_direction: row.trend_direction,
+    city: row.city,
+    district: row.district,
+    community: row.community,
+    building: row.building,
+    building_name: row.building,
+    location_label: row.location_label,
+    agency_name: row.agency_name,
+    agency_display_name: row.agency_name,
+    agent_name: row.agent_name,
+    source_portal: row.source_portal,
+    portal: row.source_portal,
+    source_category: row.source_category,
+    purpose: row.purpose,
+    property_type: row.property_type,
+    recommended_action: row.recommended_action,
+    label_1: row.label_1,
+    label_2: row.label_2,
+    generated_at: row.generated_at,
+    exported_at: row.exported_at,
+  };
+}
+
+function buildSupabasePayload(
+  country: Module5Country,
+  currency: Module5Currency,
+  exportKey: Module5DataKey,
+  rows: SupabaseModule5Row[]
+): Module5ListPayload {
+  return {
+    country,
+    currency,
+    export_key: exportKey,
+    source_table: SUPABASE_SOURCE_TABLE,
+    exported_at: getSupabaseExportedAt(rows),
+    status: "ready",
+    total_rows_available: rows.length,
+    exported_rows: rows.length,
+    default_sort: SUPABASE_DEFAULT_SORT,
+    columns: SUPABASE_COLUMNS,
+    items: rows.map(buildSupabaseRecord),
+  };
+}
+
+async function readLocalManifestIfAvailable(
+  config: Module5FileConfig
+): Promise<Module5ManifestPayload | null> {
+  const manifestFile = config.files.manifest;
+
+  if (!manifestFile) {
+    return null;
+  }
+
+  const manifestPath = path.join(config.baseDir, manifestFile);
+
+  if (!(await fileExists(manifestPath))) {
+    return null;
+  }
+
+  try {
+    return await readJsonFile<Module5ManifestPayload>(manifestPath);
+  } catch {
+    return null;
+  }
+}
+
+function createSupabaseManifest(
+  country: Module5Country,
+  currency: Module5Currency,
+  payloads: Partial<Record<Module5DataKey, Module5ListPayload>>,
+  viewMapping: Partial<Record<Module5DataKey, string>>
+): Module5ManifestPayload {
+  const exportedAt =
+    Object.values(payloads).find((payload) => payload?.exported_at)
+      ?.exported_at ?? new Date().toISOString();
+
+  const exports = Object.entries(payloads).reduce<
+    Module5ManifestPayload["exports"]
+  >((acc, [key, payload]) => {
+    if (!payload) return acc;
+
+    acc[key] = {
+      table: SUPABASE_SOURCE_TABLE,
+      exists: true,
+      total_rows_available: payload.total_rows_available,
+      exported_rows: payload.exported_rows,
+      output: `supabase:${SUPABASE_TABLE}:${viewMapping[key as Module5DataKey] ?? key}`,
+      columns: SUPABASE_COLUMNS,
+      sort: SUPABASE_DEFAULT_SORT,
+    };
+
+    return acc;
+  }, {});
+
+  const outputs = Object.entries(payloads).reduce<
+    Module5ManifestPayload["outputs"]
+  >((acc, [key, payload]) => {
+    if (!payload) return acc;
+
+    acc[key] = `supabase:${SUPABASE_TABLE}:${viewMapping[key as Module5DataKey] ?? key}`;
+
+    return acc;
+  }, {});
+
+  return {
+    export_name: `${country}_module5_supabase`,
+    country,
+    currency,
+    database_path: `supabase:${SUPABASE_TABLE}`,
+    exported_at: exportedAt,
+    default_limit: Number(SUPABASE_QUERY_LIMIT),
+    exports,
+    outputs,
+    frontend_rules: {},
+    do_not_expose_directly: [],
+  };
+}
+
+async function getModule5DataFromSupabase(
+  country: Module5Country,
+  config: Module5FileConfig
+): Promise<Module5DataResult | null> {
+  if (!isSupabaseServerConfigured()) {
+    return null;
+  }
+
+  const viewMapping = SUPABASE_VIEW_MAPPING[country];
+
+  try {
+    const entries = await Promise.all(
+      Object.entries(viewMapping).map(async ([exportKey, viewKey]) => {
+        const rows = await fetchSupabaseRows<SupabaseModule5Row>(
+          SUPABASE_TABLE,
+          buildSupabaseParams(country, viewKey)
+        );
+
+        return [
+          exportKey as Module5DataKey,
+          buildSupabasePayload(
+            country,
+            config.currency,
+            exportKey as Module5DataKey,
+            rows
+          ),
+        ] as const;
+      })
+    );
+
+    const payloads = Object.fromEntries(entries) as Partial<
+      Record<Module5DataKey, Module5ListPayload>
+    >;
+
+    const localManifest = await readLocalManifestIfAvailable(config);
+    const manifest =
+      localManifest ??
+      createSupabaseManifest(country, config.currency, payloads, viewMapping);
+
+    return {
+      status: "ready",
+      message: `${country.toUpperCase()} Module 5 Supabase data loaded successfully.`,
+      country,
+      currency: config.currency,
+      manifest,
+      summary: payloads.summary ?? null,
+      activityFeed: payloads.activityFeed ?? null,
+      marketDominance: payloads.marketDominance ?? null,
+      inventoryPressure: payloads.inventoryPressure ?? null,
+      agencyProfiles: payloads.agencyProfiles ?? null,
+      communityIntelligence: payloads.communityIntelligence ?? null,
+      buildingIntelligence: payloads.buildingIntelligence ?? null,
+      cityIntelligence: payloads.cityIntelligence ?? null,
+      cityIntelligenceMajor: payloads.cityIntelligenceMajor ?? null,
+      districtIntelligence: payloads.districtIntelligence ?? null,
+      marketDominanceLarge: payloads.marketDominanceLarge ?? null,
+      inventoryPressureLarge: payloads.inventoryPressureLarge ?? null,
+      agencyProfilesMajor: payloads.agencyProfilesMajor ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getModule5Data(
   country: CountrySlug
 ): Promise<Module5DataResult> {
   const config = FILES[country];
+
+  const supabaseData = await getModule5DataFromSupabase(country, config);
+
+  if (supabaseData) {
+    return supabaseData;
+  }
+
   const manifestFile = config.files.manifest;
   const activityFile = config.files.activityFeed;
 
