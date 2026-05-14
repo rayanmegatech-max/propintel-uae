@@ -163,13 +163,24 @@ def run_module5_ingestion(
                     for index, item in enumerate(items, start=1)
                 ]
 
+                original_mapped_count = len(mapped_rows)
+                mapped_rows, duplicate_count = _dedupe_rows_for_upsert(mapped_rows)
+
+                if duplicate_count > 0:
+                    print(
+                        f"WARNING: skipped duplicate upsert keys country={country} "
+                        f"view_key={view_key} source_file={filename} "
+                        f"duplicate_count={duplicate_count}"
+                    )
+
                 files_count += 1
                 rows_count += len(mapped_rows)
 
                 print(
                     f"country={country} module={MODULE_NAME} target_table={TARGET_TABLE} "
                     f"view_key={view_key} source_file={filename} "
-                    f"item_count={len(all_items)} mapped_count={len(mapped_rows)}"
+                    f"item_count={len(all_items)} mapped_count={len(mapped_rows)} "
+                    f"original_mapped_count={original_mapped_count}"
                 )
 
                 if dry_run and mapped_rows and not first_mapped_keys_printed:
@@ -269,6 +280,24 @@ def _dict_text(payload: Any, key: str) -> str | None:
 
     text = str(value).strip()
     return text or None
+
+
+def _dedupe_rows_for_upsert(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
+    deduped_rows: list[dict[str, Any]] = []
+    seen_keys: set[tuple[Any, Any, Any]] = set()
+    duplicate_count = 0
+
+    for row in rows:
+        key = (row["country"], row["view_key"], row["external_key"])
+
+        if key in seen_keys:
+            duplicate_count += 1
+            continue
+
+        seen_keys.add(key)
+        deduped_rows.append(row)
+
+    return deduped_rows, duplicate_count
 
 
 def _upsert_manifest(client: Any, country: str, manifest: dict[str, Any]) -> None:
