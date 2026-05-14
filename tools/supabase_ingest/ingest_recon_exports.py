@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 import sys
+import time
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -29,6 +31,8 @@ SCRIPT_NAME = "ingest_recon_exports.py"
 RUN_ON_CONFLICT = "run_id"
 MANIFEST_ON_CONFLICT = "country,module,source_file,exported_at"
 ROW_ON_CONFLICT = "country,view_key,external_key"
+MAX_SUPABASE_ATTEMPTS = 3
+SUPABASE_RETRY_BACKOFF_SECONDS = (1, 2)
 
 RECON_FILE_MAP: dict[str, list[tuple[str, str]]] = {
     "uae": [
@@ -199,11 +203,17 @@ def run_recon_ingestion(
 
     except Exception as exc:
         if not dry_run and client is not None and run_id is not None:
-            _update_ingestion_run_failed(
-                client=client,
-                run_id=run_id,
-                error_message=str(exc),
-            )
+            try:
+                _update_ingestion_run_failed(
+                    client=client,
+                    run_id=run_id,
+                    error_message=str(exc),
+                )
+            except Exception as status_exc:
+                print(
+                    "WARNING: Failed to mark ingestion run as failed "
+                    f"run_id={run_id} error_type={type(status_exc).__name__}"
+                )
         raise
 
     summary = {
@@ -295,6 +305,34 @@ def _dedupe_rows_for_upsert(rows: list[dict[str, Any]]) -> tuple[list[dict[str, 
     return deduped_rows, duplicate_count
 
 
+def _execute_with_retry(operation_label: str, execute_fn: Callable[[], Any]) -> Any:
+    last_exc: Exception | None = None
+
+    for attempt in range(1, MAX_SUPABASE_ATTEMPTS + 1):
+        try:
+            return execute_fn()
+        except Exception as exc:
+            last_exc = exc
+
+            if attempt >= MAX_SUPABASE_ATTEMPTS:
+                raise
+
+            sleep_seconds = SUPABASE_RETRY_BACKOFF_SECONDS[attempt - 1]
+            print(
+                "WARNING: Supabase operation failed "
+                f"operation={operation_label} "
+                f"attempt={attempt}/{MAX_SUPABASE_ATTEMPTS} "
+                f"error_type={type(exc).__name__}; "
+                f"retrying in {sleep_seconds}s"
+            )
+            time.sleep(sleep_seconds)
+
+    if last_exc is not None:
+        raise last_exc
+
+    raise RuntimeError(f"Supabase operation did not execute: {operation_label}")
+
+
 def _upsert_manifest(client: Any, country: str, manifest: dict[str, Any]) -> None:
     exported_at = _dict_text(manifest, "exported_at") or utc_now_iso()
     export_name = _dict_text(manifest, "export_name") or MODULE_NAME
@@ -309,18 +347,24 @@ def _upsert_manifest(client: Any, country: str, manifest: dict[str, Any]) -> Non
         "meta": {"ingested_by": SCRIPT_NAME},
     }
 
-    client.table("export_manifests").upsert(
-        row,
-        on_conflict=MANIFEST_ON_CONFLICT,
-    ).execute()
+    _execute_with_retry(
+        f"export_manifests.upsert country={country} module={MODULE_NAME}",
+        lambda: client.table("export_manifests").upsert(
+            row,
+            on_conflict=MANIFEST_ON_CONFLICT,
+        ).execute(),
+    )
 
 
 def _upsert_rows(client: Any, rows: list[dict[str, Any]], batch_size: int) -> None:
-    for batch in chunked(rows, batch_size):
-        client.table(TARGET_TABLE).upsert(
-            batch,
-            on_conflict=ROW_ON_CONFLICT,
-        ).execute()
+    for batch_number, batch in enumerate(chunked(rows, batch_size), start=1):
+        _execute_with_retry(
+            f"{TARGET_TABLE}.upsert batch={batch_number} batch_size={len(batch)}",
+            lambda: client.table(TARGET_TABLE).upsert(
+                batch,
+                on_conflict=ROW_ON_CONFLICT,
+            ).execute(),
+        )
 
 
 def _upsert_ingestion_run_start(
@@ -341,10 +385,13 @@ def _upsert_ingestion_run_start(
         "started_at": started_at,
     }
 
-    client.table("ingestion_runs").upsert(
-        row,
-        on_conflict=RUN_ON_CONFLICT,
-    ).execute()
+    _execute_with_retry(
+        f"ingestion_runs.start run_id={run_id}",
+        lambda: client.table("ingestion_runs").upsert(
+            row,
+            on_conflict=RUN_ON_CONFLICT,
+        ).execute(),
+    )
 
 
 def _update_ingestion_run_success(
@@ -356,14 +403,17 @@ def _update_ingestion_run_success(
     if run_id is None:
         return
 
-    client.table("ingestion_runs").update(
-        {
-            "status": "success",
-            "files_count": files_count,
-            "rows_count": rows_count,
-            "finished_at": utc_now_iso(),
-        }
-    ).eq("run_id", run_id).execute()
+    _execute_with_retry(
+        f"ingestion_runs.success run_id={run_id}",
+        lambda: client.table("ingestion_runs").update(
+            {
+                "status": "success",
+                "files_count": files_count,
+                "rows_count": rows_count,
+                "finished_at": utc_now_iso(),
+            }
+        ).eq("run_id", run_id).execute(),
+    )
 
 
 def _update_ingestion_run_failed(
@@ -374,13 +424,16 @@ def _update_ingestion_run_failed(
     if run_id is None:
         return
 
-    client.table("ingestion_runs").update(
-        {
-            "status": "failed",
-            "error_message": error_message,
-            "finished_at": utc_now_iso(),
-        }
-    ).eq("run_id", run_id).execute()
+    _execute_with_retry(
+        f"ingestion_runs.failed run_id={run_id}",
+        lambda: client.table("ingestion_runs").update(
+            {
+                "status": "failed",
+                "error_message": error_message,
+                "finished_at": utc_now_iso(),
+            }
+        ).eq("run_id", run_id).execute(),
+    )
 
 
 def _positive_int(value: str) -> int:
