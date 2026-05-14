@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import ActivityFeedPage from "../../_components/ActivityFeedPage";
 import AIReconIntelligencePage from "../../_components/AIReconIntelligencePage";
 import AgencyProfilesPage from "../../_components/AgencyProfilesPage";
@@ -17,6 +17,8 @@ import UaeReconDataPage from "../../_components/UaeReconDataPage";
 import MarketRadarPage from "../../_components/MarketRadarPage";
 import CompetitorRadarPage from "../../_components/CompetitorRadarPage";
 
+import { getCurrentUserAccess } from "@/lib/auth/sessionHelper";
+import { canAccessDashboardSection } from "@/lib/auth/entitlementHelper";
 import {
   COUNTRY_LIST,
   getCountryConfig,
@@ -32,6 +34,8 @@ import { getKsaReconData } from "@/lib/data/ksaRecon";
 import { getModule5Data } from "@/lib/data/module5";
 import { getModule6Data } from "@/lib/data/module6";
 import { getUaeReconData } from "@/lib/data/uaeRecon";
+
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return COUNTRY_LIST.flatMap((country) =>
@@ -54,6 +58,13 @@ export default async function CountrySectionPage({
 
   if (!countryConfig || !productSection) {
     notFound();
+  }
+
+  const access = await getCurrentUserAccess();
+  const decision = canAccessDashboardSection(access, country, section);
+
+  if (!decision.allowed) {
+    redirect(decision.redirectTo ?? "/upgrade");
   }
 
   // V1 Combined Workspace Previews
