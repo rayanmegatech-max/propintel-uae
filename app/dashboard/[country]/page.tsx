@@ -1,10 +1,14 @@
-import { notFound } from "next/navigation";
-import CountryOverviewPage from "../_components/CountryOverviewPage";
+import { notFound, redirect } from "next/navigation";
+
+import { getCurrentUserAccess } from "@/lib/auth/sessionHelper";
+import { canAccessDashboardSection } from "@/lib/auth/entitlementHelper";
 import {
   COUNTRY_LIST,
   getCountryConfig,
   type CountrySlug,
 } from "@/lib/countries/countryConfig";
+
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return COUNTRY_LIST.map((country) => ({
@@ -24,5 +28,12 @@ export default async function CountryDashboardPage({
     notFound();
   }
 
-  return <CountryOverviewPage country={countryConfig} />;
+  const access = await getCurrentUserAccess();
+  const decision = canAccessDashboardSection(access, country, "recon");
+
+  if (!decision.allowed) {
+    redirect(decision.redirectTo ?? "/upgrade");
+  }
+
+  redirect(`/dashboard/${country}/recon`);
 }
