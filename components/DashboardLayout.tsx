@@ -163,19 +163,9 @@ function buildGroups(country: CountryConfig | undefined): NavGroup[] {
     ];
   }
 
-  // Country selected — overview + grouped product sections
-  const groups: NavGroup[] = [
-    {
-      label: "Command",
-      items: [
-        {
-          label: `${country.label} Overview`,
-          href:  country.routeBase,
-          icon:  LayoutDashboard,
-        },
-      ],
-    },
-  ];
+  // Country selected — grouped product workspaces only.
+  // Country switching is handled by the UAE/KSA toggle above.
+  const groups: NavGroup[] = [];
 
   for (const def of GROUP_DEFS) {
     const items = def.slugs
