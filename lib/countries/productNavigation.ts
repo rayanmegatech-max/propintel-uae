@@ -124,7 +124,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
   {
     slug: "inventory-pressure",
     label: "Supply Pressure",
-    shortLabel: "Pressure",
+    shortLabel: "Inventory Pressure",
     eyebrow: "Pressure Radar",
     description:
       "Inventory pressure, price-drop pressure, refresh pressure, owner/direct pressure, old inventory pressure, and market pressure signals.",
@@ -135,7 +135,7 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
   {
     slug: "activity-feed",
     label: "Recent Market Movement",
-    shortLabel: "Activity",
+    shortLabel: "Activity Feed",
     eyebrow: "Daily Activity",
     description:
       "Balanced market activity feed built from frontend-safe activity tables, including recon opportunities, price movements, recently detected listings, pressure, dominance, and agency signals.",
