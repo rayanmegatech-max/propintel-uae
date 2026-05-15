@@ -1,9 +1,16 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import { getCurrentUserAccess } from "@/lib/auth/sessionHelper";
 
-export default function DashboardPageLayout({
+export default async function DashboardPageLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardLayout>{children}</DashboardLayout>;
+  const userAccess = await getCurrentUserAccess();
+
+  return (
+    <DashboardLayout userAccess={userAccess}>
+      {children}
+    </DashboardLayout>
+  );
 }

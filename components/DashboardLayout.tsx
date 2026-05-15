@@ -36,6 +36,8 @@ import {
   getProductSection,
   type ProductSectionSlug,
 } from "@/lib/countries/productNavigation";
+import type { UserAccess } from "@/lib/auth/sessionHelper";
+import DashboardLogoutButton from "@/components/DashboardLogoutButton";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 // Graphite/zinc terminal. Emerald = active/live only. Amber = caution only.
@@ -386,11 +388,46 @@ function NavLink({ item, onNav }: { item: NavItem; onNav?: () => void }) {
   );
 }
 
+function formatRoleLabel(role: UserAccess["role"]) {
+  if (role === "admin") return "Admin";
+  if (role === "subscriber") return "Subscriber";
+  if (role === "trial") return "Trial";
+  return "Inactive";
+}
+
+function formatTierLabel(tier: UserAccess["subscriptionTier"]) {
+  if (tier === "market_command") return "Market Command";
+  if (tier === "opportunities") return "Opportunities";
+  if (tier === "gcc") return "GCC";
+  if (tier === "admin") return "Admin";
+  return "Free";
+}
+
+function getUserInitial(email: string | null) {
+  if (!email) return "U";
+  return email.trim().charAt(0).toUpperCase() || "U";
+}
+
+function getUserDisplayEmail(email: string | null) {
+  return email || "RASAD User";
+}
+
 // ─── Sidebar inner ────────────────────────────────────────────────────────────
-function SidebarInner({ onNav }: { onNav?: () => void }) {
+function SidebarInner({
+  onNav,
+  userAccess,
+}: {
+  onNav?: () => void;
+  userAccess: UserAccess;
+}) {
   const pathname      = usePathname();
   const activeCountry = useMemo(() => countryFromPath(pathname), [pathname]);
   const groups        = useMemo(() => buildGroups(activeCountry), [activeCountry]);
+  const userInitial   = getUserInitial(userAccess.email);
+  const userEmail     = getUserDisplayEmail(userAccess.email);
+  const userMeta      = `${formatRoleLabel(userAccess.role)} · ${formatTierLabel(
+    userAccess.subscriptionTier
+  )}`;
 
   return (
     <div className="flex h-full flex-col">
@@ -471,21 +508,25 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
         </div>
 
         {/* User row */}
-        <div className="flex items-center gap-2.5 pl-0.5">
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-            style={{ background: "linear-gradient(145deg,#10b981,#065f46)" }}
-          >
-            A
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5 pl-0.5">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+              style={{ background: "linear-gradient(145deg,#10b981,#065f46)" }}
+            >
+              {userInitial}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold truncate" style={{ color: C.t1 }}>
+                {userEmail}
+              </p>
+              <p className="text-[10px] truncate" style={{ color: C.t4 }}>
+                {userMeta}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold truncate" style={{ color: C.t1 }}>
-              Analyst
-            </p>
-            <p className="text-[10px] truncate" style={{ color: C.t4 }}>
-              © 2026 RASAD
-            </p>
-          </div>
+
+          <DashboardLogoutButton />
         </div>
       </div>
     </div>
@@ -649,9 +690,13 @@ function Header({
 // ─── Root layout ──────────────────────────────────────────────────────────────
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  userAccess: UserAccess;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({
+  children,
+  userAccess,
+}: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const pathname      = usePathname();
@@ -696,7 +741,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         className="hidden lg:flex flex-col w-[236px] shrink-0 border-r h-full"
         style={{ background: C.sideBg, borderColor: C.border }}
       >
-        <SidebarInner />
+        <SidebarInner userAccess={userAccess} />
       </aside>
 
       {/* Mobile sidebar */}
@@ -711,7 +756,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             className="fixed inset-y-0 left-0 z-50 w-[248px] flex flex-col border-r lg:hidden"
             style={{ background: C.sideBg, borderColor: C.border }}
           >
-            <SidebarInner onNav={closeMobile} />
+            <SidebarInner onNav={closeMobile} userAccess={userAccess} />
           </motion.aside>
         )}
       </AnimatePresence>
