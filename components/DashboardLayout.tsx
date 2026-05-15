@@ -112,13 +112,13 @@ const GROUP_DEFS: { label: string; slugs: ProductSectionSlug[] }[] = [
   {
     label: "Market",
     slugs: [
+      "market-intelligence",
       "market-radar",
       "competitor-radar",
-      "market-intelligence",
       "inventory-pressure",
+      "activity-feed",
       "market-dominance",
       "agency-profiles",
-      "activity-feed",
     ],
   },
   {
@@ -309,9 +309,14 @@ function CountrySwitcher({
 // ─── Nav link ─────────────────────────────────────────────────────────────────
 function NavLink({ item, onNav }: { item: NavItem; onNav?: () => void }) {
   const pathname  = usePathname();
-  const isActive  = item.href === "/dashboard"
-    ? pathname === "/dashboard"
-    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const isCountryOverview =
+    item.href === "/dashboard/uae" || item.href === "/dashboard/ksa";
+
+  const isActive = isCountryOverview
+    ? pathname === item.href
+    : item.href === "/dashboard"
+      ? pathname === "/dashboard"
+      : pathname === item.href || pathname.startsWith(`${item.href}/`);
   const isLimited = !!item.disabledReason;
   const isAdmin   = !!item.internalOnly && !isLimited;
   const Icon      = item.icon;

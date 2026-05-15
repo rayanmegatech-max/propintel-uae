@@ -147,13 +147,13 @@ export const PRODUCT_SECTIONS: ProductSection[] = [
   {
     slug: "market-intelligence",
     label: "Market Intelligence",
-    shortLabel: "Market Intel",
+    shortLabel: "Market Intelligence",
     eyebrow: "Market Command Center",
     description:
       "Country-level market intelligence using dashboard-ready activity, city/community, district, building, agency, pressure, and dominance views.",
     primaryUse:
       "Give operators a clean command center for what is moving, where pressure is building, and which public markets are most active.",
-    isHidden: true,
+    navGroup: "MARKET",
   },
   {
     slug: "market-dominance",
