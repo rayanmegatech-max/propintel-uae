@@ -150,7 +150,13 @@ function deriveTitle(
   return getProductSection(slug)?.label ?? `${country.label} Overview`;
 }
 
-function buildGroups(country: CountryConfig | undefined): NavGroup[] {
+function buildGroups(
+  country: CountryConfig | undefined,
+  userAccess: UserAccess
+): NavGroup[] {
+  const isAdmin =
+    userAccess.role === "admin" || userAccess.subscriptionTier === "admin";
+
   // GCC root — no country selected
   if (!country) {
     return [
@@ -175,6 +181,7 @@ function buildGroups(country: CountryConfig | undefined): NavGroup[] {
         const sec = PRODUCT_SECTIONS.find((s) => s.slug === slug);
         // Exclude completely if not found or explicitly hidden from sidebar
         if (!sec || sec.isHidden) return null;
+        if (sec.internalOnly && !isAdmin) return null;
         return {
           label:          sec.shortLabel,
           href:           `${country.routeBase}/${sec.slug}`,
@@ -422,7 +429,10 @@ function SidebarInner({
 }) {
   const pathname      = usePathname();
   const activeCountry = useMemo(() => countryFromPath(pathname), [pathname]);
-  const groups        = useMemo(() => buildGroups(activeCountry), [activeCountry]);
+  const groups = useMemo(
+    () => buildGroups(activeCountry, userAccess),
+    [activeCountry, userAccess]
+  );
   const userInitial   = getUserInitial(userAccess.email);
   const userEmail     = getUserDisplayEmail(userAccess.email);
   const userMeta      = `${formatRoleLabel(userAccess.role)} · ${formatTierLabel(

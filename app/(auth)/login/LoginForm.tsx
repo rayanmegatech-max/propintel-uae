@@ -34,7 +34,7 @@ export default function LoginForm() {
       return next;
     }
 
-    return "/dashboard";
+    return "/dashboard/uae/recon";
   }, [searchParams]);
 
   const [email, setEmail] = useState("");
